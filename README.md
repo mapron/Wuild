@@ -1,5 +1,5 @@
 # About Wuild
-Wuild (derived from "wuild build") is a distributed compilation system, inspired by Distcc project. Main goals:
+Wuild (derived from "wild build") is a distributed compilation system, inspired by Distcc project. Main goals:
 - Cross-platform builds (for example, Linux guests and Windows hosts);
 - Siplicity;
 - Fast integration and usability.
