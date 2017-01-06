@@ -73,8 +73,6 @@ bool Subprocess::Start(SubprocessSet* set, const string& command) {
   // default action in the new process image, so no explicit
   // POSIX_SPAWN_SETSIGDEF parameter is needed.
 
-  // TODO: Consider using POSIX_SPAWN_USEVFORK on Linux with glibc?
-
   if (!use_console_) {
     // Put the child in its own process group, so ctrl-c won't reach it.
     flags |= POSIX_SPAWN_SETPGROUP;
@@ -93,6 +91,9 @@ bool Subprocess::Start(SubprocessSet* set, const string& command) {
     // In the console case, output_pipe is still inherited by the child and
     // closed when the subprocess finishes, which then notifies ninja.
   }
+#ifdef POSIX_SPAWN_USEVFORK
+  flags |= POSIX_SPAWN_USEVFORK;
+#endif
 
   if (posix_spawnattr_setflags(&attr, flags) != 0)
     Fatal("posix_spawnattr_setflags: %s", strerror(errno));
@@ -172,7 +173,11 @@ void SubprocessSet::HandlePendingInterruption() {
     interrupted_ = SIGHUP;
 }
 
-SubprocessSet::SubprocessSet() {
+SubprocessSet::SubprocessSet(bool setupSignalHandlers)
+    : setupSignalHandlers_(setupSignalHandlers) {
+    if (!setupSignalHandlers_)
+        return;
+
   sigset_t set;
   sigemptyset(&set);
   sigaddset(&set, SIGINT);
@@ -195,6 +200,8 @@ SubprocessSet::SubprocessSet() {
 SubprocessSet::~SubprocessSet() {
   Clear();
 
+  if (!setupSignalHandlers_)
+      return;
   if (sigaction(SIGINT, &old_int_act_, 0) < 0)
     Fatal("sigaction: %s", strerror(errno));
   if (sigaction(SIGTERM, &old_term_act_, 0) < 0)

@@ -45,7 +45,7 @@ struct EvalString {
   /// for use in tests.
   string Serialize() const;
 
-private:
+public:
   enum TokenType { RAW, SPECIAL };
   typedef vector<pair<string, TokenType> > TokenList;
   TokenList parsed_;
@@ -63,6 +63,11 @@ struct Rule {
 
   const EvalString* GetBinding(const string& key) const;
 
+  EvalString* GetBinding(const string& key);
+  void RemoveBinding(const string& key);
+
+  Rule * Clone(const std::string & newName) const;
+
  private:
   // Allow the parsers to reach into this object and fill out its fields.
   friend struct ManifestParser;
@@ -78,6 +83,8 @@ struct BindingEnv : public Env {
   BindingEnv() : parent_(NULL) {}
   explicit BindingEnv(BindingEnv* parent) : parent_(parent) {}
 
+  BindingEnv* Clone();
+
   virtual ~BindingEnv() {}
   virtual string LookupVariable(const string& var);
 
@@ -87,6 +94,8 @@ struct BindingEnv : public Env {
   const map<string, const Rule*>& GetRules() const;
 
   void AddBinding(const string& key, const string& val);
+  const map<string, string> & GetBindings() const;
+  string GetBindingsDump() const;
 
   /// This is tricky.  Edges want lookup scope to go in this order:
   /// 1) value set on edge itself (edge_->env_)

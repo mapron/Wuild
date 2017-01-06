@@ -198,18 +198,22 @@ const string& Subprocess::GetOutput() const {
 
 HANDLE SubprocessSet::ioport_;
 
-SubprocessSet::SubprocessSet() {
+SubprocessSet::SubprocessSet(bool setupSignalHandlers)
+    : setupSignalHandlers_(setupSignalHandlers) {
   ioport_ = ::CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 1);
   if (!ioport_)
     Win32Fatal("CreateIoCompletionPort");
-  if (!SetConsoleCtrlHandler(NotifyInterrupted, TRUE))
+
+  if (setupSignalHandlers_ && !SetConsoleCtrlHandler(NotifyInterrupted, TRUE))
     Win32Fatal("SetConsoleCtrlHandler");
 }
 
 SubprocessSet::~SubprocessSet() {
   Clear();
 
-  SetConsoleCtrlHandler(NotifyInterrupted, FALSE);
+  if (setupSignalHandlers_)
+    SetConsoleCtrlHandler(NotifyInterrupted, FALSE);
+
   CloseHandle(ioport_);
 }
 

@@ -1,0 +1,173 @@
+#[[
+  Copyright (C) 2017 Smirnov Vladimir mapron1@gmail.com
+  Source code licensed under the Apache License, Version 2.0 (the "License");
+  You may not use this file except in compliance with the License.
+  You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 or in file COPYING-APACHE-2.0.txt
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.h
+#]]
+
+cmake_minimum_required(VERSION 3.5)
+project(Wuild)
+
+set(NINJA_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/ninja-1.7.2/src)
+set(ZLIB_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/zlib-1.2.8)
+
+option(USE_SYSTEM_ZLIB "Use system zlib library." ON)
+
+set(ZLIB_LIBS -lz)
+if (MSVC)
+    set(USE_SYSTEM_ZLIB OFF)
+    add_definitions(-D_CRT_SECURE_NO_WARNINGS -DNOMINMAX)
+endif()
+
+function(AddTarget)
+    set(options APP)
+    set(oneValueArgs NAME ROOT)
+    set(multiValueArgs CSRC INCLUDES DEPS EXCLUDE OPTIONS)
+    cmake_parse_arguments(AddTarget "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )
+    set(_sources)
+    if (NOT AddTarget_ROOT)
+        set(AddTarget_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/${AddTarget_NAME})
+    endif()
+    foreach (csrc ${AddTarget_CSRC})
+        file(GLOB src ${AddTarget_ROOT}/${csrc})
+        list(APPEND _sources ${src})
+    endforeach()
+    foreach (excl ${AddTarget_EXCLUDE})
+        list(REMOVE_ITEM _sources ${AddTarget_ROOT}/${excl})
+    endforeach()
+    if (AddTarget_APP)
+        add_executable(${AddTarget_NAME} ${_sources})
+    else()
+        add_library(${AddTarget_NAME} STATIC ${_sources})
+    endif()
+    foreach (inc ${AddTarget_INCLUDES})
+        target_include_directories(${AddTarget_NAME} PRIVATE ${inc})
+    endforeach()
+    target_include_directories(${AddTarget_NAME} PUBLIC ${AddTarget_ROOT})
+    foreach (dep ${AddTarget_DEPS})
+        target_link_libraries(${AddTarget_NAME} PRIVATE ${dep})
+    endforeach()
+    foreach (opt ${AddTarget_OPTIONS})
+        target_compile_options(${AddTarget_NAME} PRIVATE ${opt})
+    endforeach()
+endfunction()
+
+
+
+if (NOT USE_SYSTEM_ZLIB)
+    AddTarget(NAME zlib_static ROOT ${ZLIB_ROOT}/ CSRC *.c)
+    set(ZLIB_LIBS zlib_static)
+endif()
+
+set(ninja_lib_src
+  #  browse.cc
+    build.cc
+    build_log.cc
+    clean.cc
+    clparser.cc
+    debug_flags.cc
+    depfile_parser.cc
+    deps_log.cc
+    disk_interface.cc
+    edit_distance.cc
+    eval_env.cc
+    graph.cc
+    graphviz.cc
+    lexer.cc
+    line_printer.cc
+    manifest_parser.cc
+    metrics.cc
+    state.cc
+  #  subprocess-posix.cc
+    util.cc
+    version.cc
+    )
+
+if (WIN32)
+    set(ninja_subprocess_src subprocess-win32.cc )
+    list(APPEND ninja_lib_src includes_normalize-win32.cc )
+    if (MSVC)
+        list(APPEND ninja_lib_src minidump-win32.cc msvc_helper-win32.cc msvc_helper_main-win32.cc getopt.c)
+    endif()
+else()
+    set(ninja_subprocess_src subprocess-posix.cc )
+endif()
+
+if (NOT MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1z ")
+endif()
+
+
+AddTarget(NAME ninja_subprocess ROOT ${NINJA_ROOT}/ CSRC ${ninja_subprocess_src}
+    )
+AddTarget(NAME ninja_lib ROOT ${NINJA_ROOT}/ CSRC ${ninja_lib_src} *.h
+    EXCLUDE remote_executor_impl.h
+    DEPS ninja_subprocess
+    )
+
+AddTarget(NAME Platform CSRC *.cpp *.h
+    DEPS ${ZLIB_LIBS})
+
+AddTarget(NAME Configs CSRC *.cpp *.h
+    DEPS Platform)
+
+AddTarget(NAME CompilerInterface CSRC *.cpp *.h
+    DEPS Configs Platform)
+
+AddTarget(NAME Networking CSRC *.cpp *.h
+    DEPS Configs Platform CompilerInterface
+    )
+
+AddTarget(NAME CompilerModule CSRC *.cpp *.h
+    DEPS Configs Platform CompilerInterface
+    )
+
+AddTarget(NAME LocalExecutor  CSRC *.cpp *.h
+    DEPS
+        ninja_subprocess Configs Platform Networking CompilerModule CompilerInterface
+    )
+
+AddTarget(NAME ConfiguredApplication CSRC *.cpp *.h
+    DEPS Configs Platform
+    )
+
+
+set(main_deps
+    ConfiguredApplication Configs LocalExecutor CompilerModule CompilerInterface Networking Platform ninja_subprocess ninja_lib
+    )
+
+set(sys_deps)
+
+if ( WIN32)
+    list(APPEND sys_deps ws2_32.lib)
+else()
+    list(APPEND sys_deps -lpthread)
+endif()
+if ((UNIX AND NOT APPLE) OR (WIN32 AND NOT MSVC))
+    list(APPEND sys_deps  -lstdc++fs)
+endif()
+
+foreach (testname AllConfigs Compiler Coordinator Inflate Networking Worker )
+    AddTarget(APP NAME Test${testname} ROOT ${CMAKE_CURRENT_SOURCE_DIR}/TestsManual/
+        CSRC Test${testname}.cpp *.h TestUtils.cpp
+        DEPS ${main_deps} ${sys_deps}
+        )
+endforeach()
+
+foreach (appname Coordinator CoordinatorStatus Worker Proxy ProxyClient)
+    AddTarget(APP NAME Wuild${appname} ROOT ${CMAKE_CURRENT_SOURCE_DIR}/
+        CSRC Wuild${appname}.cpp
+        DEPS ${main_deps} ${sys_deps}
+        )
+endforeach()
+
+AddTarget(APP NAME Wuild ROOT ${NINJA_ROOT}/
+    CSRC ninja.cc remote_executor_impl.h state_rewrite.*
+    DEPS ${main_deps} ninja_subprocess ${sys_deps}
+    )

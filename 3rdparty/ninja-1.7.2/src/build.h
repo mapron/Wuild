@@ -52,6 +52,7 @@ struct Plan {
 
   /// Returns true if there's more work to be done.
   bool more_to_do() const { return wanted_edges_ > 0 && command_edges_ > 0; }
+  bool top_edge_remote() const;
 
   /// Dumps the current state of the plan.
   void Dump();
@@ -70,6 +71,7 @@ struct Plan {
 
   /// Number of edges with commands to run.
   int command_edge_count() const { return command_edges_; }
+  int remote_edges_count() const { return remote_edges_; }
 
 private:
   bool AddSubTarget(Node* node, vector<Node*>* stack, string* err);
@@ -93,6 +95,9 @@ private:
 
   /// Total number of edges that have commands (not phony).
   int command_edges_;
+
+  /// Total number of edges with is_remote flag.
+  int remote_edges_;
 
   /// Total remaining number of wanted edges.
   int wanted_edges_;
@@ -140,9 +145,10 @@ struct BuildConfig {
   double max_load_average;
 };
 
+class IRemoteExecutor;
 /// Builder wraps the build process: starting commands, updating status.
 struct Builder {
-  Builder(State* state, const BuildConfig& config,
+  Builder(IRemoteExecutor * const remoteExecutor, State* state, const BuildConfig& config,
           BuildLog* build_log, DepsLog* deps_log,
           DiskInterface* disk_interface);
   ~Builder();
@@ -163,11 +169,11 @@ struct Builder {
   /// It is an error to call this function when AlreadyUpToDate() is true.
   bool Build(string* err);
 
-  bool StartEdge(Edge* edge, string* err);
+  bool StartEdge(Edge* edge, string* err, bool remote);
 
   /// Update status ninja logs following a command termination.
   /// @return false if the build can not proceed further due to a fatal error.
-  bool FinishCommand(CommandRunner::Result* result, string* err);
+  bool FinishCommand(CommandRunner::Result* result, string* err, bool remote);
 
   /// Used for tests.
   void SetBuildLog(BuildLog* log) {
@@ -177,7 +183,8 @@ struct Builder {
   State* state_;
   const BuildConfig& config_;
   Plan plan_;
-  auto_ptr<CommandRunner> command_runner_;
+  std::unique_ptr<CommandRunner> command_runner_;
+  IRemoteExecutor * const remote_runner_;
   BuildStatus* status_;
 
  private:
@@ -188,18 +195,17 @@ struct Builder {
   DiskInterface* disk_interface_;
   DependencyScan scan_;
 
-  // Unimplemented copy ctor and operator= ensure we don't copy the auto_ptr.
-  Builder(const Builder &other);        // DO NOT IMPLEMENT
-  void operator=(const Builder &other); // DO NOT IMPLEMENT
+  Builder(const Builder &other) = delete;
+  void operator=(const Builder &other) = delete;
 };
 
 /// Tracks the status of a build: completion fraction, printing updates.
 struct BuildStatus {
   explicit BuildStatus(const BuildConfig& config);
   void PlanHasTotalEdges(int total);
-  void BuildEdgeStarted(Edge* edge);
+  void BuildEdgeStarted(Edge* edge, const string& prefix = "");
   void BuildEdgeFinished(Edge* edge, bool success, const string& output,
-                         int* start_time, int* end_time);
+                         int* start_time, int* end_time, const std::string & prefix);
   void BuildStarted();
   void BuildFinished();
 
@@ -217,7 +223,7 @@ struct BuildStatus {
                               EdgeStatus status) const;
 
  private:
-  void PrintStatus(Edge* edge, EdgeStatus status);
+  void PrintStatus(Edge* edge, EdgeStatus status, const string& prefix = "");
 
   const BuildConfig& config_;
 

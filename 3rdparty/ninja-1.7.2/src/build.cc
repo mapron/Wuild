@@ -35,6 +35,8 @@
 #include "subprocess.h"
 #include "util.h"
 
+#include "remote_executor.h"
+
 namespace {
 
 /// A CommandRunner that doesn't actually run the commands.
@@ -91,13 +93,13 @@ void BuildStatus::PlanHasTotalEdges(int total) {
   total_edges_ = total;
 }
 
-void BuildStatus::BuildEdgeStarted(Edge* edge) {
+void BuildStatus::BuildEdgeStarted(Edge* edge, const string &prefix) {
   int start_time = (int)(GetTimeMillis() - start_time_millis_);
   running_edges_.insert(make_pair(edge, start_time));
   ++started_edges_;
 
   if (edge->use_console() || printer_.is_smart_terminal())
-    PrintStatus(edge, kEdgeStarted);
+    PrintStatus(edge, kEdgeStarted, prefix);
 
   if (edge->use_console())
     printer_.SetConsoleLocked(true);
@@ -107,7 +109,8 @@ void BuildStatus::BuildEdgeFinished(Edge* edge,
                                     bool success,
                                     const string& output,
                                     int* start_time,
-                                    int* end_time) {
+                                    int* end_time,
+                                    const string &prefix) {
   int64_t now = GetTimeMillis();
 
   ++finished_edges_;
@@ -124,7 +127,7 @@ void BuildStatus::BuildEdgeFinished(Edge* edge,
     return;
 
   if (!edge->use_console())
-    PrintStatus(edge, kEdgeFinished);
+    PrintStatus(edge, kEdgeFinished, prefix);
 
   // Print the command that is spewing before printing its output.
   if (!success) {
@@ -257,7 +260,7 @@ string BuildStatus::FormatProgressStatus(
   return out;
 }
 
-void BuildStatus::PrintStatus(Edge* edge, EdgeStatus status) {
+void BuildStatus::PrintStatus(Edge* edge, EdgeStatus status, const string &prefix) {
   if (config_.verbosity == BuildConfig::QUIET)
     return;
 
@@ -267,13 +270,13 @@ void BuildStatus::PrintStatus(Edge* edge, EdgeStatus status) {
   if (to_print.empty() || force_full_command)
     to_print = edge->GetBinding("command");
 
-  to_print = FormatProgressStatus(progress_status_format_, status) + to_print;
+  to_print = FormatProgressStatus(progress_status_format_, status) + prefix + to_print;
 
   printer_.Print(to_print,
                  force_full_command ? LinePrinter::FULL : LinePrinter::ELIDE);
 }
 
-Plan::Plan() : command_edges_(0), wanted_edges_(0) {}
+Plan::Plan() : command_edges_(0), remote_edges_(0), wanted_edges_(0) {}
 
 bool Plan::AddTarget(Node* node, string* err) {
   vector<Node*> stack;
@@ -314,6 +317,8 @@ bool Plan::AddSubTarget(Node* node, vector<Node*>* stack, string* err) {
       ScheduleWork(edge);
     if (!edge->is_phony())
       ++command_edges_;
+    if (edge->is_remote_)
+        ++remote_edges_;
   }
 
   if (!want_ins.second)
@@ -370,6 +375,16 @@ Edge* Plan::FindWork() {
   Edge* edge = *e;
   ready_.erase(e);
   return edge;
+}
+
+bool Plan::top_edge_remote() const
+{
+    if (ready_.empty())
+      return false;
+
+    set<Edge*>::const_iterator e = ready_.begin();
+
+    return (*e)->is_remote_;
 }
 
 void Plan::ScheduleWork(Edge* edge) {
@@ -485,6 +500,8 @@ bool Plan::CleanNode(DependencyScan* scan, Node* node, string* err) {
         --wanted_edges_;
         if (!(*oe)->is_phony())
           --command_edges_;
+        if ((*oe)->is_remote_)
+            --remote_edges_;
       }
     }
   }
@@ -564,10 +581,10 @@ bool RealCommandRunner::WaitForCommand(Result* result) {
   return true;
 }
 
-Builder::Builder(State* state, const BuildConfig& config,
+Builder::Builder(IRemoteExecutor * const remoteExecutor, State* state, const BuildConfig& config,
                  BuildLog* build_log, DepsLog* deps_log,
                  DiskInterface* disk_interface)
-    : state_(state), config_(config), disk_interface_(disk_interface),
+    : state_(state), config_(config), remote_runner_(remoteExecutor), disk_interface_(disk_interface),
       scan_(state, build_log, deps_log, disk_interface) {
   status_ = new BuildStatus(config);
 }
@@ -639,7 +656,9 @@ bool Builder::Build(string* err) {
   assert(!AlreadyUpToDate());
 
   status_->PlanHasTotalEdges(plan_.command_edge_count());
+  int remote_commands = plan_.remote_edges_count();
   int pending_commands = 0;
+  int pending_remote = 0;
   int failures_allowed = config_.failures_allowed;
 
   // Set up the command runner if we haven't done so already.
@@ -653,16 +672,62 @@ bool Builder::Build(string* err) {
   // We are about to start the build process.
   status_->BuildStarted();
 
+  int minimal_remote_tasks = remote_runner_->GetMinimalRemoteTasks();
+  if (minimal_remote_tasks != -1 && remote_commands > minimal_remote_tasks)
+      remote_runner_->RunIfNeeded();
+
+
   // This main loop runs the entire build process.
   // It is structured like this:
   // First, we attempt to start as many commands as allowed by the
   // command runner.
   // Second, we attempt to wait for / reap the next finished command.
+  IRemoteExecutor::Result remoteResult;
   while (plan_.more_to_do()) {
+
+    if (failures_allowed && plan_.top_edge_remote() && remote_runner_->CanRunMore() ) {
+        if (Edge* edge = plan_.FindWork()) {
+
+            if (!StartEdge(edge, err, true)) {
+              Cleanup();
+              status_->BuildFinished();
+              return false;
+            }
+
+            if (edge->is_phony())
+              plan_.EdgeFinished(edge, Plan::kEdgeSucceeded);
+            else
+                pending_remote++;
+            // We made some progress; go back to the main loop.
+            continue;
+        }
+    }
+
+    if (remote_runner_->WaitForCommand(&remoteResult))
+    {
+        pending_remote--;
+        CommandRunner::Result result;
+        result.output = std::move(remoteResult.output);
+        result.edge = static_cast<Edge*>(remoteResult.userData);
+        result.status = remoteResult.status ? ExitSuccess : ExitFailure;
+        if (!FinishCommand(&result, err, true)) {
+          Cleanup();
+          status_->BuildFinished();
+          return false;
+        }
+
+        if (!result.success()) {
+          if (failures_allowed)
+            failures_allowed--;
+        }
+        // We made some progress; go back to the main loop.
+        continue;
+    }
+
     // See if we can start any more commands.
     if (failures_allowed && command_runner_->CanRunMore()) {
       if (Edge* edge = plan_.FindWork()) {
-        if (!StartEdge(edge, err)) {
+        if (!StartEdge(edge, err, false)) {
           Cleanup();
           status_->BuildFinished();
           return false;
@@ -691,7 +756,7 @@ bool Builder::Build(string* err) {
       }
 
       --pending_commands;
-      if (!FinishCommand(&result, err)) {
+      if (!FinishCommand(&result, err, false)) {
         Cleanup();
         status_->BuildFinished();
         return false;
@@ -704,6 +769,12 @@ bool Builder::Build(string* err) {
 
       // We made some progress; start the main loop over.
       continue;
+    }
+
+    if (pending_remote)
+    {
+        remote_runner_->SleepSome();
+        continue;
     }
 
     // If we get here, we cannot make any more progress.
@@ -725,12 +796,12 @@ bool Builder::Build(string* err) {
   return true;
 }
 
-bool Builder::StartEdge(Edge* edge, string* err) {
+bool Builder::StartEdge(Edge* edge, string* err, bool remote) {
   METRIC_RECORD("StartEdge");
   if (edge->is_phony())
     return true;
 
-  status_->BuildEdgeStarted(edge);
+  status_->BuildEdgeStarted(edge, remote ? "[REMOTE] " : "");
 
   // Create directories necessary for outputs.
   // XXX: this will block; do we care?
@@ -749,8 +820,9 @@ bool Builder::StartEdge(Edge* edge, string* err) {
       return false;
   }
 
+  bool status = remote ? remote_runner_->StartCommand(edge, edge->EvaluateCommand()) : command_runner_->StartCommand(edge);
   // start command computing and run it
-  if (!command_runner_->StartCommand(edge)) {
+  if (!status) {
     err->assign("command '" + edge->EvaluateCommand() + "' failed.");
     return false;
   }
@@ -758,7 +830,7 @@ bool Builder::StartEdge(Edge* edge, string* err) {
   return true;
 }
 
-bool Builder::FinishCommand(CommandRunner::Result* result, string* err) {
+bool Builder::FinishCommand(CommandRunner::Result* result, string* err, bool remote) {
   METRIC_RECORD("FinishCommand");
 
   Edge* edge = result->edge;
@@ -785,7 +857,7 @@ bool Builder::FinishCommand(CommandRunner::Result* result, string* err) {
 
   int start_time, end_time;
   status_->BuildEdgeFinished(edge, result->success(), result->output,
-                             &start_time, &end_time);
+                             &start_time, &end_time, remote ? "[REMOTE] " : "");
 
   // The rest of this function only applies to successful commands.
   if (!result->success()) {

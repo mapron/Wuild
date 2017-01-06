@@ -362,10 +362,12 @@ string Node::PathDecanonicalized(const string& path, unsigned int slash_bits) {
   return result;
 }
 
+void Node::RemoveOutEdge(Edge *edge) { auto it =  std::find(out_edges_.begin(), out_edges_.end(), edge);  if (it != out_edges_.end())  out_edges_.erase(it); }
+
 void Node::Dump(const char* prefix) const {
-  printf("%s <%s 0x%p> mtime: %d%s, (:%s), ",
-         prefix, path().c_str(), this,
-         mtime(), mtime() ? "" : " (:missing)",
+    printf("%s <%s 0x%p> mtime: %d%s, (:%s), ",
+           prefix, path().c_str(), this,
+           mtime(), mtime() ? "" : " (:missing)",
          dirty() ? " dirty" : " clean");
   if (in_edge()) {
     in_edge()->Dump("in-edge: ");
@@ -422,8 +424,10 @@ bool ImplicitDepLoader::LoadDepFile(Edge* edge, const string& path,
 
   unsigned int unused;
   if (!CanonicalizePath(const_cast<char*>(depfile.out_.str_),
-                        &depfile.out_.len_, &unused, err))
+                        &depfile.out_.len_, &unused, err)) {
+    *err = path + ": " + *err;
     return false;
+  }
 
   // Check that this depfile matches the edge's output, if not return false to
   // mark the edge as dirty.

@@ -81,7 +81,7 @@ struct Subprocess {
 /// DoWork() waits for any state change in subprocesses; finished_
 /// is a queue of subprocesses as they finish.
 struct SubprocessSet {
-  SubprocessSet();
+  SubprocessSet(bool setupSignalHandlers = true);
   ~SubprocessSet();
 
   Subprocess* Add(const string& command, bool use_console = false);
@@ -109,6 +109,7 @@ struct SubprocessSet {
   struct sigaction old_hup_act_;
   sigset_t old_mask_;
 #endif
+  bool setupSignalHandlers_;
 };
 
 #endif // NINJA_SUBPROCESS_H_

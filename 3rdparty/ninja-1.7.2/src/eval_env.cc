@@ -16,6 +16,15 @@
 
 #include "eval_env.h"
 
+BindingEnv *BindingEnv::Clone()
+{
+    BindingEnv *clone = new BindingEnv();
+    clone->parent_ = parent_;
+    clone->bindings_ = bindings_;
+    clone->rules_ = rules_;
+    return clone;
+}
+
 string BindingEnv::LookupVariable(const string& var) {
   map<string, string>::iterator i = bindings_.find(var);
   if (i != bindings_.end())
@@ -26,7 +35,20 @@ string BindingEnv::LookupVariable(const string& var) {
 }
 
 void BindingEnv::AddBinding(const string& key, const string& val) {
-  bindings_[key] = val;
+    bindings_[key] = val;
+}
+
+const map<string, string> & BindingEnv::GetBindings() const
+{
+    return bindings_;
+}
+
+string BindingEnv::GetBindingsDump() const
+{
+    string res;
+    for (const auto & it :bindings_)
+        res += it.first +": " + it.second + "\n";
+    return res;
 }
 
 void BindingEnv::AddRule(const Rule* rule) {
@@ -59,6 +81,29 @@ const EvalString* Rule::GetBinding(const string& key) const {
   if (i == bindings_.end())
     return NULL;
   return &i->second;
+}
+
+EvalString * Rule::GetBinding(const string &key)
+{
+    Bindings::iterator i = bindings_.find(key);
+    if (i == bindings_.end())
+      return NULL;
+    return &i->second;
+}
+
+void Rule::RemoveBinding(const string &key)
+{
+    Bindings::iterator i = bindings_.find(key);
+    if (i == bindings_.end())
+      return;
+    bindings_.erase(i);
+}
+
+Rule *Rule::Clone(const string &newName) const
+{
+    Rule * newRule = new Rule(newName);
+    newRule->bindings_ = bindings_;
+    return newRule;
 }
 
 // static

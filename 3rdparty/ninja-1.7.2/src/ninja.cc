@@ -45,6 +45,9 @@
 #include "util.h"
 #include "version.h"
 
+#include "remote_executor_impl.h"
+#include "state_rewrite.h"
+
 #ifdef _MSC_VER
 // Defined in msvc_helper_main-win32.cc.
 int MSVCHelperMain(int argc, char** argv);
@@ -135,11 +138,11 @@ struct NinjaMain : public BuildLogUser {
   /// Rebuild the manifest, if necessary.
   /// Fills in \a err on error.
   /// @return true if the manifest was rebuilt.
-  bool RebuildManifest(const char* input_file, string* err);
+  bool RebuildManifest(RemoteExecutor * const remoteExecutor, const char* input_file, string* err);
 
   /// Build the targets listed on the command line.
   /// @return an exit code.
-  int RunBuild(int argc, char** argv);
+  int RunBuild(RemoteExecutor * const remoteExecutor, int argc, char** argv);
 
   /// Dump the output requested by '-d stats'.
   void DumpMetrics();
@@ -231,7 +234,7 @@ int GuessParallelism() {
 
 /// Rebuild the build manifest, if necessary.
 /// Returns true if the manifest was rebuilt.
-bool NinjaMain::RebuildManifest(const char* input_file, string* err) {
+bool NinjaMain::RebuildManifest(RemoteExecutor * const remoteExecutor, const char* input_file, string* err) {
   string path = input_file;
   unsigned int slash_bits;  // Unused because this path is only used for lookup.
   if (!CanonicalizePath(&path, &slash_bits, err))
@@ -240,7 +243,7 @@ bool NinjaMain::RebuildManifest(const char* input_file, string* err) {
   if (!node)
     return false;
 
-  Builder builder(&state_, config_, &build_log_, &deps_log_, &disk_interface_);
+  Builder builder(remoteExecutor, &state_, config_, &build_log_, &deps_log_, &disk_interface_);
   if (!builder.AddTarget(node, err))
     return false;
 
@@ -533,21 +536,51 @@ int NinjaMain::ToolTargets(const Options* options, int argc, char* argv[]) {
   }
 }
 
-void PrintCommands(Edge* edge, set<Edge*>* seen) {
+enum PrintCommandMode { PCM_Single, PCM_All };
+void PrintCommands(Edge* edge, set<Edge*>* seen, PrintCommandMode mode) {
   if (!edge)
     return;
   if (!seen->insert(edge).second)
     return;
 
-  for (vector<Node*>::iterator in = edge->inputs_.begin();
-       in != edge->inputs_.end(); ++in)
-    PrintCommands((*in)->in_edge(), seen);
+  if (mode == PCM_All) {
+    for (vector<Node*>::iterator in = edge->inputs_.begin();
+         in != edge->inputs_.end(); ++in)
+      PrintCommands((*in)->in_edge(), seen, mode);
+  }
 
   if (!edge->is_phony())
     puts(edge->EvaluateCommand().c_str());
 }
 
 int NinjaMain::ToolCommands(const Options* options, int argc, char* argv[]) {
+  // The clean tool uses getopt, and expects argv[0] to contain the name of
+  // the tool, i.e. "commands".
+  ++argc;
+  --argv;
+
+  PrintCommandMode mode = PCM_All;
+
+  optind = 1;
+  int opt;
+  while ((opt = getopt(argc, argv, const_cast<char*>("hs"))) != -1) {
+    switch (opt) {
+    case 's':
+      mode = PCM_Single;
+      break;
+    case 'h':
+    default:
+      printf("usage: ninja -t commands [options] [targets]\n"
+"\n"
+"options:\n"
+"  -s     only print the final command to build [target], not the whole chain\n"
+             );
+    return 1;
+    }
+  }
+  argv += optind;
+  argc -= optind;
+
   vector<Node*> nodes;
   string err;
   if (!CollectTargetsFromArgs(argc, argv, &nodes, &err)) {
@@ -557,7 +590,7 @@ int NinjaMain::ToolCommands(const Options* options, int argc, char* argv[]) {
 
   set<Edge*> seen;
   for (vector<Node*>::iterator in = nodes.begin(); in != nodes.end(); ++in)
-    PrintCommands((*in)->in_edge(), &seen);
+    PrintCommands((*in)->in_edge(), &seen, mode);
 
   return 0;
 }
@@ -762,6 +795,7 @@ const Tool* ChooseTool(const string& tool_name) {
 bool DebugEnable(const string& name) {
   if (name == "list") {
     printf("debugging modes:\n"
+"  wuild        wuild extra debug\n"
 "  stats        print operation counts/timing info\n"
 "  explain      explain what caused a command to execute\n"
 "  keepdepfile  don't delete depfiles after they're read by ninja\n"
@@ -917,7 +951,9 @@ bool NinjaMain::EnsureBuildDirExists() {
   return true;
 }
 
-int NinjaMain::RunBuild(int argc, char** argv) {
+int NinjaMain::RunBuild(RemoteExecutor * const remoteExecutor, int argc, char** argv) {
+
+
   string err;
   vector<Node*> targets;
   if (!CollectTargetsFromArgs(argc, argv, &targets, &err)) {
@@ -927,7 +963,7 @@ int NinjaMain::RunBuild(int argc, char** argv) {
 
   disk_interface_.AllowStatCache(g_experimental_statcache);
 
-  Builder builder(&state_, config_, &build_log_, &deps_log_, &disk_interface_);
+  Builder builder(remoteExecutor, &state_, config_, &build_log_, &deps_log_, &disk_interface_);
   for (size_t i = 0; i < targets.size(); ++i) {
     if (!builder.AddTarget(targets[i], &err)) {
       if (!err.empty()) {
@@ -1073,12 +1109,19 @@ int real_main(int argc, char** argv) {
   Options options = {};
   options.input_file = "build.ninja";
 
+  Wuild::ConfiguredApplication app(argc, argv, "WuildNinja", "client");
+  argc = app.GetRemainArgc();
+  argv = app.GetRemainArgv();
+  RemoteExecutor remoteExecutor(app);
+
   setvbuf(stdout, NULL, _IOLBF, BUFSIZ);
   const char* ninja_command = argv[0];
 
   int exit_code = ReadFlags(&argc, &argv, &options, &config);
   if (exit_code >= 0)
     return exit_code;
+
+  remoteExecutor.SetVerbose(config.verbosity == BuildConfig::VERBOSE);
 
   if (options.working_dir) {
     // The formatting of this string, complete with funny quotes, is
@@ -1100,6 +1143,7 @@ int real_main(int argc, char** argv) {
     return (ninja.*options.tool->func)(&options, argc, argv);
   }
 
+
   // Limit number of rebuilds, to prevent infinite loops.
   const int kCycleLimit = 100;
   for (int cycle = 1; cycle <= kCycleLimit; ++cycle) {
@@ -1114,6 +1158,7 @@ int real_main(int argc, char** argv) {
       Error("%s", err.c_str());
       return 1;
     }
+    RewriteStateRules(&ninja.state_, &remoteExecutor);
 
     if (options.tool && options.tool->when == Tool::RUN_AFTER_LOAD)
       return (ninja.*options.tool->func)(&options, argc, argv);
@@ -1128,7 +1173,7 @@ int real_main(int argc, char** argv) {
       return (ninja.*options.tool->func)(&options, argc, argv);
 
     // Attempt to rebuild the manifest before building anything else
-    if (ninja.RebuildManifest(options.input_file, &err)) {
+    if (ninja.RebuildManifest(&remoteExecutor, options.input_file, &err)) {
       // In dry_run mode the regeneration will succeed without changing the
       // manifest forever. Better to return immediately.
       if (config.dry_run)
@@ -1140,7 +1185,7 @@ int real_main(int argc, char** argv) {
       return 1;
     }
 
-    int result = ninja.RunBuild(argc, argv);
+    int result = ninja.RunBuild(&remoteExecutor, argc, argv);
     if (g_metrics)
       ninja.DumpMetrics();
     return result;

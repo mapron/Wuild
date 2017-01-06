@@ -93,6 +93,7 @@ struct Node {
 
   const vector<Edge*>& out_edges() const { return out_edges_; }
   void AddOutEdge(Edge* edge) { out_edges_.push_back(edge); }
+  void RemoveOutEdge(Edge* edge);
 
   void Dump(const char* prefix="") const;
 
@@ -157,6 +158,7 @@ struct Edge {
   BindingEnv* env_;
   bool outputs_ready_;
   bool deps_missing_;
+  bool is_remote_ = false;
 
   const Rule& rule() const { return *rule_; }
   Pool* pool() const { return pool_; }
