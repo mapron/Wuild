@@ -91,7 +91,8 @@ public:
 };
 
 using namespace Wuild;
-const int textRepeats = 2;
+const int segmentSize = 240;
+const int textRepeats = 100000;
 const int bufferSize = 128900;
 const int testServicePort = 12345;
 const std::string testHost = "localhost";
@@ -128,6 +129,7 @@ void TestService::setServer(int port)
 
 	SocketFrameHandlerSettings settings;
 	settings.m_recommendedRecieveBufferSize = bufferSize;
+	settings.m_segmentSize = segmentSize;
 
 	m_server.reset(new SocketFrameService( settings ));
 	m_server->AddTcpListener(port, testHost );
@@ -149,6 +151,7 @@ void TestService::addClient(std::string ip, int port)
 	Syslogger() << "setClient " << ip  << ":" <<  port;
 	SocketFrameHandlerSettings settings;
 	settings.m_recommendedRecieveBufferSize = bufferSize;
+	settings.m_segmentSize = segmentSize;
 	SocketFrameHandler::Ptr h(new SocketFrameHandler(settings));
 	h->RegisterFrameReader(SocketFrameReaderTemplate<TestFrameReply>::Create([](const TestFrameReply &inputMessage, SocketFrameHandler::OutputCallback outputCallback)
 	{

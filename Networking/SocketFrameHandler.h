@@ -46,6 +46,8 @@ struct SocketFrameHandlerSettings
 	typedef std::function<bool(std::vector<SocketFrame::Ptr>&)> ConnectCallbackType;
 	SocketFrameHandlerSettings();
 
+	uint32_t       m_channelProtocolVersion = 1;		          //!< Channel protocol version. Client and server must have the same.
+
 	size_t         m_acknowledgeMinimalReadSize = 100;            //!< minimal bytes read without ack; must be greater than 5.
 	uint8_t        m_byteOrder;                                   //!< network channel byte order. Default is big-endian.
 
@@ -59,6 +61,7 @@ struct SocketFrameHandlerSettings
 
 	TimePoint      m_tcpReadTimeout          = TimePoint(0.0);    //!< Read timeout for underlying physical channel.
 	size_t         m_recommendedRecieveBufferSize = 4 * 1024;     //!< Recommended TCP-buffer size.
+	size_t         m_segmentSize             = 240;               //!< Maximal length of channel layer frame.
 																  // Network features used by FrameHandler
 	bool           m_hasAcknowledges = true;                      //!< Acknowledges
 	bool           m_hasLineTest     = true;                      //!< Test frames
@@ -160,7 +163,6 @@ protected:
 	bool                        IsOutputBufferEmpty();
 
 	void                        PreprocessFrame(SocketFrame::Ptr incomingMessage);
-	ServiceMessageType          DetermineFrameTypeInput();
 
 protected:
 
@@ -172,11 +174,11 @@ protected:
 	std::atomic_uint_fast64_t         m_transaction {0};
 
 	IDataSocket::Ptr                  m_channel;
-	uint32_t                          m_versionId {1};
 	const SocketFrameHandlerSettings  m_settings;
 
-	ByteOrderBuffer                   m_BOBufferInput;
-	ByteOrderBuffer                   m_BOBufferOutput;
+	ByteOrderBuffer                   m_readBuffer;
+	ByteOrderBuffer                   m_frameDataBuffer;
+	std::deque<ByteArrayHolder>       m_outputSegments;
 
 	ThreadSafeQueue<SocketFrame::Ptr>    m_framesQueueOutput;
 	size_t                               m_outputAcknowledgesSize {0};

@@ -20,6 +20,7 @@
 
 #include <stdexcept>
 #include <sstream>
+#include <assert.h>
 
 #define BUFFER_RATIO 8 / 10
 
@@ -97,7 +98,7 @@ bool SocketFrameHandler::Quant()
 	bool taskResult = ReadFrames() && WriteFrames();
 	if (!taskResult)
 	{
-		Syslogger(m_logContext, LOG_INFO) << "read/write Frames return false, " << ( m_retryConnectOnFail ? "waiting." : "stopping.");
+		Syslogger(m_logContext, LOG_INFO) << "read/write frames return false, " << ( m_retryConnectOnFail ? "waiting." : "stopping.");
 		DisconnectChannel();
 		if (m_retryConnectOnFail)
 			usleep(m_settings.m_afterDisconnectWait.GetUS());
@@ -173,24 +174,31 @@ void SocketFrameHandler::SetLogContext(const std::string &context)
 
 bool SocketFrameHandler::ReadFrames()
 {
-	const size_t currentSize = m_BOBufferInput.GetHolder().size();
-	if (!m_channel->Read(m_BOBufferInput.GetHolder()))
+	const size_t currentSize = m_readBuffer.GetHolder().size();
+	if (!m_channel->Read(m_readBuffer.GetHolder()))
 		return true; //nothing to read, it's not a error. Broken channel handled separately.
 
 	m_lastTestActivity = m_lastSucceessfulRead = TimePoint(true);
 
-	const size_t newSize = m_BOBufferInput.GetHolder().size();
-	m_BOBufferInput.SetSize(newSize);
-	ByteOrderDataStreamReader inputStream(&m_BOBufferInput, m_settings.m_byteOrder);
+	const size_t newSize = m_readBuffer.GetHolder().size();
+	m_readBuffer.SetSize(newSize);
+	ByteOrderDataStreamReader inputStream(&m_readBuffer, m_settings.m_byteOrder);
 
 	m_doTestActivity = true;
-	m_BOBufferInput.ResetRead();
+	m_readBuffer.ResetRead();
+
+	//Syslogger(m_logContext) << "m_readBuffer=" << m_readBuffer.ToHex(true);
 
 	m_outputAcknowledgesSize += newSize - currentSize;
-
+	bool validInput = true;
 	do
 	{
-		ServiceMessageType mtype = DetermineFrameTypeInput();
+		ServiceMessageType mtype = ServiceMessageType::User;
+
+		if (m_settings.m_hasChannelTypes)
+		{
+			mtype = SocketFrameHandler::ServiceMessageType(inputStream.ReadScalar<uint8_t>());
+		}
 
 		SocketFrame::State state;
 		if (m_settings.m_hasAcknowledges && mtype == ServiceMessageType::Ack)
@@ -216,59 +224,85 @@ bool SocketFrameHandler::ReadFrames()
 			m_remoteTimeDiffToPast = now - remoteTime;
 
 			m_maxUnAcknowledgedSize = bufferSize * BUFFER_RATIO;
-			if (version != m_versionId)
+			if (version != m_settings.m_channelProtocolVersion)
 			{
-				Syslogger(m_logContext, LOG_ERR) << "Remote version is  " << version << ", but mine is " << m_versionId;
+				Syslogger(m_logContext, LOG_ERR) << "Remote version is  " << version << ", but mine is " << m_settings.m_channelProtocolVersion;
 				return false;
 			}
-			Syslogger(m_logContext)<< "Recieved buffer size = " << bufferSize << ", _MaxS=" << m_maxUnAcknowledgedSize  <<  ", remote time is " << m_remoteTimeDiffToPast.ToString() << " in past compare to me. (" << m_remoteTimeDiffToPast.GetUS() << " us)";
-
+			Syslogger(m_logContext)<< "Recieved buffer size = " << bufferSize << ", MaxUnAck=" << m_maxUnAcknowledgedSize  <<  ", remote time is " << m_remoteTimeDiffToPast.ToString() << " in past compare to me. (" << m_remoteTimeDiffToPast.GetUS() << " us)";
 		}
 		else
 		{
+			size_t frameLength = m_readBuffer.GetRemainRead();
+			if (!frameLength) break;
+			if (m_settings.m_hasChannelTypes)
+			{
+				uint32_t size = 0;
+				inputStream >> size;
+				if (size > m_settings.m_segmentSize)
+				{
+					validInput = false;
+					Syslogger(m_logContext, LOG_ERR) << "Invalid segment size =" << size;
+					break;
+				}
+				frameLength = size;
+			}
+			m_frameDataBuffer.ResetRead();
+			auto * framePos = m_frameDataBuffer.PosWrite(frameLength);
+			assert(framePos);
+			inputStream.ReadBlock(framePos, frameLength);
+			m_readBuffer.RemoveFromStart(m_readBuffer.GetOffsetRead());
+			m_frameDataBuffer.MarkWrite(frameLength);
+
+			//Syslogger(m_logContext) << "m_frameDataBuffer=" << m_frameDataBuffer.ToHex(true, true);
+			//Syslogger(m_logContext) << "m_readBuffer=" << m_readBuffer.ToHex(true, true);
+
 			uint8_t mtypei = static_cast<uint8_t>(mtype);
 			if (m_frameReaders.find(mtypei) == m_frameReaders.end())
 			{
-				m_BOBufferInput.Clear();
-				Syslogger(m_logContext, LOG_ERR) << "MessageHandler: invalid type of ChannelMessage. " << int(mtype) << " "
-											 << TimePoint(true).ToString() << " m_okFrames=" << m_okFrames;
-
+				validInput = false;
+				Syslogger(m_logContext, LOG_ERR) << "MessageHandler: invalid type of SocketFrame. " << int(mtype) << " m_okFrames=" << m_okFrames;
 				break;
 			}
 			SocketFrame::Ptr incoming(m_frameReaders[mtypei]->FrameFactory());
 			try
 			{
-				state = incoming->Read(inputStream);
+				ByteOrderDataStreamReader frameStream(&m_frameDataBuffer, m_settings.m_byteOrder);
+				state = incoming->Read(frameStream);
 			}
 			catch(std::exception & ex)
 			{
-				m_BOBufferInput.Clear();
-				Syslogger(m_logContext, LOG_ERR) << "MessageHandler::readMessages exception: " << ex.what();
-				return false;
-			}
-			if (state == SocketFrame::stIncomplete || m_BOBufferInput.EofRead())
-			{
+				validInput = false;
+				Syslogger(m_logContext, LOG_ERR) << "MessageHandler Read() exception: " << ex.what();
 				break;
+			}
+			if (state == SocketFrame::stIncomplete || m_frameDataBuffer.EofRead())
+			{
+				continue;
 			}
 			else if (state == SocketFrame::stBroken)
 			{
-				Syslogger(m_logContext, LOG_ERR) << "MessageHandler: broken message recieved. "
-												<< TimePoint(true).ToString();
-
-				m_BOBufferInput.Clear();
+				validInput = false;
+				Syslogger(m_logContext, LOG_ERR) << "MessageHandler: broken message recieved. ";
 				break;
 			}
 			else if (state == SocketFrame::stOk)
-			{ // если входной буфер успешно обработан - передаем в обработку дальше.
+			{
 				m_okFrames++;
-				PreprocessFrame(incoming);   // обработка собственно сообщения.
+				PreprocessFrame(incoming);
 			}
 		}
 
-		m_BOBufferInput.RemoveFromStart(m_BOBufferInput.GetOffsetRead());// убираем прочитанное.
+		m_readBuffer.RemoveFromStart(m_readBuffer.GetOffsetRead());
+		m_frameDataBuffer.RemoveFromStart(m_frameDataBuffer.GetOffsetRead());
+	} while (m_readBuffer.GetSize());
 
-	} while (m_BOBufferInput.GetSize());
-
+	if (!validInput)
+	{
+		// removing all read data.
+		m_readBuffer.Clear();
+		m_frameDataBuffer.Clear();
+	}
 	return true;
 }
 
@@ -278,22 +312,24 @@ bool SocketFrameHandler::WriteFrames()
 	{
 		if (m_acknowledgeTimer.GetElapsedTime() > m_settings.m_acknowledgeTimeout)
 		{
-			Syslogger(m_logContext, LOG_ERR) << "Acknowledge not recieved! _lastWrite="
-												  << m_acknowledgeTimer.ToString() << " now:"
-												  << TimePoint(true).ToString() << " _acknowledgeTimeout="
-												  << m_settings.m_acknowledgeTimeout.ToString();
-			m_bytesWaitingAcknowledge = 0;
+			Syslogger(m_logContext, LOG_ERR) << "Acknowledge not recieved!"
+											<< " acknowledgeTimer=" << m_acknowledgeTimer.ToString()
+											<< " now:" << TimePoint(true).ToString()
+											<< " acknowledgeTimeout=" << m_settings.m_acknowledgeTimeout.ToString()
+											   ;
+			m_bytesWaitingAcknowledge = 0; // terminate thread - it's configuration error.
 			return false;
 		}
 		return true;
 	}
 
-	if (IsOutputBufferEmpty() && m_settings.m_hasAcknowledges && m_outputAcknowledgesSize > m_settings.m_acknowledgeMinimalReadSize)
+	if (m_settings.m_hasAcknowledges && m_outputAcknowledgesSize > m_settings.m_acknowledgeMinimalReadSize)
 	{
-		ByteOrderDataStreamWriter streamWriter(&m_BOBufferOutput, m_settings.m_byteOrder);
+		ByteOrderDataStreamWriter streamWriter(m_settings.m_byteOrder);
 		streamWriter << uint8_t(ServiceMessageType::Ack);
 		streamWriter << static_cast<uint32_t>(m_outputAcknowledgesSize);
 		m_outputAcknowledgesSize = 0;
+		m_outputSegments.push_front(streamWriter.GetBuffer().GetHolder()); // acknowledges has high priority, so pushing them to front!
 	}
 
 	if (IsOutputBufferEmpty()
@@ -301,58 +337,74 @@ bool SocketFrameHandler::WriteFrames()
 		&& m_lastTestActivity.GetElapsedTime() > m_settings.m_lineTestInterval
 		&& m_framesQueueOutput.empty())
 	{
-		ByteOrderDataStreamWriter streamWriter(&m_BOBufferOutput, m_settings.m_byteOrder);
+		ByteOrderDataStreamWriter streamWriter(m_settings.m_byteOrder);
 		streamWriter << uint8_t(ServiceMessageType::LineTest);
+		m_outputSegments.push_back(streamWriter.GetBuffer().GetHolder());
 	}
 
-	if (IsOutputBufferEmpty() && m_setConnectionOptionsNeedSend)
+	if (m_setConnectionOptionsNeedSend)
 	{
 		m_setConnectionOptionsNeedSend = false;
 		auto ch = std::dynamic_pointer_cast<TcpSocket>(m_channel);
 		uint32_t size = ch ? ch->GetRecieveBufferSize() : 0;
-		ByteOrderDataStreamWriter streamWriter(&m_BOBufferOutput, m_settings.m_byteOrder);
+		ByteOrderDataStreamWriter streamWriter(m_settings.m_byteOrder);
 		streamWriter << uint8_t(ServiceMessageType::ConnOptions);
-		streamWriter << size << m_versionId << TimePoint(true).GetUS();
+		streamWriter << size << m_settings.m_channelProtocolVersion << TimePoint(true).GetUS();
+		m_outputSegments.push_back(streamWriter.GetBuffer().GetHolder());
 	}
 
-
-	if (IsOutputBufferEmpty())
+	while (!m_framesQueueOutput.empty())
 	{
-		while (!m_framesQueueOutput.empty())
+		SocketFrame::Ptr frontMsg;
+		if (!m_framesQueueOutput.pop(frontMsg))
+			throw std::logic_error("Invalid queue logic");
+
+		ByteOrderDataStreamWriter streamWriter(m_settings.m_byteOrder);
+		Syslogger(m_logContext, LOG_INFO) << "outgoung -> " << frontMsg;
+		frontMsg->Write(streamWriter);
+
+		const auto typeId = frontMsg->FrameTypeId();
+		ByteArrayHolder buffer = streamWriter.GetBuffer().GetHolder();
+
+		//Syslogger(m_logContext, LOG_INFO) << "buffer -> " << streamWriter.GetBuffer().ToHex();
+		/// splitting onto segments.
+		for (size_t offset = 0; offset < buffer.size(); offset += m_settings.m_segmentSize)
 		{
-			SocketFrame::Ptr frontMsg;
-			if (!m_framesQueueOutput.pop(frontMsg))
-				return true; // should never happen.
-
-			ByteOrderDataStreamWriter streamWriter(&m_BOBufferOutput, m_settings.m_byteOrder);
+			ByteArrayHolder bufferPart;
+			size_t length = std::min(m_settings.m_segmentSize, buffer.size() - offset);
 			if (m_settings.m_hasChannelTypes)
-				streamWriter << frontMsg->FrameTypeId();
-
-			Syslogger(m_logContext, LOG_INFO) << "outgoung -> " << frontMsg;
-			frontMsg->Write(streamWriter);
-
-			if (m_settings.m_hasAcknowledges && m_BOBufferOutput.GetSize() >= m_maxUnAcknowledgedSize )
-				break;
+			{
+				ByteOrderBuffer partStreamBuf(bufferPart);
+				ByteOrderDataStreamWriter partStreamWriter(&partStreamBuf, m_settings.m_byteOrder);
+				partStreamWriter << typeId << uint32_t(length);
+			}
+			bufferPart.ref().insert(bufferPart.ref().end(), buffer.ref().begin() + offset, buffer.ref().begin() + offset + length);
+			m_outputSegments.push_back(bufferPart);
 		}
 	}
 
-	if (!IsOutputBufferEmpty())
+
+	while (!m_outputSegments.empty())
 	{
-		auto holder = m_BOBufferOutput.GetHolder();
-		auto sizeForWrite = m_BOBufferOutput.GetSize();
-		auto maxSize = m_maxUnAcknowledgedSize - m_bytesWaitingAcknowledge;
-		sizeForWrite = std::min(maxSize, static_cast<size_t>(sizeForWrite));
-		if (!m_channel->Write(holder, sizeForWrite))
+		ByteArrayHolder frontSegment = m_outputSegments.front();
+
+		const auto sizeForWrite = frontSegment.size();
+		const auto maxSize = m_maxUnAcknowledgedSize - m_bytesWaitingAcknowledge;
+		if (m_settings.m_hasAcknowledges && sizeForWrite > maxSize)
+			break;
+
+		m_outputSegments.pop_front();
+
+		if (!m_channel->Write(frontSegment, sizeForWrite))
 			return false;
-
-		m_BOBufferOutput.RemoveFromStart(sizeForWrite);
-
 
 		m_lastTestActivity = TimePoint(true);
 		if (m_settings.m_hasAcknowledges)
 		{
 			m_acknowledgeTimer = m_lastTestActivity;
-			 m_bytesWaitingAcknowledge += sizeForWrite;
+			m_bytesWaitingAcknowledge += sizeForWrite;
+			if (m_bytesWaitingAcknowledge >= m_maxUnAcknowledgedSize)
+				break;
 		}
 	}
 	return true;
@@ -391,7 +443,7 @@ bool SocketFrameHandler::CheckAndCreateConnection()
 
 bool SocketFrameHandler::IsOutputBufferEmpty()
 {
-	return m_BOBufferOutput.GetSize() == 0;
+	return m_outputSegments.empty();
 }
 
 void SocketFrameHandler::PreprocessFrame(SocketFrame::Ptr incomingMessage)
@@ -414,15 +466,6 @@ void SocketFrameHandler::PreprocessFrame(SocketFrame::Ptr incomingMessage)
 			QueueFrame(reply);
 		});
 	}
-}
-
-SocketFrameHandler::ServiceMessageType SocketFrameHandler::DetermineFrameTypeInput()
-{
-	if (!m_settings.m_hasChannelTypes)
-		return ServiceMessageType::User;
-
-	ByteOrderDataStreamReader streamReader(&m_BOBufferInput, m_settings.m_byteOrder);
-	return SocketFrameHandler::ServiceMessageType(streamReader.ReadScalar<uint8_t>());
 }
 
 }
