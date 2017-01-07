@@ -58,6 +58,7 @@ struct SocketFrameHandlerSettings
 	TimePoint      m_acknowledgeTimeout      = TimePoint(10.0);   //!< After this time, unacknowledged data send will stated failed.
 	TimePoint      m_lineTestInterval        = TimePoint(3.0);    //!< If no channel activity for this time, line test frame will be send.
 	TimePoint      m_afterDisconnectWait     = TimePoint(10.0);   //!< If channel was disconnected, connect retry will be after that time.
+	TimePoint      m_deadClientRemove        = TimePoint(120.0);  //!<
 
 	TimePoint      m_tcpReadTimeout          = TimePoint(0.0);    //!< Read timeout for underlying physical channel.
 	size_t         m_recommendedRecieveBufferSize = 4 * 1024;     //!< Recommended TCP-buffer size.

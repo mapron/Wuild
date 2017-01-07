@@ -89,19 +89,33 @@ void SocketFrameService::Stop()
 void SocketFrameService::Quant()
 {
 	std::lock_guard<std::mutex> lock(m_workersLock);
-	auto i = m_workers.begin();
-	while (i != m_workers.end())
+	auto workerIt = m_workers.begin();
+	while (workerIt != m_workers.end())
 	{
-		if (!(*i)->IsActive())
+		if (!(*workerIt)->IsActive())
 		{
 			if (m_handlerDestroyCallback)
-				m_handlerDestroyCallback((*i).get());
+				m_handlerDestroyCallback((*workerIt).get());
 
+			(*workerIt)->Stop(false);
+			m_workersUnactive.push_back(DeadClient(*workerIt, TimePoint(true)));
 			Syslogger() << "SocketFrameService::quant() erasing unactive worker ";
-			i = m_workers.erase(i);
-			return;
+			workerIt = m_workers.erase(workerIt);
+			continue;
 		}
-		++i;
+		++workerIt;
+	}
+
+	auto deadWorkerIt = m_workersUnactive.begin();
+	while (deadWorkerIt != m_workersUnactive.end())
+	{
+		DeadClient & deadWorker = *deadWorkerIt;
+		if (deadWorker.second.GetElapsedTime() > m_settings.m_deadClientRemove)
+		{
+			deadWorkerIt = m_workersUnactive.erase(deadWorkerIt);
+			continue;
+		}
+		++deadWorkerIt;
 	}
 	for (IDataListener::Ptr & listenter : m_listenters)
 	{
