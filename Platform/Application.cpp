@@ -156,12 +156,14 @@ std::string Application::GetTempDir(bool autoCreate) const
 
 std::string Application::GetAppDataDir(bool autoCreate)
 {
+	std::string orgPrefix = ".";
 #ifndef _WIN32
 	const std::string appDataRoot = GetHomeDir();
 #else
+	orgPrefix = "";
 	const std::string appDataRoot = getenv("LOCALAPPDATA");
 #endif
-	const std::string dirName = appDataRoot + "/." + m_organization + "/";
+	const std::string dirName = appDataRoot + "/" + orgPrefix + m_organization + "/";
 	if (autoCreate)
 		FileInfo(dirName).Mkdirs();
 	return dirName;

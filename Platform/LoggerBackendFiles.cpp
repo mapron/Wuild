@@ -57,6 +57,8 @@ void LoggerBackendFiles::FlushMessageInternal(const std::string &message, int) c
 	if (!result)
 		std::cerr << "fwrite \'" << message << "\' failed! \n";
 
+	fflush(m_currentFile);
+
 	if (++m_counter > m_maxMessagesInFile)
 	{
 		m_counter = 0;
