@@ -35,6 +35,7 @@ struct TcpConnectionParams
 	TimePoint m_connectTimeout = 1.0;                     //!< Connection timeout
 	bool      m_skipFailedConnection = true;              //!< Do not retry recreate listener on fail.
 	size_t    m_recommendedRecieveBufferSize = 4 * 1024;  //!< Buffer size is recommended for socket. If socket has lower size, buffer will be optionally increased (bu not ought to)
+	size_t    m_recommendedSendBufferSize = 4 * 1024;
 
 	std::shared_ptr<TcpConnectionParamsPrivate> m_impl; //!< making possible to copy params.
 

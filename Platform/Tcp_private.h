@@ -56,6 +56,8 @@ public:
 	bool SetBlocking(bool blocking);
 	bool SetRecieveBuffer(uint32_t size);
 	uint32_t GetRecieveBuffer();
+	bool SetSendBuffer(uint32_t size);
+	uint32_t GetSendBuffer();
 };
 
 }

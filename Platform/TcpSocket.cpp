@@ -210,12 +210,16 @@ bool TcpSocket::Read(ByteArrayHolder & buffer)
 
 	  if (recieved <= 0)
 	  {
-		  auto err = errno;
+#ifdef _WIN32
+		  const auto err = GetLastError();
+#else
+		  const auto err = errno ;
 		  if (err == EAGAIN)
 			  break;
-		  Syslogger() << "Disconnecting while Reading" ;
+#endif
+		  Syslogger() << "Disconnecting while Reading" << err ;
 		  Disconnect();
-		  return 0;
+		  return false;
 	  }
 	  totalRecieved += recieved;
 	  buffer.ref().insert(buffer.ref().end(), tmpbuffer, tmpbuffer + recieved );
@@ -232,16 +236,21 @@ bool TcpSocket::Read(ByteArrayHolder & buffer)
 bool TcpSocket::Write(const ByteArrayHolder & buffer, size_t maxBytes)
 {
 	if (m_impl->m_socket == INVALID_SOCKET)
-		return 0;
+		return false;
 
 	maxBytes = std::min(maxBytes, buffer.size());
 
 	auto written = send( m_impl->m_socket, (const char*)(buffer.data()), maxBytes, MSG_NOSIGNAL);
 	if (written < 0)
 	{
-		Syslogger() << "Disconnecting while Writing" ;
+#ifdef _WIN32
+		const auto err = GetLastError();
+#else
+		const auto err = errno ;
+#endif
+		Syslogger() << "Disconnecting while Writing, err=" << err ;
 		Disconnect();
-		return 0;
+		return false;
 	}
 
 #ifdef SOCKET_DEBUG
@@ -308,9 +317,18 @@ void TcpSocket::SetBufferSize()
 	{
 		if (!m_impl->SetRecieveBuffer(m_params.m_recommendedRecieveBufferSize))
 		{
-			Syslogger(LOG_INFO) << "Failed to set socket size:" << m_params.m_recommendedRecieveBufferSize;
+			Syslogger(LOG_INFO) << "Failed to set recieve socket buffer size:" << m_params.m_recommendedRecieveBufferSize;
 		}
 		m_recieveBufferSize = m_impl->GetRecieveBuffer();
+	}
+	m_sendBufferSize = m_impl->GetSendBuffer();
+	if (m_sendBufferSize < m_params.m_recommendedSendBufferSize)
+	{
+		if (!m_impl->SetSendBuffer(m_params.m_recommendedSendBufferSize))
+		{
+			Syslogger(LOG_INFO) << "Failed to set send socket buffer size:" << m_params.m_recommendedSendBufferSize;
+		}
+		m_sendBufferSize = m_impl->GetSendBuffer();
 	}
 }
 
@@ -360,5 +378,20 @@ uint32_t TcpSocketPrivate::GetRecieveBuffer()
 
 	return static_cast<uint32_t>(valopt);
 }
+bool TcpSocketPrivate::SetSendBuffer(uint32_t size)
+{
+	int valopt = static_cast<int>(size);
+	socklen_t valopt_len = sizeof(valopt);
+	return setsockopt(m_socket, SOL_SOCKET, SO_SNDBUF, SOCK_OPT_ARG &valopt, valopt_len) == 0;
+}
 
+uint32_t TcpSocketPrivate::GetSendBuffer()
+{
+	int valopt = 0;
+	socklen_t valopt_len = sizeof(valopt);
+	if (getsockopt(m_socket, SOL_SOCKET, SO_SNDBUF, SOCK_OPT_ARG &valopt, &valopt_len))
+		return g_defaultBufferSize;
+
+	return static_cast<uint32_t>(valopt);
+}
 }

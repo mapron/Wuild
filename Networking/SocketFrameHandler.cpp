@@ -187,7 +187,11 @@ bool SocketFrameHandler::ReadFrames()
 	m_doTestActivity = true;
 	m_readBuffer.ResetRead();
 
+	//auto readSize = m_readBuffer.GetSize();
+	//if (readSize > 50) readSize = 50;
+	//Syslogger(m_logContext) << "m_readBuffer=" << Syslogger::Binary(m_readBuffer.begin(), readSize);
 	//Syslogger(m_logContext) << "m_readBuffer=" << m_readBuffer.ToHex(true, true);
+
 	//Syslogger(m_logContext) << "m_frameDataBuffer=" << m_frameDataBuffer.ToHex(true, true);
 
 	m_outputAcknowledgesSize += newSize - currentSize;
@@ -224,7 +228,10 @@ bool SocketFrameHandler::ReadFrames()
 
 			m_remoteTimeDiffToPast = now - remoteTime;
 
-			m_maxUnAcknowledgedSize = bufferSize * BUFFER_RATIO;
+			auto tcpch = std::dynamic_pointer_cast<TcpSocket>(m_channel);
+			const auto sendSize = tcpch ? tcpch->GetSendBufferSize() : 0;
+
+			m_maxUnAcknowledgedSize = std::min(sendSize,  bufferSize) * BUFFER_RATIO;
 			if (version != m_settings.m_channelProtocolVersion)
 			{
 				Syslogger(m_logContext, LOG_ERR) << "Remote version is  " << version << ", but mine is " << m_settings.m_channelProtocolVersion;
@@ -258,6 +265,10 @@ bool SocketFrameHandler::ReadFrames()
 			m_readBuffer.RemoveFromStart(m_readBuffer.GetOffsetRead());
 			m_frameDataBuffer.MarkWrite(frameLength);
 
+			//auto fdSize = m_frameDataBuffer.GetSize();
+			//if (fdSize > 50) fdSize = 50;
+			//Syslogger(m_logContext) << "m_frameDataBuffer=" << Syslogger::Binary(m_frameDataBuffer.begin(), readSize);
+
 			//Syslogger(m_logContext) << "m_frameDataBuffer=" << m_frameDataBuffer.ToHex(true, true);
 			//Syslogger(m_logContext) << "m_readBuffer=" << m_readBuffer.ToHex(true, true);
 
@@ -282,6 +293,7 @@ bool SocketFrameHandler::ReadFrames()
 			}
 			if (state == SocketFrame::stIncomplete || m_frameDataBuffer.EofRead())
 			{
+				m_frameDataBuffer.ResetRead();
 				continue;
 			}
 			else if (state == SocketFrame::stBroken)
@@ -296,6 +308,7 @@ bool SocketFrameHandler::ReadFrames()
 				PreprocessFrame(incoming);
 			}
 		}
+
 
 		m_readBuffer.RemoveFromStart(m_readBuffer.GetOffsetRead());
 		m_frameDataBuffer.RemoveFromStart(m_frameDataBuffer.GetOffsetRead());
@@ -349,8 +362,8 @@ bool SocketFrameHandler::WriteFrames()
 	if (m_setConnectionOptionsNeedSend)
 	{
 		m_setConnectionOptionsNeedSend = false;
-		auto ch = std::dynamic_pointer_cast<TcpSocket>(m_channel);
-		uint32_t size = ch ? ch->GetRecieveBufferSize() : 0;
+		auto tcpch = std::dynamic_pointer_cast<TcpSocket>(m_channel);
+		uint32_t size = tcpch ? tcpch->GetRecieveBufferSize() : 0;
 		ByteOrderDataStreamWriter streamWriter(m_settings.m_byteOrder);
 		streamWriter << uint8_t(ServiceMessageType::ConnOptions);
 		streamWriter << size << m_settings.m_channelProtocolVersion << TimePoint(true).GetUS();
@@ -400,7 +413,13 @@ bool SocketFrameHandler::WriteFrames()
 		m_outputSegments.pop_front();
 
 		if (!m_channel->Write(frontSegment, sizeForWrite))
+		{
+			Syslogger(m_logContext, LOG_ERR) << "Write failed: sizeForWrite=" <<  sizeForWrite
+											 << ", maxSize=" << maxSize
+											 << ", m_bytesWaitingAcknowledge=" << m_bytesWaitingAcknowledge
+												;
 			return false;
+		}
 
 		m_lastTestActivity = TimePoint(true);
 		if (m_settings.m_hasAcknowledges)
