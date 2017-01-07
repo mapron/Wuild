@@ -25,11 +25,23 @@
 
 #include <iostream>
 
+//#define TEST_CLIENT
+#ifdef TEST_CLIENT
+#include <RemoteToolServer.h>
+#include <LocalExecutor.h>
+#endif
+
 class RemoteExecutor: public IRemoteExecutor
 {
 	Wuild::ConfiguredApplication & m_app;
 	Wuild::ICompilerModule::Ptr m_compiler;
 	Wuild::RemoteToolClient m_remoteService;
+
+#ifdef TEST_CLIENT
+	Wuild::ILocalExecutor::Ptr m_localExecutor;
+	std::shared_ptr<Wuild::RemoteToolServer> m_toolServer;
+#endif
+
 	bool m_remoteEnabled = false;
 	bool m_hasStart = false;
 	int m_minimalRemoteTasks = 0;
@@ -59,6 +71,28 @@ public:
 
 		if (!m_remoteService.SetConfig(remoteToolConfig))
 			return;
+
+#ifdef  TEST_CLIENT
+		m_localExecutor = LocalExecutor::Create(m_compiler, m_app.m_tempDir);
+		m_app.m_remoteToolServerConfig.m_workersCount = 2;
+		m_app.m_remoteToolServerConfig.m_listenHost = "localhost";
+		m_app.m_remoteToolServerConfig.m_listenPort = 12345;
+		m_app.m_remoteToolServerConfig.m_coordinator.m_enabled = false;
+
+		m_toolServer.reset(new RemoteToolServer(m_localExecutor));
+		if (!m_toolServer->SetConfig(m_app.m_remoteToolServerConfig))
+			return;
+
+		CoordinatorWorkerInfo workerInfo;
+		workerInfo.m_connectionHost = "localhost";
+		workerInfo.m_connectionPort = 12345;
+		workerInfo.m_toolIds = m_compiler->GetConfig().m_toolIds;
+		workerInfo.m_totalThreads = 2;
+		m_remoteService.AddClient(workerInfo);
+
+		remoteToolConfig.m_coordinator.m_enabled = false;
+		m_remoteService.SetConfig(remoteToolConfig);
+#endif
 
 		m_remoteEnabled = true;
 	}
@@ -140,6 +174,9 @@ public:
 
 		m_hasStart = true;
 		m_remoteService.Start();
+		#ifdef  TEST_CLIENT
+		m_toolServer->Start();
+		#endif
 	}
 	void SleepSome() const  override
 	{
