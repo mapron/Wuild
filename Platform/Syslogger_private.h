@@ -43,7 +43,7 @@ public:
 
 	bool LogEnabled(int logLevel) const override { return logLevel <= m_maxLogLevel; }
 
-	void FlushMessage(const std::string & message, int logLevel) const
+	void FlushMessage(const std::string & message, int logLevel) const override
 	{
 		std::ostringstream os;
 		if (m_outputLoglevel)

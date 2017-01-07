@@ -27,7 +27,7 @@ int main(int argc, char** argv)
 	//app.m_loggerConfig.m_maxLogLevel = LOG_DEBUG;
 	app.InitLogging(app.m_loggerConfig);
 
-	const auto args = StringUtils::StringVectorFromArgv(argc, argv);
+	const auto args = app.GetRemainArgs();
 
 	auto localExecutor = LocalExecutor::Create(TestConfiguration::g_compilerModule, app.m_tempDir);
 

@@ -38,6 +38,11 @@ StringVector CreateTestProgramInvocation()
 	args.push_back(testFileCpp);
 	args.push_back("-o");
 	args.push_back(tempDir + "/test.o");
+
+#ifdef __APPLE__
+	args.push_back("-isysroot");
+	args.push_back("/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk");
+#endif
 	return args;
 }
 

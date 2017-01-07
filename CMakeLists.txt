@@ -25,6 +25,16 @@ if (MSVC)
 	add_definitions(-D_CRT_SECURE_NO_WARNINGS -DNOMINMAX /wd4267 /wd4244)
 endif()
 
+SET( BOOST_INCLUDEDIR "" CACHE PATH "Boost path to includes")
+SET( BOOST_LIBRARYDIR "" CACHE PATH "Boost path to compiled libs")
+set(HAS_BOOST)
+
+if (BOOST_LIBRARYDIR)
+   find_package(Boost REQUIRED system filesystem)
+   set(HAS_BOOST -DHAS_BOOST=1)
+endif()
+
+
 function(AddTarget)
 	set(options APP)
 	set(oneValueArgs NAME ROOT)
@@ -112,7 +122,15 @@ AddTarget(NAME ninja_lib ROOT ${NINJA_ROOT}/ CSRC ${ninja_lib_src} *.h
 	)
 
 AddTarget(NAME Platform CSRC *.cpp *.h
-	DEPS ${ZLIB_LIBS})
+	INCLUDES
+	${BOOST_INCLUDEDIR}
+	OPTIONS
+	 ${HAS_BOOST}
+	DEPS
+	${ZLIB_LIBS}
+	${Boost_FILESYSTEM_LIBRARY}
+	${Boost_SYSTEM_LIBRARY}
+	)
 
 AddTarget(NAME Configs CSRC *.cpp *.h
 	DEPS Platform)
@@ -151,6 +169,9 @@ else()
 endif()
 if ((UNIX AND NOT APPLE) OR (WIN32 AND NOT MSVC))
 	list(APPEND sys_deps  -lstdc++fs)
+endif()
+if (APPLE)
+	list(APPEND sys_deps -stdlib=libc++ /usr/local/clang+llvm-3.9.0-x86_64-apple-darwin/lib/libc++.dylib)
 endif()
 
 foreach (testname AllConfigs Compiler Coordinator Inflate Networking Worker )

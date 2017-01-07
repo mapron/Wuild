@@ -86,9 +86,7 @@ public:
 
 	/// Try to resize buffer. If resize fails, return false.
 	bool SetSize(size_t sz)
-	{
-		if (sz < 0)
-			return false;
+	{		
 		if (sz > GetSize() && !m_resizable)
 			return false;
 		if(sz != GetSize() && m_resizable)

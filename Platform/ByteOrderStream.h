@@ -149,7 +149,7 @@ public:
 
 	bool ReadPascalString(std::string & str)
 	{
-		size_t size = this->ReadScalar<size_t>();
+		size_t size = this->ReadScalar<uint32_t>();
 		if (this->EofRead())
 			return false;
 		str.resize(size);
@@ -221,7 +221,7 @@ public:
 	/// Read/write strings with size.
 	bool WritePascalString(const std::string& str)
 	{
-		*this << str.size();
+		*this << static_cast<uint32_t>(str.size());
 
 		if (!WriteBlock(reinterpret_cast<const uint8_t *>(str.data()), str.size()))
 			return false;

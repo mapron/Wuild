@@ -18,8 +18,16 @@
 #include <stdio.h>
 #include <algorithm>
 
+#ifdef HAS_BOOST
+#include <boost/filesystem.hpp>
+namespace fs = boost::filesystem;
+#define u8string string
+#define CODE_ARG(arg)
+#else
 #include <experimental/filesystem>
 namespace fs = std::experimental::filesystem;
+#define CODE_ARG(arg) , arg
+#endif
 
 #define CHUNK 16384
 
@@ -110,7 +118,7 @@ static int inf(const std::vector<uint8_t> & source, FILE *dest)
 
 		if (strm.avail_in == 0)
 			break;
-		strm.next_in = (z_const Bytef *)sourceData;
+		strm.next_in = (decltype(strm.next_in))sourceData;
 		sourceData += strm.avail_in;
 
 		/* run inflate() on input until output buffer not full */
@@ -273,7 +281,7 @@ bool FileInfo::WriteFile(const ByteArrayHolder &data)
 bool FileInfo::Exists()
 {
 	std::error_code code;
-	return fs::exists(m_impl->m_path, code);
+	return fs::exists(m_impl->m_path CODE_ARG(code));
 }
 
 size_t FileInfo::FileSize()
@@ -282,20 +290,20 @@ size_t FileInfo::FileSize()
 		return 0;
 
 	std::error_code code;
-	return fs::file_size(m_impl->m_path, code);
+	return fs::file_size(m_impl->m_path CODE_ARG(code));
 }
 
 void FileInfo::Remove()
 {
-	std::error_code err;
-	if (fs::exists(m_impl->m_path, err))
-		fs::remove(m_impl->m_path, err);
+	std::error_code code;
+	if (fs::exists(m_impl->m_path CODE_ARG(code)))
+		fs::remove(m_impl->m_path CODE_ARG(code));
 }
 
 void FileInfo::Mkdirs()
 {
 	std::error_code code;
-	fs::create_directories(m_impl->m_path, code);
+	fs::create_directories(m_impl->m_path CODE_ARG(code));
 }
 
 StringVector FileInfo::GetDirFiles(bool sortByName)
@@ -318,3 +326,4 @@ TemporaryFile::~TemporaryFile()
 
 
 }
+

@@ -49,7 +49,7 @@ void GccCommandLineParser::UpdateInfo()
 				m_invocation.m_outputNameIndex = argIndex + 1;
 				skipNext = true;
 			}
-			if (arg == "-MF" || arg == "-MT")
+			if (arg == "-MF" || arg == "-MT" || arg == "-isysroot")
 				skipNext = true;
 
 			continue;
@@ -109,12 +109,24 @@ void GccCommandLineParser::RemoveDependencyFiles()
 void GccCommandLineParser::RemovePrepocessorFlags()
 {
 	StringVector newArgs;
+	bool skipNext = false;
 	for (const auto & arg : m_invocation.m_args)
 	{
+		if (skipNext)
+		{
+			skipNext = false;
+			continue;
+		}
 		if (arg.size() > 1 && arg[0] == '-')
 		{
 			if (arg[1] == 'I' || arg[1] == 'D')
 				continue;
+
+			if (arg == "-isysroot")
+			{
+				skipNext = true;
+				continue;
+			}
 		}
 		newArgs.push_back(arg);
 	}

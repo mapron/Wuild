@@ -27,7 +27,7 @@
 	#ifndef INVALID_SOCKET
 		#define INVALID_SOCKET -1
 	#endif
-	typedef SOCKET int
+	typedef int SOCKET;
 	inline void SocketEngineCheck() {}
 	#define SOCK_OPT_ARG (void*)
 #else // Pure win: ws2_32

@@ -36,7 +36,7 @@ bool TcpConnectionParams::SetPoint(int port, std::string host)
 	bool any = false;
 	if (host == "*")
 	{
-#ifdef _WIN32
+#ifndef __linux__
 		host = "";
 #endif
 		any = true;

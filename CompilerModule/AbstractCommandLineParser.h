@@ -25,8 +25,8 @@ protected:
 	bool IsIgnored(const std::string & arg) const;
 
 public:
-	CompilerInvocation GetCompilerInvocation() const;
-	void SetCompilerInvocation(const CompilerInvocation & invocation);
+	CompilerInvocation GetCompilerInvocation() const override;
+	void SetCompilerInvocation(const CompilerInvocation & invocation) override;
 
 	virtual void UpdateInfo() = 0;
 

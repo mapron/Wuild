@@ -37,11 +37,11 @@ public:
 
 	bool SplitInvocation(const CompilerInvocation & ,
 				 CompilerInvocation &,
-				 CompilerInvocation &) { return false;}
+				 CompilerInvocation &) override { return false;}
 
-	CompilerInvocation CompleteInvocation(const CompilerInvocation & original) { return original; }
+	CompilerInvocation CompleteInvocation(const CompilerInvocation & original) override { return original; }
 
-	CompilerInvocation FilterFlags(const CompilerInvocation & original)  { return original; }
+	CompilerInvocation FilterFlags(const CompilerInvocation & original) override { return original; }
 
 	std::string GetPreprocessedPath(const std::string &, const std::string & objectPath) const override { return objectPath + ".pp";}
 

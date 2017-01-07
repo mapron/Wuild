@@ -77,7 +77,7 @@ public:
 						const std::vector<std::string> & ignoredArgs,
 						std::string & compilerId,
 						std::vector<std::string> & preprocessRule,
-						std::vector<std::string> & compileRule) const
+						std::vector<std::string> & compileRule) const override
 	{
 		if (!m_remoteEnabled || originalRule.size() < 3)
 			return false;
@@ -111,14 +111,14 @@ public:
 
 		return true;
 	}
-	std::string GetPreprocessedPath(const std::string & sourcePath, const std::string & objectPath) const
+	std::string GetPreprocessedPath(const std::string & sourcePath, const std::string & objectPath) const override
 	{
 		if (!m_remoteEnabled)
 			return "";
 
 		return m_compiler->GetPreprocessedPath(sourcePath, objectPath);
 	}
-	std::string FilterPreprocessorFlags(const std::string & compilerId, const std::string & flags) const
+	std::string FilterPreprocessorFlags(const std::string & compilerId, const std::string & flags) const override
 	{
 		if (!m_remoteEnabled)
 			return flags;
@@ -126,7 +126,7 @@ public:
 		return m_compiler->FilterFlags(Wuild::CompilerInvocation(flags, Wuild::CompilerInvocation::InvokeType::Preprocess).SetId(compilerId)).GetArgsString(false);
 	}
 
-	std::string FilterCompilerFlags(const std::string & compilerId, const std::string & flags) const
+	std::string FilterCompilerFlags(const std::string & compilerId, const std::string & flags) const override
 	{
 		if (!m_remoteEnabled)
 			return flags;

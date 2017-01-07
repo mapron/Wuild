@@ -106,7 +106,7 @@ void LocalExecutor::Quant()
 	}
 
 	Subprocess* subproc;
-	while (subproc = m_subprocs->NextFinished())
+	while ((subproc = m_subprocs->NextFinished()))
 	{
 		LocalExecutorResult::Ptr result(new LocalExecutorResult());
 		result->m_result = subproc->Finish() == ExitSuccess;
