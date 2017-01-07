@@ -230,7 +230,13 @@ std::string TimePoint::ToString(bool printMS, bool printDate) const
 
 	if (printDate)
 		os << std::setw(4) << timeinfo.tm_year << '-' << std::setw(2) << timeinfo.tm_mon << '-' << std::setw(2) << timeinfo.tm_mday << ' ';
-	os << std::setw(2) << timeinfo.tm_hour << ':' << std::setw(2) << timeinfo.tm_min << ':' << std::setw(2) << timeinfo.tm_sec ;
+
+	if (printDate || timeinfo.tm_hour)
+	{
+		os << std::setw(2) << timeinfo.tm_hour << ':';
+	}
+
+	os << std::setw(2) << timeinfo.tm_min << ':' << std::setw(2) << timeinfo.tm_sec ;
 	if (printMS)
 	{
 		int64_t ms = GetFractionalUS() / 1000;

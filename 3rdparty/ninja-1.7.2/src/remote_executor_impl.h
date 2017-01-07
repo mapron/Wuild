@@ -48,11 +48,18 @@ class RemoteExecutor: public IRemoteExecutor
 
 	std::deque<Result> m_results;
 	mutable std::mutex m_resultsMutex;
+
+	Wuild::TimePoint m_start;
+	Wuild::TimePoint m_totalExecutionTime;
+	Wuild::TimePoint m_totalNetworkTime;
+	size_t m_remoteTasks = 0;
 public:
 
 	RemoteExecutor(Wuild::ConfiguredApplication & app) : m_app(app)
 	{
 		using namespace Wuild;
+
+		m_start = TimePoint(true);
 
 		bool silent =  !Wuild::Syslogger::IsLogLevelEnabled(LOG_DEBUG);
 
@@ -213,6 +220,9 @@ public:
 		 auto callback = [this, userData, outputFilename]( const Wuild::RemoteToolClient::ExecutionInfo & info)
 		 {
 			 bool result = info.m_result;
+			 // TODO: atomic/mutex!
+			 m_totalExecutionTime += info.m_toolExecutionTime;
+			 m_totalNetworkTime += info.m_networkRequestTime;
 
 			 Wuild::Syslogger(LOG_INFO) << outputFilename
 								 << " -> " << result << ", " <<  info.GetProfilingStr()
@@ -221,6 +231,7 @@ public:
 			 m_results.emplace_back(userData, result, info.m_stdOutput);
 		 };
 		 m_remoteService.InvokeTool(invocation, callback);
+		 m_remoteTasks++;
 
 		 return true;
 	}
@@ -245,6 +256,23 @@ public:
 	void Abort() override
 	{
 		m_remoteEnabled = false;
+	}
+
+	~RemoteExecutor()
+	{
+		using namespace Wuild;
+		if (!m_remoteTasks)
+			return;
+
+		auto cus = m_totalExecutionTime.GetUS();
+		auto nus = m_totalNetworkTime.GetUS();
+		auto overheadPercent = ((nus - cus) * 100) / (cus ? cus : 1);
+		Syslogger(LOG_NOTICE) << "Total remote tasks:" << m_remoteTasks << ", done in " << m_start.GetElapsedTime().ToString()
+							  <<  " total compilationTime: " << m_totalExecutionTime.ToString(false) << ", "
+							  << " total networkTime: "  << m_totalNetworkTime.ToString(false) << ", "
+							  << " total overhead: " << overheadPercent << "%"
+								  ;
+
 	}
 
 };
