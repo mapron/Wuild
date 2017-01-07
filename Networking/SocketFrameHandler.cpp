@@ -187,7 +187,8 @@ bool SocketFrameHandler::ReadFrames()
 	m_doTestActivity = true;
 	m_readBuffer.ResetRead();
 
-	//Syslogger(m_logContext) << "m_readBuffer=" << m_readBuffer.ToHex(true);
+	//Syslogger(m_logContext) << "m_readBuffer=" << m_readBuffer.ToHex(true, true);
+	//Syslogger(m_logContext) << "m_frameDataBuffer=" << m_frameDataBuffer.ToHex(true, true);
 
 	m_outputAcknowledgesSize += newSize - currentSize;
 	bool validInput = true;
@@ -245,6 +246,9 @@ bool SocketFrameHandler::ReadFrames()
 					Syslogger(m_logContext, LOG_ERR) << "Invalid segment size =" << size;
 					break;
 				}
+				if (size > frameLength)
+					break; // incomplete read buffer;
+
 				frameLength = size;
 			}
 			m_frameDataBuffer.ResetRead();
