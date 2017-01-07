@@ -15,44 +15,36 @@
 
 #ifndef _WIN32
 
-    #include <netinet/in.h>
-    #include <sys/socket.h>
-    #include <unistd.h>
-    #include <arpa/inet.h>
-    #include <sys/ioctl.h>
-    #include <fcntl.h>
-    #include <sys/types.h>
-    #include <netdb.h>
+	#include <netinet/in.h>
+	#include <sys/socket.h>
+	#include <unistd.h>
+	#include <arpa/inet.h>
+	#include <sys/ioctl.h>
+	#include <fcntl.h>
+	#include <sys/types.h>
+	#include <netdb.h>
 
-    #define TCP_SOCKET_POSIX
-    #ifndef INVALID_SOCKET
-        #define INVALID_SOCKET -1
-    #endif
-    #define SOCKETDESC_TYPE int
-    #define SOCKETADDR_TYPE struct sockaddr_in
-    inline void SocketEngineCheck() {}
-    #define SOCK_OPT_ARG (void*)
+	#ifndef INVALID_SOCKET
+		#define INVALID_SOCKET -1
+	#endif
+	typedef SOCKET int
+	inline void SocketEngineCheck() {}
+	#define SOCK_OPT_ARG (void*)
 #else // Pure win: ws2_32
-    #include <winsock2.h>
-    #include <ws2tcpip.h>
-    #include <stdio.h>
-    #include <windows.h>
+	#include <winsock2.h>
+	#include <ws2tcpip.h>
+	#include <stdio.h>
+	#include <windows.h>
 
-    #define TCP_SOCKET_WIN
-    #define SOCKETDESC_TYPE SOCKET
-    #define SOCK_OPT_ARG (char*)
-    #ifdef __MINGW32__
-        int inet_pton(int af, const char *src, void *dst);
-    #endif
-    #define SOCKETADDR_TYPE struct sockaddr_in
-
-    void SocketEngineCheck();
-    #define close closesocket
+	#define TCP_SOCKET_WIN
+	#define SOCK_OPT_ARG (char*)
+	void SocketEngineCheck();
+	#define close closesocket
 #endif
 
 #define SET_TIMEVAL_US(timeout, timePoint) \
-    timeout.tv_usec =timePoint.GetUS() % Wuild::TimePoint::ONE_SECOND;\
-    timeout.tv_sec = timePoint.GetUS() / Wuild::TimePoint::ONE_SECOND;
+	timeout.tv_usec =timePoint.GetUS() % Wuild::TimePoint::ONE_SECOND;\
+	timeout.tv_sec = timePoint.GetUS() / Wuild::TimePoint::ONE_SECOND;
 
 namespace Wuild
 {
@@ -60,10 +52,10 @@ namespace Wuild
 class TcpSocketPrivate
 {
 public:
-    SOCKETDESC_TYPE m_socket = INVALID_SOCKET;
-    bool SetBlocking(bool blocking);
-    bool SetRecieveBuffer(uint32_t size);
-    uint32_t GetRecieveBuffer();
+	SOCKET m_socket = INVALID_SOCKET;
+	bool SetBlocking(bool blocking);
+	bool SetRecieveBuffer(uint32_t size);
+	uint32_t GetRecieveBuffer();
 };
 
 }

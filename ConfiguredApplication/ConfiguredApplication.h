@@ -32,45 +32,45 @@ class AbstractConfig;
 class ConfiguredApplication
 {
 public:
-    LoggerConfig m_loggerConfig;
-    CompilerConfig m_compilerConfig;
-    RemoteToolClientConfig m_remoteToolClientConfig;
-    RemoteToolServerConfig m_remoteToolServerConfig;
-    CoordinatorServerConfig m_coordinatorServerConfig;
-    CompilerProxyServerConfig m_compilerProxyServerConfig;
+	LoggerConfig m_loggerConfig;
+	CompilerConfig m_compilerConfig;
+	RemoteToolClientConfig m_remoteToolClientConfig;
+	RemoteToolServerConfig m_remoteToolServerConfig;
+	CoordinatorServerConfig m_coordinatorServerConfig;
+	CompilerProxyServerConfig m_compilerProxyServerConfig;
 
-    std::string m_tempDir;
+	std::string m_tempDir;
 
-    /// parses paramenter from commandline, reading wuild configuration, filling Config structures.
-    ConfiguredApplication(int argc, char** argv, const std::string& appName = std::string(), const std::string& defaultGroupName = std::string());
-    ~ConfiguredApplication();
+	/// parses paramenter from commandline, reading wuild configuration, filling Config structures.
+	ConfiguredApplication(int argc, char** argv, const std::string& appName = std::string(), const std::string& defaultGroupName = std::string());
+	~ConfiguredApplication();
 
-    const StringVector & GetRemainArgs() const { return m_remainArgs;}
-    int GetRemainArgc() const;
-    char** GetRemainArgv() const;
+	const StringVector & GetRemainArgs() const { return m_remainArgs;}
+	int GetRemainArgc() const;
+	char** GetRemainArgv() const;
 
-    bool InitLogging(const LoggerConfig & loggerConfig);
+	bool InitLogging(const LoggerConfig & loggerConfig);
 
-    bool GetCompilerConfig(CompilerConfig & config, bool silent = false) const;
-    bool GetCoordinatorServerConfig(CoordinatorServerConfig & config) const;
-    bool GetCompilerProxyServerConfig(CompilerProxyServerConfig & config) const;
+	bool GetCompilerConfig(CompilerConfig & config, bool silent = false) const;
+	bool GetCoordinatorServerConfig(CoordinatorServerConfig & config) const;
+	bool GetCompilerProxyServerConfig(CompilerProxyServerConfig & config) const;
 
-    bool GetRemoteToolClientConfig(RemoteToolClientConfig & config, bool silent = false) const;
-    bool GetRemoteToolServerConfig(RemoteToolServerConfig & config, bool silent = false) const;
+	bool GetRemoteToolClientConfig(RemoteToolClientConfig & config, bool silent = false) const;
+	bool GetRemoteToolServerConfig(RemoteToolServerConfig & config, bool silent = false) const;
 
 private:
-    StringVector m_remainArgs;
-    std::vector<char*> m_remainArgv;
-    std::unique_ptr<AbstractConfig> m_config;
-    std::string m_defaultGroupName;
-    ConfiguredApplication(const ConfiguredApplication& ) = delete;
+	StringVector m_remainArgs;
+	std::vector<char*> m_remainArgv;
+	std::unique_ptr<AbstractConfig> m_config;
+	std::string m_defaultGroupName;
+	ConfiguredApplication(const ConfiguredApplication& ) = delete;
 
-    void ReadLoggingConfig();
-    void ReadCompilerConfig();
-    void ReadRemoteToolClientConfig();
-    void ReadRemoteToolServerConfig();
-    void ReadCoordinatorClientConfig(CoordinatorClientConfig & config, const std::string & groupName);
-    void ReadCoordinatorServerConfig();
-    void ReadCompilerProxyServerConfig();
+	void ReadLoggingConfig();
+	void ReadCompilerConfig();
+	void ReadRemoteToolClientConfig();
+	void ReadRemoteToolServerConfig();
+	void ReadCoordinatorClientConfig(CoordinatorClientConfig & config, const std::string & groupName);
+	void ReadCoordinatorServerConfig();
+	void ReadCompilerProxyServerConfig();
 };
 }

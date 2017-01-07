@@ -21,11 +21,11 @@ namespace Wuild
 class RemoteToolServerConfig : public IConfig
 {
 public:
-    std::string m_workerId;
-    std::string m_listenHost;
-    int m_listenPort = 0;
-    int m_workersCount = 1;
-    CoordinatorClientConfig m_coordinator;
-    bool Validate(std::ostream * errStream = nullptr) const override;
+	std::string m_workerId;
+	std::string m_listenHost;
+	int m_listenPort = 0;
+	int m_workersCount = 1;
+	CoordinatorClientConfig m_coordinator;
+	bool Validate(std::ostream * errStream = nullptr) const override;
 };
 }

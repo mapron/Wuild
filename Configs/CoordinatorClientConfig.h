@@ -21,12 +21,12 @@ namespace Wuild
 class CoordinatorClientConfig : public IConfig
 {
 public:
-    std::string m_logContext;
-    bool m_enabled = true;
-    std::string m_coordinatorHost;
-    int m_coordinatorPort = 0;
-    TimePoint m_sendWorkerInterval;
+	std::string m_logContext;
+	bool m_enabled = true;
+	std::string m_coordinatorHost;
+	int m_coordinatorPort = 0;
+	TimePoint m_sendWorkerInterval;
 
-    bool Validate(std::ostream * errStream = nullptr) const override;
+	bool Validate(std::ostream * errStream = nullptr) const override;
 };
 }

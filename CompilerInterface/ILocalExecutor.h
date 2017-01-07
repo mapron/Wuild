@@ -21,21 +21,21 @@ namespace Wuild
 class ILocalExecutor
 {
 public:
-    using Ptr = std::shared_ptr<ILocalExecutor>;
-    using TaskPair = std::pair<LocalExecutorTask::Ptr, LocalExecutorTask::Ptr>;
+	using Ptr = std::shared_ptr<ILocalExecutor>;
+	using TaskPair = std::pair<LocalExecutorTask::Ptr, LocalExecutorTask::Ptr>;
 
-    virtual ~ILocalExecutor() = default;
+	virtual ~ILocalExecutor() = default;
 
-    /// Schedule task for execution. task contains callback to call when finished.
-    virtual void AddTask(LocalExecutorTask::Ptr task) = 0;
+	/// Schedule task for execution. task contains callback to call when finished.
+	virtual void AddTask(LocalExecutorTask::Ptr task) = 0;
 
-    /// Try to split task to preprocessing and compilation tasks. Returns empty TaskPair on fail.
-    virtual TaskPair SplitTask(LocalExecutorTask::Ptr compiler, std::string & err) = 0;
+	/// Try to split task to preprocessing and compilation tasks. Returns empty TaskPair on fail.
+	virtual TaskPair SplitTask(LocalExecutorTask::Ptr compiler, std::string & err) = 0;
 
-    /// Returns tools ids available for execution.
-    virtual StringVector GetToolIds() const = 0;
+	/// Returns tools ids available for execution.
+	virtual StringVector GetToolIds() const = 0;
 
-    /// Sets maximal process count.
-    virtual void SetWorkersCount(int workers) = 0;
+	/// Sets maximal process count.
+	virtual void SetWorkersCount(int workers) = 0;
 };
 }

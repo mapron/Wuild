@@ -32,36 +32,36 @@ namespace Wuild
 /// Uses ninja's SubprocessSet.
 class LocalExecutor : public ILocalExecutor
 {
-    LocalExecutor(ICompilerModule::Ptr compiler, const std::string & tempPath);
+	LocalExecutor(ICompilerModule::Ptr compiler, const std::string & tempPath);
 public:
-    static Ptr Create(ICompilerModule::Ptr compiler, const std::string & tempPath)
-    { return Ptr(new LocalExecutor(compiler, tempPath)); }
+	static Ptr Create(ICompilerModule::Ptr compiler, const std::string & tempPath)
+	{ return Ptr(new LocalExecutor(compiler, tempPath)); }
 
 public:
-    void AddTask(LocalExecutorTask::Ptr task) override;
-    TaskPair SplitTask(LocalExecutorTask::Ptr compiler, std::string & err) override;
-    StringVector GetToolIds() const override;
-    void SetWorkersCount(int workers) override;
+	void AddTask(LocalExecutorTask::Ptr task) override;
+	TaskPair SplitTask(LocalExecutorTask::Ptr compiler, std::string & err) override;
+	StringVector GetToolIds() const override;
+	void SetWorkersCount(int workers) override;
 
-    ~LocalExecutor();
+	~LocalExecutor();
 
 private:
-    void Start();
-    void CheckSubprocs();
-    LocalExecutorTask::Ptr GetNextTask();
-    void Quant();
+	void Start();
+	void CheckSubprocs();
+	LocalExecutorTask::Ptr GetNextTask();
+	void Quant();
 
-    size_t m_maxWorkers = 1;
-    size_t m_taskId = 0;
-    std::mutex m_queueMutex;
-    using Guard = std::lock_guard<std::mutex>;
-    std::queue<LocalExecutorTask::Ptr> m_taskQueue;
+	size_t m_maxWorkers = 1;
+	size_t m_taskId = 0;
+	std::mutex m_queueMutex;
+	using Guard = std::lock_guard<std::mutex>;
+	std::queue<LocalExecutorTask::Ptr> m_taskQueue;
 
-    std::shared_ptr<ICompilerModule> m_compiler;
-    std::string m_tempPath;
-    std::unique_ptr<SubprocessSet> m_subprocs;
-    std::map<Subprocess*, LocalExecutorTask::Ptr> m_subprocToTask;
-    ThreadLoop m_thread;
+	std::shared_ptr<ICompilerModule> m_compiler;
+	std::string m_tempPath;
+	std::unique_ptr<SubprocessSet> m_subprocs;
+	std::map<Subprocess*, LocalExecutorTask::Ptr> m_subprocToTask;
+	ThreadLoop m_thread;
 };
 
 }

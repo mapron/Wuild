@@ -30,44 +30,44 @@ class TcpSocketPrivate;
 /// Can be created by own or through TcpListener::GetPendingConnection.
 class TcpSocket : public IDataSocket
 {
-    friend class TcpListener;
+	friend class TcpListener;
 public:
-    enum ConnectionState { csNone , csPending , csSuccess, csFail };
-    static std::atomic_bool s_applicationInterruption;
+	enum ConnectionState { csNone , csPending , csSuccess, csFail };
+	static std::atomic_bool s_applicationInterruption;
 
 public:
-    TcpSocket (const TcpConnectionParams & params);
-    virtual ~TcpSocket ();
+	TcpSocket (const TcpConnectionParams & params);
+	virtual ~TcpSocket ();
 
-    /// Creates new sockert. If pendingListener is set, then socket will be listener client.
-    static IDataSocket::Ptr Create(const TcpConnectionParams & params, TcpListener* pendingListener = nullptr);
+	/// Creates new sockert. If pendingListener is set, then socket will be listener client.
+	static IDataSocket::Ptr Create(const TcpConnectionParams & params, TcpListener* pendingListener = nullptr);
 
-    bool Connect () override;
-    void Disconnect () override;
-    bool IsConnected () const override;
-    bool IsPending() const override;
+	bool Connect () override;
+	void Disconnect () override;
+	bool IsConnected () const override;
+	bool IsPending() const override;
 
-    bool Read(ByteArrayHolder & buffer) override;
-    bool Write(const ByteArrayHolder & buffer, size_t maxBytes) override;
+	bool Read(ByteArrayHolder & buffer) override;
+	bool Write(const ByteArrayHolder & buffer, size_t maxBytes) override;
 
-    /// Socker buffer size available for reading.
-    size_t GetRecieveBufferSize() const { return m_recieveBufferSize; }
+	/// Socker buffer size available for reading.
+	size_t GetRecieveBufferSize() const { return m_recieveBufferSize; }
 
 protected:
-    void SetListener(TcpListener* pendingListener);
-    void Fail ();     //!< Ошибка при установлении соединения.
-    bool IsSocketReadReady ();
-    bool SelectRead (const TimePoint & timeout);
-    void SetBufferSize();
+	void SetListener(TcpListener* pendingListener);
+	void Fail ();     //!< Ошибка при установлении соединения.
+	bool IsSocketReadReady ();
+	bool SelectRead (const TimePoint & timeout);
+	void SetBufferSize();
 
-    TcpListener*         m_pendingListener = nullptr;
-    ConnectionState      m_state = csNone;
-    bool                 m_acceptedByListener = false;
-    TcpConnectionParams  m_params;
-    uint32_t             m_recieveBufferSize = 0;
+	TcpListener*         m_pendingListener = nullptr;
+	ConnectionState      m_state = csNone;
+	bool                 m_acceptedByListener = false;
+	TcpConnectionParams  m_params;
+	uint32_t             m_recieveBufferSize = 0;
 
 private:
-    std::unique_ptr<TcpSocketPrivate> m_impl;
+	std::unique_ptr<TcpSocketPrivate> m_impl;
 };
 
 }

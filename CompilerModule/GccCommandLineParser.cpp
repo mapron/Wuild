@@ -19,107 +19,107 @@ namespace Wuild
 
 void GccCommandLineParser::UpdateInfo()
 {
-    bool skipNext = false;
-    int argIndex = -1;
-    m_invocation.m_inputNameIndex  = -1;
-    m_invocation.m_outputNameIndex = -1;
-    m_invocation.m_type = CompilerInvocation::InvokeType::Unknown;
-    for (const auto & arg : m_invocation.m_args)
-    {
-        argIndex ++;
-        if (skipNext)
-        {
-            skipNext = false;
-            continue;
-        }
-        if (arg.size() > 1 && arg[0] == '-')
-        {
-            if (arg[1] == 'c')
-            {
-                m_invokeTypeIndex = argIndex;
-                m_invocation.m_type = CompilerInvocation::InvokeType::Compile;
-            }
-            if (arg[1] == 'E')
-            {
-                m_invokeTypeIndex = argIndex;
-                m_invocation.m_type = CompilerInvocation::InvokeType::Preprocess;
-            }
-            if (arg[1] == 'o')
-            {
-                m_invocation.m_outputNameIndex = argIndex + 1;
-                skipNext = true;
-            }
-            if (arg == "-MF" || arg == "-MT")
-                skipNext = true;
+	bool skipNext = false;
+	int argIndex = -1;
+	m_invocation.m_inputNameIndex  = -1;
+	m_invocation.m_outputNameIndex = -1;
+	m_invocation.m_type = CompilerInvocation::InvokeType::Unknown;
+	for (const auto & arg : m_invocation.m_args)
+	{
+		argIndex ++;
+		if (skipNext)
+		{
+			skipNext = false;
+			continue;
+		}
+		if (arg.size() > 1 && arg[0] == '-')
+		{
+			if (arg[1] == 'c')
+			{
+				m_invokeTypeIndex = argIndex;
+				m_invocation.m_type = CompilerInvocation::InvokeType::Compile;
+			}
+			if (arg[1] == 'E')
+			{
+				m_invokeTypeIndex = argIndex;
+				m_invocation.m_type = CompilerInvocation::InvokeType::Preprocess;
+			}
+			if (arg[1] == 'o')
+			{
+				m_invocation.m_outputNameIndex = argIndex + 1;
+				skipNext = true;
+			}
+			if (arg == "-MF" || arg == "-MT")
+				skipNext = true;
 
-            continue;
-        }
-        else if (!IsIgnored(arg))
-        {
-            if (m_invocation.m_inputNameIndex != -1)
-            {
-                m_invocation.m_type = CompilerInvocation::InvokeType::Unknown;
-                return;
-            }
-           m_invocation.m_inputNameIndex = argIndex;
-        }
-    }
-    if (m_invocation.m_inputNameIndex == -1 || m_invocation.m_outputNameIndex == -1 || m_invocation.m_outputNameIndex >= (int)m_invocation.m_args.size())
-    {
-        m_invocation.m_inputNameIndex = -1;
-        m_invocation.m_outputNameIndex = -1;
-        m_invocation.m_type = CompilerInvocation::InvokeType::Unknown;
-    }
+			continue;
+		}
+		else if (!IsIgnored(arg))
+		{
+			if (m_invocation.m_inputNameIndex != -1)
+			{
+				m_invocation.m_type = CompilerInvocation::InvokeType::Unknown;
+				return;
+			}
+		   m_invocation.m_inputNameIndex = argIndex;
+		}
+	}
+	if (m_invocation.m_inputNameIndex == -1 || m_invocation.m_outputNameIndex == -1 || m_invocation.m_outputNameIndex >= (int)m_invocation.m_args.size())
+	{
+		m_invocation.m_inputNameIndex = -1;
+		m_invocation.m_outputNameIndex = -1;
+		m_invocation.m_type = CompilerInvocation::InvokeType::Unknown;
+	}
 
 }
 
 void GccCommandLineParser::SetInvokeType(CompilerInvocation::InvokeType type)
 {
-    if (m_invocation.m_type == CompilerInvocation::InvokeType::Unknown)
-        return;
+	if (m_invocation.m_type == CompilerInvocation::InvokeType::Unknown)
+		return;
 
-    m_invocation.m_type = type;
-    m_invocation.m_args[m_invokeTypeIndex] = type == CompilerInvocation::InvokeType::Preprocess ? "-E" : "-c";
+	m_invocation.m_type = type;
+	m_invocation.m_args[m_invokeTypeIndex] = type == CompilerInvocation::InvokeType::Preprocess ? "-E" : "-c";
 }
 
 void GccCommandLineParser::RemoveDependencyFiles()
 {
-    StringVector newArgs;
-    bool skipNext = false;
-    for (const auto &arg : m_invocation.m_args)
-    {
-        if (skipNext)
-        {
-            skipNext = false;
-            continue;
-        }
-        if (arg == "-MMD")
-            continue;
-        if (arg == "-MF" || arg == "-MT")
-        {
-            skipNext = true;
-            continue;
-        }
-        newArgs.push_back(arg);
-    }
-    m_invocation.m_args = newArgs;
-    UpdateInfo();
+	StringVector newArgs;
+	bool skipNext = false;
+	for (const auto &arg : m_invocation.m_args)
+	{
+		if (skipNext)
+		{
+			skipNext = false;
+			continue;
+		}
+		if (arg == "-MMD")
+			continue;
+		if (arg == "-MF" || arg == "-MT")
+		{
+			skipNext = true;
+			continue;
+		}
+		newArgs.push_back(arg);
+	}
+	m_invocation.m_args = newArgs;
+	UpdateInfo();
 }
 
 void GccCommandLineParser::RemovePrepocessorFlags()
 {
-    StringVector newArgs;
-    for (const auto & arg : m_invocation.m_args)
-    {
-        if (arg.size() > 1 && arg[0] == '-')
-        {
-            if (arg[1] == 'I' || arg[1] == 'D')
-                continue;
-        }
-        newArgs.push_back(arg);
-    }
-    m_invocation.m_args = newArgs;
-    UpdateInfo();
+	StringVector newArgs;
+	for (const auto & arg : m_invocation.m_args)
+	{
+		if (arg.size() > 1 && arg[0] == '-')
+		{
+			if (arg[1] == 'I' || arg[1] == 'D')
+				continue;
+		}
+		newArgs.push_back(arg);
+	}
+	m_invocation.m_args = newArgs;
+	UpdateInfo();
 }
 
 }

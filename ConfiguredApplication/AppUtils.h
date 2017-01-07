@@ -23,19 +23,19 @@ namespace Wuild
 {
 inline ICompilerModule::Ptr CheckedCreateCompilerModule(ConfiguredApplication & application)
 {
-    ICompilerModule::Config config;
-    if (!application.GetCompilerConfig(config, false))
-        return nullptr;
-    return CompilerModule::Create(config);
+	ICompilerModule::Config config;
+	if (!application.GetCompilerConfig(config, false))
+		return nullptr;
+	return CompilerModule::Create(config);
 }
 
 inline int ExecAppLoop(std::function<void(int)> exitCodeHandler = std::function<void(int)> ())
 {
-    Application::Instance().SetSignalHandlers();
-    Application::Instance().WaitForTermination();
-    if (exitCodeHandler)
-        exitCodeHandler(Application::GetExitCode());
-    return Application::GetExitCode();
+	Application::Instance().SetSignalHandlers();
+	Application::Instance().WaitForTermination();
+	if (exitCodeHandler)
+		exitCodeHandler(Application::GetExitCode());
+	return Application::GetExitCode();
 }
 
 }

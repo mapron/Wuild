@@ -20,19 +20,19 @@ namespace Wuild
 
 bool RemoteToolClientConfig::Validate(std::ostream *errStream) const
 {
-    if (m_queueTimeout <= TimePoint(0))
-    {
-        if (errStream)
-            *errStream << "queueTimeout should be greater than 0.";
-        return false;
-    }
-    if (m_invocationAttempts <= 0)
-    {
-        if (errStream)
-            *errStream << "invocationAttempts should be at least 1.";
-        return false;
-    }
-    return m_coordinator.Validate(errStream);
+	if (m_queueTimeout <= TimePoint(0))
+	{
+		if (errStream)
+			*errStream << "queueTimeout should be greater than 0.";
+		return false;
+	}
+	if (m_invocationAttempts <= 0)
+	{
+		if (errStream)
+			*errStream << "invocationAttempts should be at least 1.";
+		return false;
+	}
+	return m_coordinator.Validate(errStream);
 }
 
 }

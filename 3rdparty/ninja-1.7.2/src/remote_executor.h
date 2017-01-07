@@ -18,37 +18,37 @@
 class IRemoteExecutor
 {
 public:
-    virtual ~IRemoteExecutor() = default;
+	virtual ~IRemoteExecutor() = default;
 
-    virtual bool PreprocessCode(const std::vector<std::string> & originalRule,
-                                const std::vector<std::string> & ignoredArgs,
-                                std::string & compilerId,
-                                std::vector<std::string> & preprocessRule,
-                                std::vector<std::string> & compileRule) const = 0;
+	virtual bool PreprocessCode(const std::vector<std::string> & originalRule,
+								const std::vector<std::string> & ignoredArgs,
+								std::string & compilerId,
+								std::vector<std::string> & preprocessRule,
+								std::vector<std::string> & compileRule) const = 0;
 
-    virtual std::string GetPreprocessedPath(const std::string & sourcePath, const std::string & objectPath) const = 0;
+	virtual std::string GetPreprocessedPath(const std::string & sourcePath, const std::string & objectPath) const = 0;
 
-    virtual std::string FilterPreprocessorFlags(const std::string & compilerId, const std::string & flags) const = 0;
-    virtual std::string FilterCompilerFlags(const std::string & compilerId, const std::string & flags) const = 0;
+	virtual std::string FilterPreprocessorFlags(const std::string & compilerId, const std::string & flags) const = 0;
+	virtual std::string FilterCompilerFlags(const std::string & compilerId, const std::string & flags) const = 0;
 
-    virtual void RunIfNeeded() = 0;
-    virtual int GetMinimalRemoteTasks() const = 0;
-    virtual void SleepSome() const = 0;
+	virtual void RunIfNeeded() = 0;
+	virtual int GetMinimalRemoteTasks() const = 0;
+	virtual void SleepSome() const = 0;
 
-    virtual bool CanRunMore() = 0;
-    virtual bool StartCommand(void* userData, const std::string & command) = 0;
+	virtual bool CanRunMore() = 0;
+	virtual bool StartCommand(void* userData, const std::string & command) = 0;
 
-    /// The result of waiting for a command.
-    struct Result {
-      Result() = default;
-      Result(void* u, bool s, const std::string & o) : userData(u), status(s), output(o) {}
-      void* userData = nullptr;
-      bool status = false;
-      std::string output;
-      bool success() const { return status; }
-    };
-    /// Wait for a command to complete, or return false if interrupted.
-    virtual bool WaitForCommand(Result* result) = 0;
+	/// The result of waiting for a command.
+	struct Result {
+	  Result() = default;
+	  Result(void* u, bool s, const std::string & o) : userData(u), status(s), output(o) {}
+	  void* userData = nullptr;
+	  bool status = false;
+	  std::string output;
+	  bool success() const { return status; }
+	};
+	/// Wait for a command to complete, or return false if interrupted.
+	virtual bool WaitForCommand(Result* result) = 0;
 
-    virtual void Abort() = 0;
+	virtual void Abort() = 0;
 };

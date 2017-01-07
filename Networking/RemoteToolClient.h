@@ -38,50 +38,50 @@ class CoordinatorWorkerInfoWrap;
 class RemoteToolClient
 {
 public:
-    /// Remote tool execution result.
-    struct ExecutionInfo
-    {
-        TimePoint m_toolExecutionTime;
-        TimePoint m_networkRequestTime;
-        std::string GetProfilingStr() const;
+	/// Remote tool execution result.
+	struct ExecutionInfo
+	{
+		TimePoint m_toolExecutionTime;
+		TimePoint m_networkRequestTime;
+		std::string GetProfilingStr() const;
 
-        std::string m_stdOutput;
-        bool m_result = false;
-    };
-    using Config = RemoteToolClientConfig;
-    using RemoteAvailableCallback = std::function<void(int)>;
-    using InvokeCallback = std::function<void(const ExecutionInfo& )>;
+		std::string m_stdOutput;
+		bool m_result = false;
+	};
+	using Config = RemoteToolClientConfig;
+	using RemoteAvailableCallback = std::function<void(int)>;
+	using InvokeCallback = std::function<void(const ExecutionInfo& )>;
 
 public:
-    RemoteToolClient();
-    ~RemoteToolClient();
+	RemoteToolClient();
+	~RemoteToolClient();
 
-    bool SetConfig(const Config & config);
+	bool SetConfig(const Config & config);
 
-    /// Explicitly add new remote tool server client (used for testing)
-    void AddClient(const CoordinatorWorkerInfo & info, bool start = false);
+	/// Explicitly add new remote tool server client (used for testing)
+	void AddClient(const CoordinatorWorkerInfo & info, bool start = false);
 
-    int GetFreeRemoteThreads() const;
+	int GetFreeRemoteThreads() const;
 
-    void Start();
+	void Start();
 
-    void SetRemoteAvailableCallback(RemoteAvailableCallback callback);
+	void SetRemoteAvailableCallback(RemoteAvailableCallback callback);
 
-    /// Starts new remote task.
-    void InvokeTool(const CompilerInvocation & invocation, InvokeCallback callback);
+	/// Starts new remote task.
+	void InvokeTool(const CompilerInvocation & invocation, InvokeCallback callback);
 
 protected:
-    void AddClientInternal(CoordinatorWorkerInfoWrap &info, bool start = false);
-    void RecalcAvailable();
+	void AddClientInternal(CoordinatorWorkerInfoWrap &info, bool start = false);
+	void RecalcAvailable();
 
-    ThreadLoop m_thread;
+	ThreadLoop m_thread;
 
-    std::unique_ptr<RemoteToolClientImpl> m_impl;
-    std::atomic_int m_availableRemoteThreads {0};
-    std::atomic_int m_queuedTasks {0};
+	std::unique_ptr<RemoteToolClientImpl> m_impl;
+	std::atomic_int m_availableRemoteThreads {0};
+	std::atomic_int m_queuedTasks {0};
 
-    RemoteAvailableCallback m_remoteAvailableCallback;
-    Config m_config;
+	RemoteAvailableCallback m_remoteAvailableCallback;
+	Config m_config;
 };
 
 }

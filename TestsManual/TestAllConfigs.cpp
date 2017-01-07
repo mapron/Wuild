@@ -19,61 +19,61 @@
 
 int main(int argc, char** argv)
 {
-    using namespace Wuild;
-    ConfiguredApplication app(argc, argv, "TestAllConfigs");
-    if (!CreateCompiler(app))
-       return 1;
+	using namespace Wuild;
+	ConfiguredApplication app(argc, argv, "TestAllConfigs");
+	if (!CreateCompiler(app))
+	   return 1;
 
-    //app.m_loggerConfig.m_maxLogLevel = LOG_DEBUG;
-    app.InitLogging(app.m_loggerConfig);
+	//app.m_loggerConfig.m_maxLogLevel = LOG_DEBUG;
+	app.InitLogging(app.m_loggerConfig);
 
-    const auto args = StringUtils::StringVectorFromArgv(argc, argv);
+	const auto args = StringUtils::StringVectorFromArgv(argc, argv);
 
-    auto localExecutor = LocalExecutor::Create(TestConfiguration::g_compilerModule, app.m_tempDir);
+	auto localExecutor = LocalExecutor::Create(TestConfiguration::g_compilerModule, app.m_tempDir);
 
-    std::string err;
-    LocalExecutorTask::Ptr original(new LocalExecutorTask());
-    original->m_readOutput = original->m_writeInput = false;
-    original->m_invocation = CompilerInvocation( args ).SetExecutable(TestConfiguration::g_compilerModule->GetConfig().GetFirstToolName());
-    auto tasks = localExecutor->SplitTask(original, err);
-    if (!tasks.first)
-    {
-        Syslogger(LOG_ERR) << err;
-        return 1;
-    }
-    LocalExecutorTask::Ptr taskPP = tasks.first;
-    LocalExecutorTask::Ptr taskCC = tasks.second;
+	std::string err;
+	LocalExecutorTask::Ptr original(new LocalExecutorTask());
+	original->m_readOutput = original->m_writeInput = false;
+	original->m_invocation = CompilerInvocation( args ).SetExecutable(TestConfiguration::g_compilerModule->GetConfig().GetFirstToolName());
+	auto tasks = localExecutor->SplitTask(original, err);
+	if (!tasks.first)
+	{
+		Syslogger(LOG_ERR) << err;
+		return 1;
+	}
+	LocalExecutorTask::Ptr taskPP = tasks.first;
+	LocalExecutorTask::Ptr taskCC = tasks.second;
 
-    RemoteToolClient::Config config;
-    if (!app.GetRemoteToolClientConfig(config))
-        return 1;
+	RemoteToolClient::Config config;
+	if (!app.GetRemoteToolClientConfig(config))
+		return 1;
 
-    RemoteToolClient rcClient;
-    config.m_queueTimeout = TimePoint(3.0);
+	RemoteToolClient rcClient;
+	config.m_queueTimeout = TimePoint(3.0);
 
-    if (!rcClient.SetConfig(config))
-        return 1;
+	if (!rcClient.SetConfig(config))
+		return 1;
 
-    rcClient.Start();
+	rcClient.Start();
 
-    taskPP->m_callback = [&rcClient, taskCC] ( LocalExecutorResult::Ptr localResult ) {
+	taskPP->m_callback = [&rcClient, taskCC] ( LocalExecutorResult::Ptr localResult ) {
 
-        if (!localResult->m_result)
-        {
-            Syslogger(LOG_ERR) << "Preprocess failed";
-            Application::Interrupt(1);
-            return;
-        }
+		if (!localResult->m_result)
+		{
+			Syslogger(LOG_ERR) << "Preprocess failed";
+			Application::Interrupt(1);
+			return;
+		}
 
-        auto callback = []( const Wuild::RemoteToolClient::ExecutionInfo& info){
-            if (info.m_stdOutput.size())
-                std::cerr << info.m_stdOutput << std::endl << std::flush;
-            std::cout << info.GetProfilingStr() << " \n";
-            Application::Interrupt(1 - info.m_result);
-        };
-        rcClient.InvokeTool(taskCC->m_invocation, callback);
-    };
-    localExecutor->AddTask(taskPP);
+		auto callback = []( const Wuild::RemoteToolClient::ExecutionInfo& info){
+			if (info.m_stdOutput.size())
+				std::cerr << info.m_stdOutput << std::endl << std::flush;
+			std::cout << info.GetProfilingStr() << " \n";
+			Application::Interrupt(1 - info.m_result);
+		};
+		rcClient.InvokeTool(taskCC->m_invocation, callback);
+	};
+	localExecutor->AddTask(taskPP);
 
-    return ExecAppLoop(TestConfiguration::ExitHandler);
+	return ExecAppLoop(TestConfiguration::ExitHandler);
 }

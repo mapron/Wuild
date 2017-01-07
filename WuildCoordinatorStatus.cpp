@@ -20,35 +20,35 @@
 
 int main(int argc, char** argv)
 {
-    using namespace Wuild;
-    ConfiguredApplication app(argc, argv, "WuildProxyClient", "proxy");
+	using namespace Wuild;
+	ConfiguredApplication app(argc, argv, "WuildProxyClient", "proxy");
 
-    CoordinatorClient::Config config = app.m_remoteToolClientConfig.m_coordinator;
-    if (!config.Validate())
-        return 1;
+	CoordinatorClient::Config config = app.m_remoteToolClientConfig.m_coordinator;
+	if (!config.Validate())
+		return 1;
 
-    CoordinatorClient client;
-    if (!client.SetConfig(config))
-        return 1;
+	CoordinatorClient client;
+	if (!client.SetConfig(config))
+		return 1;
 
 
-    client.SetInfoArrivedCallback([](const CoordinatorInfo& info, const WorkerSessionInfo::List & sessions){
-        std::cout << "Coordinator connected workers: \n";
-        for (const CoordinatorWorkerInfo & worker : info.m_workers)
-        {
-            std::cout <<  worker.ToString(true, true) << "\n";
-        }
+	client.SetInfoArrivedCallback([](const CoordinatorInfo& info, const WorkerSessionInfo::List & sessions){
+		std::cout << "Coordinator connected workers: \n";
+		for (const CoordinatorWorkerInfo & worker : info.m_workers)
+		{
+			std::cout <<  worker.ToString(true, true) << "\n";
+		}
 
-        std::cout << "\n Coordinator latest sessions: \n";
-        for (const WorkerSessionInfo & session : sessions)
-        {
-            std::cout <<  session.ToString(true) << "\n";
-        }
+		std::cout << "\n Coordinator latest sessions: \n";
+		for (const WorkerSessionInfo & session : sessions)
+		{
+			std::cout <<  session.ToString(true) << "\n";
+		}
 
-        Application::Interrupt(0);
-    });
+		Application::Interrupt(0);
+	});
 
-    client.Start();
+	client.Start();
 
-    return ExecAppLoop();
+	return ExecAppLoop();
 }

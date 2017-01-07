@@ -17,10 +17,10 @@
 
 namespace Wuild
 {
-    struct TcpConnectionParamsPrivate
-    {
-        addrinfo * ai = nullptr;
-        void freeAddr() { if (ai) freeaddrinfo(ai); ai = nullptr; }
-        ~TcpConnectionParamsPrivate() { freeAddr(); }
-    };
+	struct TcpConnectionParamsPrivate
+	{
+		addrinfo * ai = nullptr;
+		void freeAddr() { if (ai) freeaddrinfo(ai); ai = nullptr; }
+		~TcpConnectionParamsPrivate() { freeAddr(); }
+	};
 }

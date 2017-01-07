@@ -21,22 +21,22 @@ namespace Wuild
 
 class CompilerModule : public ICompilerModule
 {
-    CompilerModule();
+	CompilerModule();
 public:
 
-    static ICompilerModule::Ptr Create(const ICompilerModule::Config & config)
-    {
-        auto res = ICompilerModule::Ptr(new CompilerModule());
-        res->SetConfig(config);
-        return res;
-    }
+	static ICompilerModule::Ptr Create(const ICompilerModule::Config & config)
+	{
+		auto res = ICompilerModule::Ptr(new CompilerModule());
+		res->SetConfig(config);
+		return res;
+	}
 
-    void SetConfig(const Config & config) override;
-    const Config& GetConfig() const override;
+	void SetConfig(const Config & config) override;
+	const Config& GetConfig() const override;
 
-    bool SplitInvocation(const CompilerInvocation & original,
-                         CompilerInvocation & preprocessor,
-                         CompilerInvocation & compilation) override;
+	bool SplitInvocation(const CompilerInvocation & original,
+						 CompilerInvocation & preprocessor,
+						 CompilerInvocation & compilation) override;
 
    CompilerInvocation CompleteInvocation(const CompilerInvocation & original) override;
 
@@ -46,19 +46,19 @@ public:
 
 
 private:
-    struct CompileInfo
-    {
-        ICommandLineParser::Ptr m_parser;
-        CompilerInvocation::Id m_id;
-        std::string m_append;
-        bool m_valid = false;
-    };
-    CompileInfo CompileInfoById(const CompilerInvocation::Id & id) const;
-    CompileInfo CompileInfoByExecutable(const std::string & executable) const;
-    CompileInfo CompileInfoByCompilerId(const std::string & compilerId) const;
-    CompileInfo CompileInfoByUnit(const Config::CompilerUnit & unit) const;
+	struct CompileInfo
+	{
+		ICommandLineParser::Ptr m_parser;
+		CompilerInvocation::Id m_id;
+		std::string m_append;
+		bool m_valid = false;
+	};
+	CompileInfo CompileInfoById(const CompilerInvocation::Id & id) const;
+	CompileInfo CompileInfoByExecutable(const std::string & executable) const;
+	CompileInfo CompileInfoByCompilerId(const std::string & compilerId) const;
+	CompileInfo CompileInfoByUnit(const Config::CompilerUnit & unit) const;
 
-    Config m_config;
+	Config m_config;
 };
 
 }

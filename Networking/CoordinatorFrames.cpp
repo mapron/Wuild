@@ -21,126 +21,126 @@ namespace Wuild
 template<>
 inline ByteOrderDataStreamReader& ByteOrderDataStreamReader::operator >> (TimePoint &point)
 {
-    point.SetUS( this->ReadScalar<int64_t>() );
-    return *this;
+	point.SetUS( this->ReadScalar<int64_t>() );
+	return *this;
 }
 template<>
 inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator << (const TimePoint & point)
 {
-    *this << point.GetUS();
-    return *this;
+	*this << point.GetUS();
+	return *this;
 }
 
 template<>
 inline ByteOrderDataStreamReader& ByteOrderDataStreamReader::operator >> (CoordinatorWorkerInfo::ConnectedClientInfo &client)
 {
-    *this
-        >> client.m_usedThreads
-        >> client.m_clientHost
-        >> client.m_clientId
-        >> client.m_sessionId
-       ;
-    return *this;
+	*this
+		>> client.m_usedThreads
+		>> client.m_clientHost
+		>> client.m_clientId
+		>> client.m_sessionId
+	   ;
+	return *this;
 }
 template<>
 inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator << (const CoordinatorWorkerInfo::ConnectedClientInfo &client)
 {
-    *this
-        << client.m_usedThreads
-        << client.m_clientHost
-        << client.m_clientId
-        << client.m_sessionId
-            ;
-    return *this;
+	*this
+		<< client.m_usedThreads
+		<< client.m_clientHost
+		<< client.m_clientId
+		<< client.m_sessionId
+			;
+	return *this;
 }
 
 template<>
 inline ByteOrderDataStreamReader& ByteOrderDataStreamReader::operator >> (CoordinatorWorkerInfo &info)
 {
-    *this
-        >> info.m_workerId
-        >> info.m_connectionHost
-        >> info.m_connectionPort
-        >> info.m_toolIds
-        >> info.m_totalThreads
-        >> info.m_connectedClients
-            ;
-    return *this;
+	*this
+		>> info.m_workerId
+		>> info.m_connectionHost
+		>> info.m_connectionPort
+		>> info.m_toolIds
+		>> info.m_totalThreads
+		>> info.m_connectedClients
+			;
+	return *this;
 }
 template<>
 inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator << (const CoordinatorWorkerInfo &info)
 {
-    *this
-        << info.m_workerId
-        << info.m_connectionHost
-        << info.m_connectionPort
-        << info.m_toolIds
-        << info.m_totalThreads
-        << info.m_connectedClients
-       ;
-    return *this;
+	*this
+		<< info.m_workerId
+		<< info.m_connectionHost
+		<< info.m_connectionPort
+		<< info.m_toolIds
+		<< info.m_totalThreads
+		<< info.m_connectedClients
+	   ;
+	return *this;
 }
 template<>
 inline ByteOrderDataStreamReader& ByteOrderDataStreamReader::operator >> (WorkerSessionInfo &session)
 {
-    *this
-        >> session.m_clientId
-        >> session.m_sessionId
-        >> session.m_totalExecutionTime
-        >> session.m_tasksCount
-        >> session.m_failuresCount
-           ;
-    return *this;
+	*this
+		>> session.m_clientId
+		>> session.m_sessionId
+		>> session.m_totalExecutionTime
+		>> session.m_tasksCount
+		>> session.m_failuresCount
+		   ;
+	return *this;
 }
 template<>
 inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator << (const WorkerSessionInfo &session)
 {
-    *this
-        << session.m_clientId
-        << session.m_sessionId
-        << session.m_totalExecutionTime
-        << session.m_tasksCount
-        << session.m_failuresCount
-           ;
-    return *this;
+	*this
+		<< session.m_clientId
+		<< session.m_sessionId
+		<< session.m_totalExecutionTime
+		<< session.m_tasksCount
+		<< session.m_failuresCount
+		   ;
+	return *this;
 }
 
 
 SocketFrame::State CoordinatorListResponse::ReadInternal(ByteOrderDataStreamReader &stream)
 {
-    stream  >> m_info.m_workers >> m_latestSessions;
+	stream  >> m_info.m_workers >> m_latestSessions;
 
-    return stOk;
+	return stOk;
 }
 
 SocketFrame::State CoordinatorListResponse::WriteInternal(ByteOrderDataStreamWriter &stream) const
 {
-    stream << m_info.m_workers <<  m_latestSessions;
-    return stOk;
+	stream << m_info.m_workers <<  m_latestSessions;
+	return stOk;
 }
 
 SocketFrame::State CoordinatorWorkerStatus::ReadInternal(ByteOrderDataStreamReader &stream)
 {
-    stream >> m_info;
-    return stOk;
+	stream >> m_info;
+	return stOk;
 }
 
 SocketFrame::State CoordinatorWorkerStatus::WriteInternal(ByteOrderDataStreamWriter &stream) const
 {
-    stream << m_info;
-    return stOk;
+	stream << m_info;
+	return stOk;
 }
 
 SocketFrame::State CoordinatorWorkerSession::ReadInternal(ByteOrderDataStreamReader &stream)
 {
-    stream >> m_session;
-    return stOk;
+	stream >> m_session;
+	return stOk;
 }
 
 SocketFrame::State CoordinatorWorkerSession::WriteInternal(ByteOrderDataStreamWriter &stream) const
 {
-    stream << m_session;
-    return stOk;
+	stream << m_session;
+	return stOk;
 }
 
 

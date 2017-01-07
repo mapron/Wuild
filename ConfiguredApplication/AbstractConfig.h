@@ -23,28 +23,28 @@ namespace Wuild {
 class AbstractConfig
 {
 public:
-    /// Searches in args elements starting with prefix; processing them and returning elements with no prefix.
-    StringVector ReadCommandLine(const StringVector & args, const std::string & prefix);
-    bool ReadIniFile(const std::string & filename);
+	/// Searches in args elements starting with prefix; processing them and returning elements with no prefix.
+	StringVector ReadCommandLine(const StringVector & args, const std::string & prefix);
+	bool ReadIniFile(const std::string & filename);
 
-    /// No keys are present in config.
-    bool empty() const;
+	/// No keys are present in config.
+	bool empty() const;
 
-    /// Value key is present in config.
-    bool Exists(const std::string & group, const std::string & key) const;
+	/// Value key is present in config.
+	bool Exists(const std::string & group, const std::string & key) const;
 
-    /// Get different value types. If value no present in group, it will be searched in default ("") group.
-    int GetInt(const std::string & group, const std::string & key, int defValue = 0) const;
-    std::string GetString(const std::string & group, const std::string & key, const std::string & defValue = "") const;
-    StringVector GetStringList(const std::string & group, const std::string & key, const StringVector & defValue = StringVector()) const;
-    bool GetBool(const std::string & group, const std::string & key, bool defValue = false) const;
+	/// Get different value types. If value no present in group, it will be searched in default ("") group.
+	int GetInt(const std::string & group, const std::string & key, int defValue = 0) const;
+	std::string GetString(const std::string & group, const std::string & key, const std::string & defValue = "") const;
+	StringVector GetStringList(const std::string & group, const std::string & key, const StringVector & defValue = StringVector()) const;
+	bool GetBool(const std::string & group, const std::string & key, bool defValue = false) const;
 
 private:
-    void SetArg(const std::string & group, const std::string & arg);
-    const std::string * Find(const std::string & group, const std::string & key) const;
+	void SetArg(const std::string & group, const std::string & arg);
+	const std::string * Find(const std::string & group, const std::string & key) const;
 
-    using ValueGroup = std::map<std::string, std::string>;
-    std::map<std::string, ValueGroup> m_data;
+	using ValueGroup = std::map<std::string, std::string>;
+	std::map<std::string, ValueGroup> m_data;
 };
 
 }

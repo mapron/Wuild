@@ -30,42 +30,42 @@ class SocketFrameHandler;
 class CoordinatorClient
 {
 public:
-    using WorkerChangeCallback = std::function<void(const CoordinatorWorkerInfo&)>;
-    using InfoArrivedCallback = std::function<void(const CoordinatorInfo&, const WorkerSessionInfo::List &)>;
-    using Config = CoordinatorClientConfig;
+	using WorkerChangeCallback = std::function<void(const CoordinatorWorkerInfo&)>;
+	using InfoArrivedCallback = std::function<void(const CoordinatorInfo&, const WorkerSessionInfo::List &)>;
+	using Config = CoordinatorClientConfig;
 
 public:
-    CoordinatorClient();
-    ~CoordinatorClient();
+	CoordinatorClient();
+	~CoordinatorClient();
 
-    bool SetConfig(const Config & config);
-    void SetWorkerChangeCallback(WorkerChangeCallback callback);
-    void SetInfoArrivedCallback(InfoArrivedCallback callback);
+	bool SetConfig(const Config & config);
+	void SetWorkerChangeCallback(WorkerChangeCallback callback);
+	void SetInfoArrivedCallback(InfoArrivedCallback callback);
 
-    void Start();
+	void Start();
 
-    void SetWorkerInfo(const CoordinatorWorkerInfo & info);
-    void SendWorkerSessionInfo( const WorkerSessionInfo & sessionInfo );
+	void SetWorkerInfo(const CoordinatorWorkerInfo & info);
+	void SendWorkerSessionInfo( const WorkerSessionInfo & sessionInfo );
 
 protected:
-    void Quant();
-    WorkerChangeCallback m_workerChangeCallback;
-    InfoArrivedCallback m_infoArrivedCallback;
+	void Quant();
+	WorkerChangeCallback m_workerChangeCallback;
+	InfoArrivedCallback m_infoArrivedCallback;
 
-    std::unique_ptr<SocketFrameHandler> m_client;
+	std::unique_ptr<SocketFrameHandler> m_client;
 
-    TimePoint m_lastSend;
-    ThreadLoop m_thread;
-    std::atomic_bool m_clientState { false };
+	TimePoint m_lastSend;
+	ThreadLoop m_thread;
+	std::atomic_bool m_clientState { false };
 
-    CoordinatorInfo m_coord;
-    CoordinatorWorkerInfo m_worker;
-    std::atomic_bool m_needSendWorkerInfo {true};
-    std::atomic_bool m_needRequestData {true};
-    std::mutex m_coordMutex;
-    std::mutex m_workerMutex;
+	CoordinatorInfo m_coord;
+	CoordinatorWorkerInfo m_worker;
+	std::atomic_bool m_needSendWorkerInfo {true};
+	std::atomic_bool m_needRequestData {true};
+	std::mutex m_coordMutex;
+	std::mutex m_workerMutex;
 
-    Config m_config;
+	Config m_config;
 };
 
 }

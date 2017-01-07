@@ -28,20 +28,20 @@ class SocketFrameService;
 class CompilerProxyServer
 {
 public:
-    using Config = CompilerProxyServerConfig;
+	using Config = CompilerProxyServerConfig;
 
 public:
-    CompilerProxyServer(ILocalExecutor::Ptr executor, RemoteToolClient & rcClient);
-    ~CompilerProxyServer();
+	CompilerProxyServer(ILocalExecutor::Ptr executor, RemoteToolClient & rcClient);
+	~CompilerProxyServer();
 
-    bool SetConfig(const Config & config);
-    void Start();
+	bool SetConfig(const Config & config);
+	void Start();
 
 protected:
-    ILocalExecutor::Ptr m_executor;
-    RemoteToolClient & m_rcClient;
-    Config m_config;
-    std::unique_ptr<SocketFrameService> m_server;
+	ILocalExecutor::Ptr m_executor;
+	RemoteToolClient & m_rcClient;
+	Config m_config;
+	std::unique_ptr<SocketFrameService> m_server;
 };
 
 }

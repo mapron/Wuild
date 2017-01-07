@@ -21,35 +21,35 @@ namespace Wuild
 class CompilerInvocation
 {
 public:
-    /// Type of invocation.
-    enum class InvokeType { Unknown, Preprocess, Compile };
-    struct Id
-    {
-        std::string m_compilerId;           //!< abstract toolchain id (configurable)
-        std::string m_compilerExecutable;   //!< compiler executable path
-    };
+	/// Type of invocation.
+	enum class InvokeType { Unknown, Preprocess, Compile };
+	struct Id
+	{
+		std::string m_compilerId;           //!< abstract toolchain id (configurable)
+		std::string m_compilerExecutable;   //!< compiler executable path
+	};
 public:
-    CompilerInvocation(const StringVector & args = StringVector(), InvokeType  type = InvokeType::Unknown);
-    CompilerInvocation(const std::string & args, InvokeType  type = InvokeType::Unknown);
+	CompilerInvocation(const StringVector & args = StringVector(), InvokeType  type = InvokeType::Unknown);
+	CompilerInvocation(const std::string & args, InvokeType  type = InvokeType::Unknown);
 
-    void SetArgsString(const std::string & args);
-    std::string GetArgsString(bool prependExecutable = true) const;
+	void SetArgsString(const std::string & args);
+	std::string GetArgsString(bool prependExecutable = true) const;
 
-    bool SetInput(const std::string & filename);
-    std::string GetInput() const;
+	bool SetInput(const std::string & filename);
+	std::string GetInput() const;
 
-    bool SetOutput(const std::string & filename);
-    std::string GetOutput() const;
+	bool SetOutput(const std::string & filename);
+	std::string GetOutput() const;
 
-    CompilerInvocation & SetId(const std::string & compilerId);
-    CompilerInvocation & SetExecutable(const std::string & compilerExecutable);
+	CompilerInvocation & SetId(const std::string & compilerId);
+	CompilerInvocation & SetExecutable(const std::string & compilerExecutable);
 
 public:
-    Id           m_id;
-    InvokeType   m_type = InvokeType::Unknown;
-    StringVector m_args;
-    StringVector m_ignoredArgs;
-    int          m_inputNameIndex  = -1;
-    int          m_outputNameIndex = -1;
+	Id           m_id;
+	InvokeType   m_type = InvokeType::Unknown;
+	StringVector m_args;
+	StringVector m_ignoredArgs;
+	int          m_inputNameIndex  = -1;
+	int          m_outputNameIndex = -1;
 };
 }

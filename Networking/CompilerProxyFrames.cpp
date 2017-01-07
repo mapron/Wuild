@@ -20,42 +20,42 @@ namespace Wuild
 
 void ProxyRequest::LogTo(std::ostream &os) const
 {
-    SocketFrame::LogTo(os);
-    os << " " << m_invocation.m_id.m_compilerId << " args:" << m_invocation.GetArgsString(false);
+	SocketFrame::LogTo(os);
+	os << " " << m_invocation.m_id.m_compilerId << " args:" << m_invocation.GetArgsString(false);
 }
 
 SocketFrame::State ProxyRequest::ReadInternal(ByteOrderDataStreamReader &stream)
 {
-    stream >> m_invocation.m_args;
-    stream >> m_invocation.m_id.m_compilerId;
-    return stOk;
+	stream >> m_invocation.m_args;
+	stream >> m_invocation.m_id.m_compilerId;
+	return stOk;
 }
 
 SocketFrame::State ProxyRequest::WriteInternal(ByteOrderDataStreamWriter &stream) const
 {
-    stream << m_invocation.m_args;
-    stream << m_invocation.m_id.m_compilerId;
-    return stOk;
+	stream << m_invocation.m_args;
+	stream << m_invocation.m_id.m_compilerId;
+	return stOk;
 }
 
 void ProxyResponse::LogTo(std::ostream &os) const
 {
-    SocketFrame::LogTo(os);
-    os << " -> " << (m_result ? "OK" : "FAIL") << " [" << m_stdOut.size() << "]";
+	SocketFrame::LogTo(os);
+	os << " -> " << (m_result ? "OK" : "FAIL") << " [" << m_stdOut.size() << "]";
 }
 
 SocketFrame::State ProxyResponse::ReadInternal(ByteOrderDataStreamReader &stream)
 {
-    stream >> m_result;
-    stream >> m_stdOut;
-    return stOk;
+	stream >> m_result;
+	stream >> m_stdOut;
+	return stOk;
 }
 
 SocketFrame::State ProxyResponse::WriteInternal(ByteOrderDataStreamWriter &stream) const
 {
-    stream << m_result;
-    stream << m_stdOut;
-    return stOk;
+	stream << m_result;
+	stream << m_stdOut;
+	return stOk;
 }
 
 }

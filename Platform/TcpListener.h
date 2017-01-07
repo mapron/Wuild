@@ -26,28 +26,28 @@ class TcpSocket;
 class TcpListener : public IDataListener
 {
 public:
-    TcpListener (const TcpConnectionParams & params);
-    ~TcpListener ();
+	TcpListener (const TcpConnectionParams & params);
+	~TcpListener ();
 
-    static IDataListener::Ptr Create(const TcpConnectionParams & params);
+	static IDataListener::Ptr Create(const TcpConnectionParams & params);
 
-    IDataSocket::Ptr GetPendingConnection() override;
-    bool StartListen() override;
+	IDataSocket::Ptr GetPendingConnection() override;
+	bool StartListen() override;
 
-    /// Accepting TcpSocket, which was created through GetPendingConnection.
-    /// TcpSocket calls this, there is no need to call DoAccept manually.
-    /// After accept, state of TcpSocket changed from Pending to Connected.
-    bool DoAccept(TcpSocket* client);
+	/// Accepting TcpSocket, which was created through GetPendingConnection.
+	/// TcpSocket calls this, there is no need to call DoAccept manually.
+	/// After accept, state of TcpSocket changed from Pending to Connected.
+	bool DoAccept(TcpSocket* client);
 
 private:
-    bool HasPendingConnections();
+	bool HasPendingConnections();
 
-    bool IsListenerReadReady ();
-    std::unique_ptr<TcpListenerPrivate> m_impl;
-    TcpConnectionParams m_params;
+	bool IsListenerReadReady ();
+	std::unique_ptr<TcpListenerPrivate> m_impl;
+	TcpConnectionParams m_params;
 
-    bool m_listenerFailed = false;
-    bool m_waitingAccept = false;
+	bool m_listenerFailed = false;
+	bool m_waitingAccept = false;
 };
 
 }

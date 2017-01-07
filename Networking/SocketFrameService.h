@@ -37,57 +37,57 @@ namespace Wuild
 class SocketFrameService final
 {
 public:
-    using HandlerInitCallback = std::function<void(SocketFrameHandler*)>;
-    using HandlerDestroyCallback = std::function<void(SocketFrameHandler*)>;
+	using HandlerInitCallback = std::function<void(SocketFrameHandler*)>;
+	using HandlerDestroyCallback = std::function<void(SocketFrameHandler*)>;
 
 public:
-                SocketFrameService(const SocketFrameHandlerSettings & settings = SocketFrameHandlerSettings(), int autoStartListenPort = -1);
-                SocketFrameService(int autoStartListenPort);
-    virtual     ~SocketFrameService();
+				SocketFrameService(const SocketFrameHandlerSettings & settings = SocketFrameHandlerSettings(), int autoStartListenPort = -1);
+				SocketFrameService(int autoStartListenPort);
+	virtual     ~SocketFrameService();
 
-    /// Sends message to all connected clients.
-    int    QueueFrameToAll(SocketFrameHandler* sender, SocketFrame::Ptr message);
+	/// Sends message to all connected clients.
+	int    QueueFrameToAll(SocketFrameHandler* sender, SocketFrame::Ptr message);
 
-    /// Creates new tcp port listener.
-    void   AddTcpListener(int port, std::string ip="*");
+	/// Creates new tcp port listener.
+	void   AddTcpListener(int port, std::string ip="*");
 
-    /// Starts new processing thread, calling Quant().
-    void   Start();
-    /// Stops service
-    void   Stop();
-    /// Main channel logic: connecting new clients and removing disconnected.
-    void   Quant();
+	/// Starts new processing thread, calling Quant().
+	void   Start();
+	/// Stops service
+	void   Stop();
+	/// Main channel logic: connecting new clients and removing disconnected.
+	void   Quant();
 
-    /// At least one active client connected.
-    bool   IsConnected();
+	/// At least one active client connected.
+	bool   IsConnected();
 
-    size_t GetActiveConnectionsCount();
+	size_t GetActiveConnectionsCount();
 
-    /// Register frame reader for all clients. @see SocketFrameHandler::RegisterFrameReader
-    void   RegisterFrameReader(SocketFrameHandler::IFrameReader::Ptr reader);
+	/// Register frame reader for all clients. @see SocketFrameHandler::RegisterFrameReader
+	void   RegisterFrameReader(SocketFrameHandler::IFrameReader::Ptr reader);
 
-    /// Sets callback for new client connection
-    void   SetHandlerInitCallback(HandlerInitCallback callback);
+	/// Sets callback for new client connection
+	void   SetHandlerInitCallback(HandlerInitCallback callback);
 
-    /// Sets callback for client disconnection. Note: queueing new frames will no effect.
-    void   SetHandlerDestroyCallback(HandlerDestroyCallback callback);
-
-protected:
-    void AddWorker(IDataSocket::Ptr client, int threadId);
+	/// Sets callback for client disconnection. Note: queueing new frames will no effect.
+	void   SetHandlerDestroyCallback(HandlerDestroyCallback callback);
 
 protected:
-    const SocketFrameHandlerSettings      m_settings;
+	void AddWorker(IDataSocket::Ptr client, int threadId);
 
-    std::deque<SocketFrameHandler::IFrameReader::Ptr> m_readers;
-    std::deque<IDataListener::Ptr>                    m_listenters;
-    std::deque<SocketFrameHandler::Ptr>               m_workers;
-    std::mutex                                        m_workersLock;
+protected:
+	const SocketFrameHandlerSettings      m_settings;
 
-    HandlerInitCallback                               m_handlerInitCallback;
-    HandlerDestroyCallback                            m_handlerDestroyCallback;
+	std::deque<SocketFrameHandler::IFrameReader::Ptr> m_readers;
+	std::deque<IDataListener::Ptr>                    m_listenters;
+	std::deque<SocketFrameHandler::Ptr>               m_workers;
+	std::mutex                                        m_workersLock;
 
-    uint32_t                                          m_nextWorkerId {0};
-    ThreadLoop                                        m_mainThread;
+	HandlerInitCallback                               m_handlerInitCallback;
+	HandlerDestroyCallback                            m_handlerDestroyCallback;
+
+	uint32_t                                          m_nextWorkerId {0};
+	ThreadLoop                                        m_mainThread;
 
 };
 

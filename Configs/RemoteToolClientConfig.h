@@ -21,10 +21,10 @@ namespace Wuild
 class RemoteToolClientConfig : public IConfig
 {
 public:
-    TimePoint m_queueTimeout = 10.0;
-    int m_invocationAttempts = 1;
-    int m_minimalRemoteTasks = 10;
-    CoordinatorClientConfig m_coordinator;
-    bool Validate(std::ostream * errStream = nullptr) const override;
+	TimePoint m_queueTimeout = 10.0;
+	int m_invocationAttempts = 1;
+	int m_minimalRemoteTasks = 10;
+	CoordinatorClientConfig m_coordinator;
+	bool Validate(std::ostream * errStream = nullptr) const override;
 };
 }

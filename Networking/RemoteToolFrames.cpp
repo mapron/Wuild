@@ -21,84 +21,84 @@ namespace Wuild
 template<>
 inline ByteOrderDataStreamReader& ByteOrderDataStreamReader::operator >> (TimePoint &point)
 {
-    point.SetUS( this->ReadScalar<int64_t>() );
-    return *this;
+	point.SetUS( this->ReadScalar<int64_t>() );
+	return *this;
 }
 template<>
 inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator << (const TimePoint & point)
 {
-    *this << point.GetUS();
-    return *this;
+	*this << point.GetUS();
+	return *this;
 }
 
 template<>
 inline ByteOrderDataStreamReader& ByteOrderDataStreamReader::operator >> (ByteArrayHolder &point)
 {
-    point.resize(this->ReadScalar<uint32_t>());
-    if (point.size())
-        this->ReadBlock(point.data(), point.size());
-    return *this;
+	point.resize(this->ReadScalar<uint32_t>());
+	if (point.size())
+		this->ReadBlock(point.data(), point.size());
+	return *this;
 }
 
 template<>
 inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator << (const ByteArrayHolder & point)
 {
-    uint32_t filesize = point.size();
-    *this << filesize;
-    if (filesize)
-        this->WriteBlock(point.data(), point.size());
-    return *this;
+	uint32_t filesize = point.size();
+	*this << filesize;
+	if (filesize)
+		this->WriteBlock(point.data(), point.size());
+	return *this;
 }
 
 void RemoteToolRequest::LogTo(std::ostream &os) const
 {
-    SocketFrame::LogTo(os);
-    os << " " << m_invocation.m_id.m_compilerId << " args:" << m_invocation.GetArgsString(false);
-    os << " file: [" << m_fileData.size() << "]"
-        ;
+	SocketFrame::LogTo(os);
+	os << " " << m_invocation.m_id.m_compilerId << " args:" << m_invocation.GetArgsString(false);
+	os << " file: [" << m_fileData.size() << "]"
+		;
 }
 
 SocketFrame::State RemoteToolRequest::ReadInternal(ByteOrderDataStreamReader &stream)
 {
-    stream >> m_fileData;
-    stream >> m_invocation.m_args;
-    stream >> m_invocation.m_id.m_compilerId;
-    return stOk;
+	stream >> m_fileData;
+	stream >> m_invocation.m_args;
+	stream >> m_invocation.m_id.m_compilerId;
+	return stOk;
 }
 
 SocketFrame::State RemoteToolRequest::WriteInternal(ByteOrderDataStreamWriter &stream) const
 {
-    stream << m_fileData;
-    stream << m_invocation.m_args;
-    stream << m_invocation.m_id.m_compilerId;
-    return stOk;
+	stream << m_fileData;
+	stream << m_invocation.m_args;
+	stream << m_invocation.m_id.m_compilerId;
+	return stOk;
 }
 
 void RemoteToolResponse::LogTo(std::ostream &os) const
 {
-    SocketFrame::LogTo(os);
-    os << " -> " << (m_result ? "OK" : "FAIL") << " ["
-       << m_fileData.size() << "], std["
-       << m_stdOut.size() << "]"
-          ;
+	SocketFrame::LogTo(os);
+	os << " -> " << (m_result ? "OK" : "FAIL") << " ["
+	   << m_fileData.size() << "], std["
+	   << m_stdOut.size() << "]"
+		  ;
 }
 
 SocketFrame::State RemoteToolResponse::ReadInternal(ByteOrderDataStreamReader &stream)
 {
-    stream >> m_result;
-    stream >> m_fileData;
-    stream >> m_stdOut;
-    stream >> m_executionTime;
-    return stOk;
+	stream >> m_result;
+	stream >> m_fileData;
+	stream >> m_stdOut;
+	stream >> m_executionTime;
+	return stOk;
 }
 
 SocketFrame::State RemoteToolResponse::WriteInternal(ByteOrderDataStreamWriter &stream) const
 {
-    stream << m_result;
-    stream << m_fileData;
-    stream << m_stdOut;
-    stream << m_executionTime;
-    return stOk;
+	stream << m_result;
+	stream << m_fileData;
+	stream << m_stdOut;
+	stream << m_executionTime;
+	return stOk;
 }
 
 }

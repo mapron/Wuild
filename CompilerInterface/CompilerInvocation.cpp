@@ -18,77 +18,77 @@
 namespace Wuild
 {
 CompilerInvocation::CompilerInvocation(const StringVector &args, InvokeType type)
-    : m_args(args)
-    , m_type(type)
+	: m_args(args)
+	, m_type(type)
 {
 
 }
 
 CompilerInvocation::CompilerInvocation(const std::string &args, CompilerInvocation::InvokeType type)
-    : m_type(type)
+	: m_type(type)
 {
-    SetArgsString(args);
+	SetArgsString(args);
 }
 void CompilerInvocation::SetArgsString(const std::string &args)
 {
-    m_args.resize(1);
-    m_args[0] = args;
+	m_args.resize(1);
+	m_args[0] = args;
 }
 
 std::string CompilerInvocation::GetArgsString(bool prependExecutable) const
 {
-    std::string ret;
-    if (prependExecutable)
-        ret += m_id.m_compilerExecutable + " ";
-    return ret + StringUtils::JoinString( m_args, ' ');
+	std::string ret;
+	if (prependExecutable)
+		ret += m_id.m_compilerExecutable + " ";
+	return ret + StringUtils::JoinString( m_args, ' ');
 }
 
 bool CompilerInvocation::SetInput(const std::string &filename)
 {
-    if (m_inputNameIndex < 0)
-        return false;
+	if (m_inputNameIndex < 0)
+		return false;
 
-    m_args[m_inputNameIndex] = filename;
-    return true;
+	m_args[m_inputNameIndex] = filename;
+	return true;
 }
 
 std::string CompilerInvocation::GetInput() const
 {
-    if (m_inputNameIndex < 0)
-        return std::string();
+	if (m_inputNameIndex < 0)
+		return std::string();
 
-    return m_args[m_inputNameIndex];
+	return m_args[m_inputNameIndex];
 }
 
 bool CompilerInvocation::SetOutput(const std::string &filename)
 {
-    if (m_outputNameIndex < 0)
-        return false;
+	if (m_outputNameIndex < 0)
+		return false;
 
-    m_args[m_outputNameIndex] = filename;
-    return true;
+	m_args[m_outputNameIndex] = filename;
+	return true;
 }
 
 std::string CompilerInvocation::GetOutput() const
 {
-    if (m_outputNameIndex < 0)
-        return std::string();
+	if (m_outputNameIndex < 0)
+		return std::string();
 
-    return m_args[m_outputNameIndex];
+	return m_args[m_outputNameIndex];
 }
 
 
 
 CompilerInvocation &CompilerInvocation::SetId(const std::string &compilerId)
 {
-    m_id.m_compilerId = compilerId;
-    return *this;
+	m_id.m_compilerId = compilerId;
+	return *this;
 }
 
 CompilerInvocation &CompilerInvocation::SetExecutable(const std::string &compilerExecutable)
 {
-    m_id.m_compilerExecutable = compilerExecutable;
-    return *this;
+	m_id.m_compilerExecutable = compilerExecutable;
+	return *this;
 }
 
 }

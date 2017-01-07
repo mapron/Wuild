@@ -19,14 +19,14 @@ namespace Wuild
 {
 class GccCommandLineParser: public AbstractCommandLineParser
 {
-    int m_invokeTypeIndex = -1;
+	int m_invokeTypeIndex = -1;
 
 public:
-    void UpdateInfo() override;
+	void UpdateInfo() override;
 
-    void SetInvokeType(CompilerInvocation::InvokeType type) override;
+	void SetInvokeType(CompilerInvocation::InvokeType type) override;
 
-    void RemoveDependencyFiles() override;
-    void RemovePrepocessorFlags() override;
+	void RemoveDependencyFiles() override;
+	void RemovePrepocessorFlags() override;
 };
 }

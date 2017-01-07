@@ -24,33 +24,33 @@ namespace Wuild
 class ProxyRequest : public SocketFrameExt
 {
 public:
-    static const uint8_t s_frameTypeId = s_minimalUserFrameId + 1;
-    using Ptr = std::shared_ptr<ProxyRequest>;
+	static const uint8_t s_frameTypeId = s_minimalUserFrameId + 1;
+	using Ptr = std::shared_ptr<ProxyRequest>;
 
-    CompilerInvocation m_invocation;
+	CompilerInvocation m_invocation;
 
-    uint8_t             FrameTypeId() const override { return s_frameTypeId;}
+	uint8_t             FrameTypeId() const override { return s_frameTypeId;}
 
-    void                LogTo(std::ostream& os)  const override;
-    State               ReadInternal(ByteOrderDataStreamReader &stream) override;
-    State               WriteInternal(ByteOrderDataStreamWriter &stream) const override;
+	void                LogTo(std::ostream& os)  const override;
+	State               ReadInternal(ByteOrderDataStreamReader &stream) override;
+	State               WriteInternal(ByteOrderDataStreamWriter &stream) const override;
 
 };
 
 class ProxyResponse : public SocketFrameExt
 {
 public:
-    static const uint8_t s_frameTypeId = s_minimalUserFrameId + 2;
-    using Ptr = std::shared_ptr<ProxyResponse>;
+	static const uint8_t s_frameTypeId = s_minimalUserFrameId + 2;
+	using Ptr = std::shared_ptr<ProxyResponse>;
 
-    bool    m_result = true;
-    std::string m_stdOut;
+	bool    m_result = true;
+	std::string m_stdOut;
 
-    void                LogTo(std::ostream& os) const override;
-    uint8_t             FrameTypeId() const override { return s_frameTypeId;}
+	void                LogTo(std::ostream& os) const override;
+	uint8_t             FrameTypeId() const override { return s_frameTypeId;}
 
-    State               ReadInternal(ByteOrderDataStreamReader &stream) override;
-    State               WriteInternal(ByteOrderDataStreamWriter &stream) const override;
+	State               ReadInternal(ByteOrderDataStreamReader &stream) override;
+	State               WriteInternal(ByteOrderDataStreamWriter &stream) const override;
 };
 
 }

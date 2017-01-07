@@ -22,59 +22,59 @@ namespace Wuild
 class CoordinatorListRequest : public SocketFrameExt
 {
 public:
-    static const uint8_t s_frameTypeId = s_minimalUserFrameId + 1;
-    using Ptr = std::shared_ptr<CoordinatorListRequest>;
+	static const uint8_t s_frameTypeId = s_minimalUserFrameId + 1;
+	using Ptr = std::shared_ptr<CoordinatorListRequest>;
 
-    uint8_t             FrameTypeId() const override { return s_frameTypeId;}
-    void                LogTo(std::ostream& os) const override { os << " REQUEST"; }
-    State               ReadInternal(ByteOrderDataStreamReader &) override { return stOk;}
-    State               WriteInternal(ByteOrderDataStreamWriter &) const override {return stOk;}
+	uint8_t             FrameTypeId() const override { return s_frameTypeId;}
+	void                LogTo(std::ostream& os) const override { os << " REQUEST"; }
+	State               ReadInternal(ByteOrderDataStreamReader &) override { return stOk;}
+	State               WriteInternal(ByteOrderDataStreamWriter &) const override {return stOk;}
 };
 
 class CoordinatorListResponse : public SocketFrameExt
 {
 public:
-    static const uint8_t s_frameTypeId = s_minimalUserFrameId + 2;
-    using Ptr = std::shared_ptr<CoordinatorListResponse>;
+	static const uint8_t s_frameTypeId = s_minimalUserFrameId + 2;
+	using Ptr = std::shared_ptr<CoordinatorListResponse>;
 
-    CoordinatorInfo m_info;
-    WorkerSessionInfo::List m_latestSessions;
+	CoordinatorInfo m_info;
+	WorkerSessionInfo::List m_latestSessions;
 
-    void                LogTo(std::ostream& os) const override { os << m_info.ToString(); }
-    uint8_t             FrameTypeId() const override { return s_frameTypeId;}
+	void                LogTo(std::ostream& os) const override { os << m_info.ToString(); }
+	uint8_t             FrameTypeId() const override { return s_frameTypeId;}
 
-    State               ReadInternal(ByteOrderDataStreamReader &stream) override;
-    State               WriteInternal(ByteOrderDataStreamWriter &stream) const override;
+	State               ReadInternal(ByteOrderDataStreamReader &stream) override;
+	State               WriteInternal(ByteOrderDataStreamWriter &stream) const override;
 };
 
 class CoordinatorWorkerStatus : public SocketFrameExt
 {
 public:
-    static const uint8_t s_frameTypeId = s_minimalUserFrameId + 3;
-    using Ptr = std::shared_ptr<CoordinatorWorkerStatus>;
+	static const uint8_t s_frameTypeId = s_minimalUserFrameId + 3;
+	using Ptr = std::shared_ptr<CoordinatorWorkerStatus>;
 
-    CoordinatorWorkerInfo m_info;
+	CoordinatorWorkerInfo m_info;
 
-    void                LogTo(std::ostream& os) const override { os << " STATUS:" << m_info.ToString(); }
-    uint8_t             FrameTypeId() const override { return s_frameTypeId;}
+	void                LogTo(std::ostream& os) const override { os << " STATUS:" << m_info.ToString(); }
+	uint8_t             FrameTypeId() const override { return s_frameTypeId;}
 
-    State               ReadInternal(ByteOrderDataStreamReader &stream) override;
-    State               WriteInternal(ByteOrderDataStreamWriter &stream) const override;
+	State               ReadInternal(ByteOrderDataStreamReader &stream) override;
+	State               WriteInternal(ByteOrderDataStreamWriter &stream) const override;
 };
 
 class CoordinatorWorkerSession : public SocketFrameExt
 {
 public:
-    static const uint8_t s_frameTypeId = s_minimalUserFrameId + 4;
-    using Ptr = std::shared_ptr<CoordinatorWorkerSession>;
+	static const uint8_t s_frameTypeId = s_minimalUserFrameId + 4;
+	using Ptr = std::shared_ptr<CoordinatorWorkerSession>;
 
-    WorkerSessionInfo m_session;
+	WorkerSessionInfo m_session;
 
-    void                LogTo(std::ostream& os) const override { os << " SESSION:" << m_session.ToString(); }
-    uint8_t             FrameTypeId() const override { return s_frameTypeId;}
+	void                LogTo(std::ostream& os) const override { os << " SESSION:" << m_session.ToString(); }
+	uint8_t             FrameTypeId() const override { return s_frameTypeId;}
 
-    State               ReadInternal(ByteOrderDataStreamReader &stream) override;
-    State               WriteInternal(ByteOrderDataStreamWriter &stream) const override;
+	State               ReadInternal(ByteOrderDataStreamReader &stream) override;
+	State               WriteInternal(ByteOrderDataStreamWriter &stream) const override;
 };
 
 }

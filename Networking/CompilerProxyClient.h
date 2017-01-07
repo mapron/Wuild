@@ -29,21 +29,21 @@ class SocketFrameHandler;
 class CompilerProxyClient
 {
 public:
-    using Config = CompilerProxyServerConfig;
+	using Config = CompilerProxyServerConfig;
 
 public:
-    CompilerProxyClient();
-    ~CompilerProxyClient();
+	CompilerProxyClient();
+	~CompilerProxyClient();
 
-    bool SetConfig(const Config & config);
+	bool SetConfig(const Config & config);
 
-    void Start();
+	void Start();
 
-    void RunTask(const StringVector & args);
+	void RunTask(const StringVector & args);
 
 protected:
-    std::unique_ptr<SocketFrameHandler> m_client;
-    Config m_config;
+	std::unique_ptr<SocketFrameHandler> m_client;
+	Config m_config;
 };
 
 }

@@ -20,32 +20,32 @@ namespace Wuild
 
 std::string CompilerConfig::GetFirstToolId() const
 {
-    return m_modules.empty() ? "" : m_modules[0].m_id;
+	return m_modules.empty() ? "" : m_modules[0].m_id;
 }
 
 std::string CompilerConfig::GetFirstToolName() const
 {
-    return m_modules.empty() || m_modules[0].m_names.empty() ? "" : m_modules[0].m_names[0];
+	return m_modules.empty() || m_modules[0].m_names.empty() ? "" : m_modules[0].m_names[0];
 }
 
 bool CompilerConfig::Validate(std::ostream *errStream) const
 {
-    if (m_modules.empty())
-    {
-        if (errStream)
-            *errStream << "Compiler modules are empty.";
-        return false;
-    }
-    for (const auto & unit : m_modules)
-    {
-        if (unit.m_names.empty())
-        {
-            if (errStream)
-                *errStream << "Invalid config for " << unit.m_id;
-            return false;
-        }
-    }
-    return true;
+	if (m_modules.empty())
+	{
+		if (errStream)
+			*errStream << "Compiler modules are empty.";
+		return false;
+	}
+	for (const auto & unit : m_modules)
+	{
+		if (unit.m_names.empty())
+		{
+			if (errStream)
+				*errStream << "Invalid config for " << unit.m_id;
+			return false;
+		}
+	}
+	return true;
 }
 
 }

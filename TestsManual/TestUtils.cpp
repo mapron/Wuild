@@ -16,9 +16,9 @@
 namespace Wuild
 {
 const std::string TestConfiguration::g_testProgram =
-        "#include<iostream> \n"
-        "int main() { std::cout << \"OK\\n\"; return 0; } \n"
-        ;
+		"#include<iostream> \n"
+		"int main() { std::cout << \"OK\\n\"; return 0; } \n"
+		;
 
 ICompilerModule::Ptr TestConfiguration::g_compilerModule;
 
@@ -27,43 +27,43 @@ bool TestConfiguration::g_compilerModuleRequired = true;
 
 StringVector CreateTestProgramInvocation()
 {
-    std::string tempDir = Application::Instance().GetTempDir();
-    std::string testFileCpp = tempDir + "/test.cpp";
-    ByteArrayHolder fileData;
-    fileData.ref().insert(fileData.ref().begin(), TestConfiguration::g_testProgram.cbegin(), TestConfiguration::g_testProgram.cend());
-    FileInfo(testFileCpp).WriteFile(fileData);
+	std::string tempDir = Application::Instance().GetTempDir();
+	std::string testFileCpp = tempDir + "/test.cpp";
+	ByteArrayHolder fileData;
+	fileData.ref().insert(fileData.ref().begin(), TestConfiguration::g_testProgram.cbegin(), TestConfiguration::g_testProgram.cend());
+	FileInfo(testFileCpp).WriteFile(fileData);
 
-    StringVector args;
-    args.push_back("-c");
-    args.push_back(testFileCpp);
-    args.push_back("-o");
-    args.push_back(tempDir + "/test.o");
-    return args;
+	StringVector args;
+	args.push_back("-c");
+	args.push_back(testFileCpp);
+	args.push_back("-o");
+	args.push_back(tempDir + "/test.o");
+	return args;
 }
 
 int HandleTestResult()
 {
-    std::cout << (Application::GetExitCode() == 0 ? "OK" : "FAIL") << std::endl;
-    return Application::GetExitCode();
+	std::cout << (Application::GetExitCode() == 0 ? "OK" : "FAIL") << std::endl;
+	return Application::GetExitCode();
 }
 
 bool CreateCompiler(ConfiguredApplication &app, bool stub)
 {
-    if (!stub)
-    {
-        ICompilerModule::Config config;
-        if (!app.GetCompilerConfig( config ))
-            return false;
+	if (!stub)
+	{
+		ICompilerModule::Config config;
+		if (!app.GetCompilerConfig( config ))
+			return false;
 
-        TestConfiguration::g_compilerModule = CompilerModule::Create(config);
-    }
-    else
-    {
-        ICompilerModule::Config config;
-        TestConfiguration::GetTestToolConfig( config );
-        TestConfiguration::g_compilerModule.reset( new CompilerModuleStub(config) );
-    }
-    return true;
+		TestConfiguration::g_compilerModule = CompilerModule::Create(config);
+	}
+	else
+	{
+		ICompilerModule::Config config;
+		TestConfiguration::GetTestToolConfig( config );
+		TestConfiguration::g_compilerModule.reset( new CompilerModuleStub(config) );
+	}
+	return true;
 }
 
 }

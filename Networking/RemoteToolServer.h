@@ -29,19 +29,19 @@ class RemoteToolServerImpl;
 class RemoteToolServer
 {
 public:
-    using Config = RemoteToolServerConfig;
+	using Config = RemoteToolServerConfig;
 
 public:
-    RemoteToolServer(ILocalExecutor::Ptr executor);
-    ~RemoteToolServer();
+	RemoteToolServer(ILocalExecutor::Ptr executor);
+	~RemoteToolServer();
 
-    bool SetConfig(const Config & config);
+	bool SetConfig(const Config & config);
 
-    void Start();
+	void Start();
 
 protected:
-    Config m_config;
-    std::unique_ptr<RemoteToolServerImpl> m_impl;
+	Config m_config;
+	std::unique_ptr<RemoteToolServerImpl> m_impl;
 
 };
 

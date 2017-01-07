@@ -25,36 +25,36 @@ namespace Wuild
 class RemoteToolRequest : public SocketFrameExt
 {
 public:
-    static const uint8_t s_frameTypeId = s_minimalUserFrameId + 1;
-    using Ptr = std::shared_ptr<RemoteToolRequest>;
+	static const uint8_t s_frameTypeId = s_minimalUserFrameId + 1;
+	using Ptr = std::shared_ptr<RemoteToolRequest>;
 
-    CompilerInvocation m_invocation;
-    ByteArrayHolder    m_fileData;
+	CompilerInvocation m_invocation;
+	ByteArrayHolder    m_fileData;
 
-    uint8_t             FrameTypeId() const override { return s_frameTypeId;}
+	uint8_t             FrameTypeId() const override { return s_frameTypeId;}
 
-    void                LogTo(std::ostream& os)  const override;
-    State               ReadInternal(ByteOrderDataStreamReader &stream) override;
-    State               WriteInternal(ByteOrderDataStreamWriter &stream) const override;
+	void                LogTo(std::ostream& os)  const override;
+	State               ReadInternal(ByteOrderDataStreamReader &stream) override;
+	State               WriteInternal(ByteOrderDataStreamWriter &stream) const override;
 
 };
 
 class RemoteToolResponse : public SocketFrameExt
 {
 public:
-    static const uint8_t s_frameTypeId = s_minimalUserFrameId + 2;
-    using Ptr = std::shared_ptr<RemoteToolResponse>;
+	static const uint8_t s_frameTypeId = s_minimalUserFrameId + 2;
+	using Ptr = std::shared_ptr<RemoteToolResponse>;
 
-    bool             m_result = true;
-    ByteArrayHolder  m_fileData;
-    std::string      m_stdOut;
-    TimePoint        m_executionTime;
+	bool             m_result = true;
+	ByteArrayHolder  m_fileData;
+	std::string      m_stdOut;
+	TimePoint        m_executionTime;
 
-    void                LogTo(std::ostream& os) const override;
-    uint8_t             FrameTypeId() const override { return s_frameTypeId;}
+	void                LogTo(std::ostream& os) const override;
+	uint8_t             FrameTypeId() const override { return s_frameTypeId;}
 
-    State               ReadInternal(ByteOrderDataStreamReader &stream) override;
-    State               WriteInternal(ByteOrderDataStreamWriter &stream) const override;
+	State               ReadInternal(ByteOrderDataStreamReader &stream) override;
+	State               WriteInternal(ByteOrderDataStreamWriter &stream) const override;
 };
 
 }

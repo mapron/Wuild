@@ -21,8 +21,8 @@ namespace Wuild
 class IConfig
 {
 public:
-    virtual ~IConfig() = default;
-    /// Validate config settings, if errStream present, output errors.
-    virtual bool Validate(std::ostream * errStream = nullptr) const = 0;
+	virtual ~IConfig() = default;
+	/// Validate config settings, if errStream present, output errors.
+	virtual bool Validate(std::ostream * errStream = nullptr) const = 0;
 };
 }

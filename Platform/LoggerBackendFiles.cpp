@@ -25,82 +25,82 @@ namespace Wuild
 {
 
 LoggerBackendFiles::LoggerBackendFiles(int maxLogLevel,
-                                       bool outputLoglevel,
-                                       bool outputTimestamp,
-                                       bool outputTimeoffsets,
-                                       int maxFilesInDir,
-                                       int maxMessagesInFile,
-                                       const std::string & dir)
-    : AbstractLoggerBackend(maxLogLevel, outputLoglevel, outputTimestamp, outputTimeoffsets, true)
-    , m_dir(dir)
-    , m_maxFilesInDir(maxFilesInDir)
-    , m_maxMessagesInFile(maxMessagesInFile)
+									   bool outputLoglevel,
+									   bool outputTimestamp,
+									   bool outputTimeoffsets,
+									   int maxFilesInDir,
+									   int maxMessagesInFile,
+									   const std::string & dir)
+	: AbstractLoggerBackend(maxLogLevel, outputLoglevel, outputTimestamp, outputTimeoffsets, true)
+	, m_dir(dir)
+	, m_maxFilesInDir(maxFilesInDir)
+	, m_maxMessagesInFile(maxMessagesInFile)
 {
-    FileInfo(m_dir).Mkdirs();
+	FileInfo(m_dir).Mkdirs();
 }
 
 LoggerBackendFiles::~LoggerBackendFiles()
 {
-    CloseFile();
+	CloseFile();
 }
 
 void LoggerBackendFiles::FlushMessageInternal(const std::string &message, int) const
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    if (!m_currentFile)
-        OpenNextFile();
+	std::lock_guard<std::mutex> lock(m_mutex);
+	if (!m_currentFile)
+		OpenNextFile();
 
-    if (!m_currentFile)
-        return;
+	if (!m_currentFile)
+		return;
 
-    bool result = fwrite(message.c_str(), message.size(), 1, m_currentFile) > 0;
-    if (!result)
-        std::cerr << "fwrite \'" << message << "\' failed! \n";
+	bool result = fwrite(message.c_str(), message.size(), 1, m_currentFile) > 0;
+	if (!result)
+		std::cerr << "fwrite \'" << message << "\' failed! \n";
 
-    if (++m_counter > m_maxMessagesInFile)
-    {
-        m_counter = 0;
-        CloseFile();
-    }
+	if (++m_counter > m_maxMessagesInFile)
+	{
+		m_counter = 0;
+		CloseFile();
+	}
 }
 
 void LoggerBackendFiles::OpenNextFile() const
 {
-    CloseFile();
+	CloseFile();
 
-    CleanupDir();
+	CleanupDir();
 
-    std::string timeString = TimePoint(true).ToString(true, true);
-    std::replace( timeString.begin(), timeString.end(), ' ', '_');
-    timeString.erase(std::remove(timeString.begin(), timeString.end(), '-'), timeString.end());
-    timeString.erase(std::remove(timeString.begin(), timeString.end(), ':'), timeString.end());
+	std::string timeString = TimePoint(true).ToString(true, true);
+	std::replace( timeString.begin(), timeString.end(), ' ', '_');
+	timeString.erase(std::remove(timeString.begin(), timeString.end(), '-'), timeString.end());
+	timeString.erase(std::remove(timeString.begin(), timeString.end(), ':'), timeString.end());
 
-    auto filename = m_dir + "/" + timeString + ".log";
-    m_currentFile = fopen(filename.c_str(), "wb");
-    if (!m_currentFile)
-        std::cerr << "Failed to open:" << filename << std::endl;
+	auto filename = m_dir + "/" + timeString + ".log";
+	m_currentFile = fopen(filename.c_str(), "wb");
+	if (!m_currentFile)
+		std::cerr << "Failed to open:" << filename << std::endl;
 }
 
 void LoggerBackendFiles::CloseFile() const
 {
-    if (m_currentFile)
-    {
-        fclose(m_currentFile);
-    }
-    m_currentFile = nullptr;
+	if (m_currentFile)
+	{
+		fclose(m_currentFile);
+	}
+	m_currentFile = nullptr;
 }
 
 void LoggerBackendFiles::CleanupDir() const
 {
-    StringVector contents = FileInfo(m_dir).GetDirFiles();
-    if (contents.size() > m_maxFilesInDir)
-    {
-        contents.erase(contents.end() - m_maxFilesInDir , contents.end() );
-        for (const auto & file : contents)
-        {
-            FileInfo(m_dir + "/" + file).Remove();
-        }
-    }
+	StringVector contents = FileInfo(m_dir).GetDirFiles();
+	if (contents.size() > m_maxFilesInDir)
+	{
+		contents.erase(contents.end() - m_maxFilesInDir , contents.end() );
+		for (const auto & file : contents)
+		{
+			FileInfo(m_dir + "/" + file).Remove();
+		}
+	}
 }
 
 

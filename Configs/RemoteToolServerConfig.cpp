@@ -20,26 +20,26 @@ namespace Wuild
 
 bool RemoteToolServerConfig::Validate(std::ostream *errStream) const
 {
-    if (m_listenHost.empty())
-    {
-        if (errStream)
-            *errStream << "Invalid listenHost.";
-        return false;
-    }
-    if (m_listenPort <= 0)
-    {
-        if (errStream)
-            *errStream << "Invalid listenPort.";
-        return false;
-    }
-    if (m_workersCount <= 0)
-    {
-        if (errStream)
-            *errStream << "workersCount: Number of thread should be greater than zero.";
-        return false;
-    }
+	if (m_listenHost.empty())
+	{
+		if (errStream)
+			*errStream << "Invalid listenHost.";
+		return false;
+	}
+	if (m_listenPort <= 0)
+	{
+		if (errStream)
+			*errStream << "Invalid listenPort.";
+		return false;
+	}
+	if (m_workersCount <= 0)
+	{
+		if (errStream)
+			*errStream << "workersCount: Number of thread should be greater than zero.";
+		return false;
+	}
 
-    return m_coordinator.Validate(errStream);
+	return m_coordinator.Validate(errStream);
 }
 
 }

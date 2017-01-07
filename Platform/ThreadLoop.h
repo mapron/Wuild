@@ -23,22 +23,22 @@ class ThreadLoopImpl;
 /// std::thread warpper, which will execute callback (quant) function repeatedly until stopped.
 class ThreadLoop
 {
-    std::unique_ptr<ThreadLoopImpl> m_impl;
+	std::unique_ptr<ThreadLoopImpl> m_impl;
 public:
-    using QuantFunction = std::function<void(void)>;
+	using QuantFunction = std::function<void(void)>;
 
 public:
-    ThreadLoop();
-    ~ThreadLoop();
+	ThreadLoop();
+	~ThreadLoop();
 
-    /// thread is performing action (and was not stopped)
-    bool IsRunning() const;
+	/// thread is performing action (and was not stopped)
+	bool IsRunning() const;
 
-    /// start thread execution; thread will repeat calling quant() until stopping.
-    void Exec(QuantFunction quant, int64_t sleepUS = 1000);
+	/// start thread execution; thread will repeat calling quant() until stopping.
+	void Exec(QuantFunction quant, int64_t sleepUS = 1000);
 
-    /// Stop(true) interrupts thread synchronously; Stop(false) just marks thread for interruption without wait.
-    void Stop(bool wait = true);
+	/// Stop(true) interrupts thread synchronously; Stop(false) just marks thread for interruption without wait.
+	void Stop(bool wait = true);
 };
 
 }

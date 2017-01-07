@@ -20,23 +20,23 @@ namespace Wuild
 
 bool CoordinatorClientConfig::Validate(std::ostream *errStream) const
 {
-    if (!m_enabled)
-        return true;
+	if (!m_enabled)
+		return true;
 
-    if (m_coordinatorHost.empty())
-    {
-        if (errStream)
-            *errStream << "Invalid coordinatorHost.";
-        return false;
-    }
-    if (m_coordinatorPort <= 0)
-    {
-        if (errStream)
-            *errStream << "Invalid coordinatorPort.";
-        return false;
-    }
+	if (m_coordinatorHost.empty())
+	{
+		if (errStream)
+			*errStream << "Invalid coordinatorHost.";
+		return false;
+	}
+	if (m_coordinatorPort <= 0)
+	{
+		if (errStream)
+			*errStream << "Invalid coordinatorPort.";
+		return false;
+	}
 
-    return true;
+	return true;
 }
 
 }

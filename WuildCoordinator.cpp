@@ -17,18 +17,18 @@
 
 int main(int argc, char** argv)
 {
-    using namespace Wuild;
-    ConfiguredApplication app(argc, argv, "WuildCoordinator", "coordinator");
+	using namespace Wuild;
+	ConfiguredApplication app(argc, argv, "WuildCoordinator", "coordinator");
 
-    CoordinatorServer::Config coordinatorConfig;
-    if (!app.GetCoordinatorServerConfig(coordinatorConfig))
-        return 1;
+	CoordinatorServer::Config coordinatorConfig;
+	if (!app.GetCoordinatorServerConfig(coordinatorConfig))
+		return 1;
 
-    CoordinatorServer coordServer;
-    if (!coordServer.SetConfig(coordinatorConfig))
-        return 1;
+	CoordinatorServer coordServer;
+	if (!coordServer.SetConfig(coordinatorConfig))
+		return 1;
 
-    coordServer.Start();
+	coordServer.Start();
 
-    return ExecAppLoop();
+	return ExecAppLoop();
 }

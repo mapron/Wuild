@@ -18,24 +18,24 @@
 
 int main(int argc, char** argv)
 {
-    using namespace Wuild;
-    ConfiguredApplication app(argc, argv, "WuildWorker", "worker");
+	using namespace Wuild;
+	ConfiguredApplication app(argc, argv, "WuildWorker", "worker");
 
-    RemoteToolServer::Config workerConfig;
-    if (!app.GetRemoteToolServerConfig(workerConfig))
-        return 1;
+	RemoteToolServer::Config workerConfig;
+	if (!app.GetRemoteToolServerConfig(workerConfig))
+		return 1;
 
-    auto compilerModule = CheckedCreateCompilerModule(app);
-    if (!compilerModule)
-        return 1;
+	auto compilerModule = CheckedCreateCompilerModule(app);
+	if (!compilerModule)
+		return 1;
 
-    auto localExecutor = LocalExecutor::Create(compilerModule, app.m_tempDir);
+	auto localExecutor = LocalExecutor::Create(compilerModule, app.m_tempDir);
 
-    RemoteToolServer rcService(localExecutor);
-    if (!rcService.SetConfig(workerConfig))
-        return 1;
+	RemoteToolServer rcService(localExecutor);
+	if (!rcService.SetConfig(workerConfig))
+		return 1;
 
-    rcService.Start();
+	rcService.Start();
 
-    return ExecAppLoop();
+	return ExecAppLoop();
 }

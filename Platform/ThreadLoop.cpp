@@ -27,56 +27,56 @@ namespace Wuild
 class ThreadLoopImpl
 {
 public:
-    std::thread m_thread;
-    std::atomic_bool m_condition {false};
+	std::thread m_thread;
+	std::atomic_bool m_condition {false};
 };
 
 ThreadLoop::ThreadLoop()
-    : m_impl(new ThreadLoopImpl)
+	: m_impl(new ThreadLoopImpl)
 {
 
 }
 
 ThreadLoop::~ThreadLoop()
 {
-    Stop();
+	Stop();
 }
 
 bool ThreadLoop::IsRunning() const
 {
-    return m_impl->m_condition;
+	return m_impl->m_condition;
 }
 
 void ThreadLoop::Exec(ThreadLoop::QuantFunction quant, int64_t sleepUS)
 {
-    Stop();
-    m_impl->m_condition = true;
-    m_impl->m_thread = std::thread([quant, this, sleepUS]{
-        try
-        {
-            while (m_impl->m_condition && !Application::IsInterrupted())
-            {
-                quant();
-                usleep(sleepUS);
-            }
-        }
-        catch (std::exception& ex)
-        {
-            Syslogger(LOG_ERR) << "std::exception caught in ThreadLoop::Exec " << ex.what();
-        }
-        catch (...)
-        {
-            Syslogger(LOG_CRIT) << "Exception caught in ThreadLoop::mainCycle.";
-        }
+	Stop();
+	m_impl->m_condition = true;
+	m_impl->m_thread = std::thread([quant, this, sleepUS]{
+		try
+		{
+			while (m_impl->m_condition && !Application::IsInterrupted())
+			{
+				quant();
+				usleep(sleepUS);
+			}
+		}
+		catch (std::exception& ex)
+		{
+			Syslogger(LOG_ERR) << "std::exception caught in ThreadLoop::Exec " << ex.what();
+		}
+		catch (...)
+		{
+			Syslogger(LOG_CRIT) << "Exception caught in ThreadLoop::mainCycle.";
+		}
 
-    });
+	});
 }
 
 void ThreadLoop::Stop(bool wait)
 {
-    m_impl->m_condition = false;
-    if (wait && m_impl->m_thread.joinable())
-        m_impl->m_thread.join();
+	m_impl->m_condition = false;
+	if (wait && m_impl->m_thread.joinable())
+		m_impl->m_thread.join();
 }
 
 }

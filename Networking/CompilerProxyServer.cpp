@@ -19,44 +19,44 @@ namespace Wuild
 {
 
 CompilerProxyServer::CompilerProxyServer(ILocalExecutor::Ptr executor, RemoteToolClient &rcClient)
-    : m_executor(executor), m_rcClient(rcClient)
+	: m_executor(executor), m_rcClient(rcClient)
 {
 
 }
 
 CompilerProxyServer::~CompilerProxyServer()
 {
-    m_server.reset();
+	m_server.reset();
 }
 
 bool CompilerProxyServer::SetConfig(const CompilerProxyServer::Config &config)
 {
-    std::ostringstream os;
-    if (!config.Validate(&os))
-    {
-        Syslogger(LOG_ERR) << os.str();
-        return false;
-    }
-    m_config = config;
-    return true;
+	std::ostringstream os;
+	if (!config.Validate(&os))
+	{
+		Syslogger(LOG_ERR) << os.str();
+		return false;
+	}
+	m_config = config;
+	return true;
 }
 
 
 void CompilerProxyServer::Start()
 {
-    m_server.reset(new SocketFrameService( m_config.m_listenPort ));
-    m_server->RegisterFrameReader(SocketFrameReaderTemplate<ProxyRequest>::Create([this](const ProxyRequest& inputMessage, SocketFrameHandler::OutputCallback outputCallback){
+	m_server.reset(new SocketFrameService( m_config.m_listenPort ));
+	m_server->RegisterFrameReader(SocketFrameReaderTemplate<ProxyRequest>::Create([this](const ProxyRequest& inputMessage, SocketFrameHandler::OutputCallback outputCallback){
 
-        ProxyResponse::Ptr response(new ProxyResponse());
-        response->m_result = false;
-        response->m_stdOut = "FFFOOOO!";
-        outputCallback(response);
-    }));
+		ProxyResponse::Ptr response(new ProxyResponse());
+		response->m_result = false;
+		response->m_stdOut = "FFFOOOO!";
+		outputCallback(response);
+	}));
 
 
-    m_server->SetHandlerDestroyCallback([this](SocketFrameHandler * handler){
+	m_server->SetHandlerDestroyCallback([this](SocketFrameHandler * handler){
 
-    });
-    m_server->Start();
+	});
+	m_server->Start();
 }
 }

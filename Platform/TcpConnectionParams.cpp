@@ -20,66 +20,66 @@
 namespace Wuild
 {
 
-  TcpConnectionParams::TcpConnectionParams()
-    : m_impl(new TcpConnectionParamsPrivate())
-  {
-      SocketEngineCheck();
-  }
+TcpConnectionParams::TcpConnectionParams()
+	: m_impl(new TcpConnectionParamsPrivate())
+{
+	SocketEngineCheck();
+}
 
-  TcpConnectionParams::~TcpConnectionParams()
-  {
+TcpConnectionParams::~TcpConnectionParams()
+{
 
-  }
+}
 
-  bool TcpConnectionParams::SetPoint(int port, std::string host)
-  {
-     bool any = false;
-     if (host == "*")
-     {
- #ifdef _WIN32
-         host = "";
-#endif
-         any = true;
-     }
-
-      m_host = host;
-      m_port = port;
-
-      const std::string portStr = std::to_string(port);
-
-      struct addrinfo hint = {};
-      hint.ai_family = AF_INET;
-      hint.ai_protocol = PF_UNSPEC;// PF_INET;
-      hint.ai_socktype = SOCK_STREAM;
-
-      m_impl->freeAddr();
-
-      int ret = getaddrinfo(host.c_str(), portStr.c_str(), &hint, &(m_impl->ai));
-      if (ret)
-      {
-          Syslogger(LOG_ERR) << "Failed to detect socket information for :" << GetShortInfo();
-          return false;
-      }
-      m_impl->ai->ai_protocol = PF_UNSPEC; // workaround for getaddrinfo wrong detection.
-
-      if (any)
-      {
-          sockaddr_in * sin = (sockaddr_in *)m_impl->ai->ai_addr;
+bool TcpConnectionParams::SetPoint(int port, std::string host)
+{
+	bool any = false;
+	if (host == "*")
+	{
 #ifdef _WIN32
-          sin->sin_addr.S_un.S_addr = htonl(INADDR_ANY);
-#else
-          sin->sin_addr.s_addr = htonl(INADDR_ANY);
+		host = "";
 #endif
-      }
+		any = true;
+	}
 
-      return true;
-  }
+	m_host = host;
+	m_port = port;
 
-  std::string TcpConnectionParams::GetShortInfo() const
-  {
-      std::ostringstream os;
-      os << m_host << ":" << m_port;
-      return os.str();
-  }
+	const std::string portStr = std::to_string(port);
+
+	struct addrinfo hint = {};
+	hint.ai_family = AF_INET;
+	hint.ai_protocol = PF_UNSPEC;// PF_INET;
+	hint.ai_socktype = SOCK_STREAM;
+
+	m_impl->freeAddr();
+
+	int ret = getaddrinfo(host.c_str(), portStr.c_str(), &hint, &(m_impl->ai));
+	if (ret)
+	{
+		Syslogger(LOG_ERR) << "Failed to detect socket information for :" << GetShortInfo();
+		return false;
+	}
+	m_impl->ai->ai_protocol = PF_UNSPEC; // workaround for getaddrinfo wrong detection.
+
+	if (any)
+	{
+		sockaddr_in * sin = (sockaddr_in *)m_impl->ai->ai_addr;
+#ifdef _WIN32
+		sin->sin_addr.S_un.S_addr = htonl(INADDR_ANY);
+#else
+		sin->sin_addr.s_addr = htonl(INADDR_ANY);
+#endif
+	}
+
+	return true;
+}
+
+std::string TcpConnectionParams::GetShortInfo() const
+{
+	std::ostringstream os;
+	os << m_host << ":" << m_port;
+	return os.str();
+}
 
 }

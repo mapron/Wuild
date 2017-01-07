@@ -21,153 +21,153 @@ option(USE_SYSTEM_ZLIB "Use system zlib library." ON)
 
 set(ZLIB_LIBS -lz)
 if (MSVC)
-    set(USE_SYSTEM_ZLIB OFF)
-    add_definitions(-D_CRT_SECURE_NO_WARNINGS -DNOMINMAX)
+	set(USE_SYSTEM_ZLIB OFF)
+	add_definitions(-D_CRT_SECURE_NO_WARNINGS -DNOMINMAX /wd4267 /wd4244)
 endif()
 
 function(AddTarget)
-    set(options APP)
-    set(oneValueArgs NAME ROOT)
-    set(multiValueArgs CSRC INCLUDES DEPS EXCLUDE OPTIONS)
-    cmake_parse_arguments(AddTarget "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )
-    set(_sources)
-    if (NOT AddTarget_ROOT)
-        set(AddTarget_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/${AddTarget_NAME})
-    endif()
-    foreach (csrc ${AddTarget_CSRC})
-        file(GLOB src ${AddTarget_ROOT}/${csrc})
-        list(APPEND _sources ${src})
-    endforeach()
-    foreach (excl ${AddTarget_EXCLUDE})
-        list(REMOVE_ITEM _sources ${AddTarget_ROOT}/${excl})
-    endforeach()
-    if (AddTarget_APP)
-        add_executable(${AddTarget_NAME} ${_sources})
-    else()
-        add_library(${AddTarget_NAME} STATIC ${_sources})
-    endif()
-    foreach (inc ${AddTarget_INCLUDES})
-        target_include_directories(${AddTarget_NAME} PRIVATE ${inc})
-    endforeach()
-    target_include_directories(${AddTarget_NAME} PUBLIC ${AddTarget_ROOT})
-    foreach (dep ${AddTarget_DEPS})
-        target_link_libraries(${AddTarget_NAME} PRIVATE ${dep})
-    endforeach()
-    foreach (opt ${AddTarget_OPTIONS})
-        target_compile_options(${AddTarget_NAME} PRIVATE ${opt})
-    endforeach()
+	set(options APP)
+	set(oneValueArgs NAME ROOT)
+	set(multiValueArgs CSRC INCLUDES DEPS EXCLUDE OPTIONS)
+	cmake_parse_arguments(AddTarget "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )
+	set(_sources)
+	if (NOT AddTarget_ROOT)
+		set(AddTarget_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/${AddTarget_NAME})
+	endif()
+	foreach (csrc ${AddTarget_CSRC})
+		file(GLOB src ${AddTarget_ROOT}/${csrc})
+		list(APPEND _sources ${src})
+	endforeach()
+	foreach (excl ${AddTarget_EXCLUDE})
+		list(REMOVE_ITEM _sources ${AddTarget_ROOT}/${excl})
+	endforeach()
+	if (AddTarget_APP)
+		add_executable(${AddTarget_NAME} ${_sources})
+	else()
+		add_library(${AddTarget_NAME} STATIC ${_sources})
+	endif()
+	foreach (inc ${AddTarget_INCLUDES})
+		target_include_directories(${AddTarget_NAME} PRIVATE ${inc})
+	endforeach()
+	target_include_directories(${AddTarget_NAME} PUBLIC ${AddTarget_ROOT})
+	foreach (dep ${AddTarget_DEPS})
+		target_link_libraries(${AddTarget_NAME} PRIVATE ${dep})
+	endforeach()
+	foreach (opt ${AddTarget_OPTIONS})
+		target_compile_options(${AddTarget_NAME} PRIVATE ${opt})
+	endforeach()
 endfunction()
 
 
 
 if (NOT USE_SYSTEM_ZLIB)
-    AddTarget(NAME zlib_static ROOT ${ZLIB_ROOT}/ CSRC *.c)
-    set(ZLIB_LIBS zlib_static)
+	AddTarget(NAME zlib_static ROOT ${ZLIB_ROOT}/ CSRC *.c)
+	set(ZLIB_LIBS zlib_static)
 endif()
 
 set(ninja_lib_src
   #  browse.cc
-    build.cc
-    build_log.cc
-    clean.cc
-    clparser.cc
-    debug_flags.cc
-    depfile_parser.cc
-    deps_log.cc
-    disk_interface.cc
-    edit_distance.cc
-    eval_env.cc
-    graph.cc
-    graphviz.cc
-    lexer.cc
-    line_printer.cc
-    manifest_parser.cc
-    metrics.cc
-    state.cc
+	build.cc
+	build_log.cc
+	clean.cc
+	clparser.cc
+	debug_flags.cc
+	depfile_parser.cc
+	deps_log.cc
+	disk_interface.cc
+	edit_distance.cc
+	eval_env.cc
+	graph.cc
+	graphviz.cc
+	lexer.cc
+	line_printer.cc
+	manifest_parser.cc
+	metrics.cc
+	state.cc
   #  subprocess-posix.cc
-    util.cc
-    version.cc
-    )
+	util.cc
+	version.cc
+	)
 
 if (WIN32)
-    set(ninja_subprocess_src subprocess-win32.cc )
-    list(APPEND ninja_lib_src includes_normalize-win32.cc )
-    if (MSVC)
-        list(APPEND ninja_lib_src minidump-win32.cc msvc_helper-win32.cc msvc_helper_main-win32.cc getopt.c)
-    endif()
+	set(ninja_subprocess_src subprocess-win32.cc )
+	list(APPEND ninja_lib_src includes_normalize-win32.cc )
+	if (MSVC)
+		list(APPEND ninja_lib_src minidump-win32.cc msvc_helper-win32.cc msvc_helper_main-win32.cc getopt.c)
+	endif()
 else()
-    set(ninja_subprocess_src subprocess-posix.cc )
+	set(ninja_subprocess_src subprocess-posix.cc )
 endif()
 
 if (NOT MSVC)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1z ")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1z ")
 endif()
 
 
 AddTarget(NAME ninja_subprocess ROOT ${NINJA_ROOT}/ CSRC ${ninja_subprocess_src}
-    )
+	)
 AddTarget(NAME ninja_lib ROOT ${NINJA_ROOT}/ CSRC ${ninja_lib_src} *.h
-    EXCLUDE remote_executor_impl.h
-    DEPS ninja_subprocess
-    )
+	EXCLUDE remote_executor_impl.h
+	DEPS ninja_subprocess
+	)
 
 AddTarget(NAME Platform CSRC *.cpp *.h
-    DEPS ${ZLIB_LIBS})
+	DEPS ${ZLIB_LIBS})
 
 AddTarget(NAME Configs CSRC *.cpp *.h
-    DEPS Platform)
+	DEPS Platform)
 
 AddTarget(NAME CompilerInterface CSRC *.cpp *.h
-    DEPS Configs Platform)
+	DEPS Configs Platform)
 
 AddTarget(NAME Networking CSRC *.cpp *.h
-    DEPS Configs Platform CompilerInterface
-    )
+	DEPS Configs Platform CompilerInterface
+	)
 
 AddTarget(NAME CompilerModule CSRC *.cpp *.h
-    DEPS Configs Platform CompilerInterface
-    )
+	DEPS Configs Platform CompilerInterface
+	)
 
 AddTarget(NAME LocalExecutor  CSRC *.cpp *.h
-    DEPS
-        ninja_subprocess Configs Platform Networking CompilerModule CompilerInterface
-    )
+	DEPS
+		ninja_subprocess Configs Platform Networking CompilerModule CompilerInterface
+	)
 
 AddTarget(NAME ConfiguredApplication CSRC *.cpp *.h
-    DEPS Configs Platform
-    )
+	DEPS Configs Platform
+	)
 
 
 set(main_deps
-    ConfiguredApplication Configs LocalExecutor CompilerModule CompilerInterface Networking Platform ninja_subprocess ninja_lib
-    )
+	ConfiguredApplication Configs LocalExecutor CompilerModule CompilerInterface Networking Platform ninja_subprocess ninja_lib
+	)
 
 set(sys_deps)
 
 if ( WIN32)
-    list(APPEND sys_deps ws2_32.lib)
+	list(APPEND sys_deps ws2_32.lib)
 else()
-    list(APPEND sys_deps -lpthread)
+	list(APPEND sys_deps -lpthread)
 endif()
 if ((UNIX AND NOT APPLE) OR (WIN32 AND NOT MSVC))
-    list(APPEND sys_deps  -lstdc++fs)
+	list(APPEND sys_deps  -lstdc++fs)
 endif()
 
 foreach (testname AllConfigs Compiler Coordinator Inflate Networking Worker )
-    AddTarget(APP NAME Test${testname} ROOT ${CMAKE_CURRENT_SOURCE_DIR}/TestsManual/
-        CSRC Test${testname}.cpp *.h TestUtils.cpp
-        DEPS ${main_deps} ${sys_deps}
-        )
+	AddTarget(APP NAME Test${testname} ROOT ${CMAKE_CURRENT_SOURCE_DIR}/TestsManual/
+		CSRC Test${testname}.cpp *.h TestUtils.cpp
+		DEPS ${main_deps} ${sys_deps}
+		)
 endforeach()
 
 foreach (appname Coordinator CoordinatorStatus Worker Proxy ProxyClient)
-    AddTarget(APP NAME Wuild${appname} ROOT ${CMAKE_CURRENT_SOURCE_DIR}/
-        CSRC Wuild${appname}.cpp
-        DEPS ${main_deps} ${sys_deps}
-        )
+	AddTarget(APP NAME Wuild${appname} ROOT ${CMAKE_CURRENT_SOURCE_DIR}/
+		CSRC Wuild${appname}.cpp
+		DEPS ${main_deps} ${sys_deps}
+		)
 endforeach()
 
 AddTarget(APP NAME Wuild ROOT ${NINJA_ROOT}/
-    CSRC ninja.cc remote_executor_impl.h state_rewrite.*
-    DEPS ${main_deps} ninja_subprocess ${sys_deps}
-    )
+	CSRC ninja.cc remote_executor_impl.h state_rewrite.*
+	DEPS ${main_deps} ninja_subprocess ${sys_deps}
+	)

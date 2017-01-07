@@ -23,24 +23,24 @@ namespace Wuild
 class ICommandLineParser
 {
 public:
-    using Ptr = std::shared_ptr<ICommandLineParser>;
+	using Ptr = std::shared_ptr<ICommandLineParser>;
 
 public:
-    virtual ~ICommandLineParser() = default;
+	virtual ~ICommandLineParser() = default;
 
-    virtual CompilerInvocation GetCompilerInvocation() const = 0;
-    virtual void SetCompilerInvocation(const CompilerInvocation & invocation) = 0;
+	virtual CompilerInvocation GetCompilerInvocation() const = 0;
+	virtual void SetCompilerInvocation(const CompilerInvocation & invocation) = 0;
 
-    CompilerInvocation ProcessCompilerInvocation(const CompilerInvocation & invocation)
-    {
-        SetCompilerInvocation(invocation);
-        return GetCompilerInvocation();
-    }
+	CompilerInvocation ProcessCompilerInvocation(const CompilerInvocation & invocation)
+	{
+		SetCompilerInvocation(invocation);
+		return GetCompilerInvocation();
+	}
 
-    virtual void SetInvokeType(CompilerInvocation::InvokeType type) = 0;
+	virtual void SetInvokeType(CompilerInvocation::InvokeType type) = 0;
 
-    virtual void RemovePDB() = 0;
-    virtual void RemoveDependencyFiles() = 0;
-    virtual void RemovePrepocessorFlags() = 0;
+	virtual void RemovePDB() = 0;
+	virtual void RemoveDependencyFiles() = 0;
+	virtual void RemovePrepocessorFlags() = 0;
 };
 }

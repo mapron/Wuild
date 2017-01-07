@@ -30,28 +30,28 @@
 #define MSG_NOSIGNAL 0
 #endif
 
-#ifndef TCP_SOCKET_POSIX
+#ifdef TCP_SOCKET_WIN
 
 void SocketEngineCheck()
 {
-    struct WSA_RAII {
-        WSA_RAII() {  int ec;
-                     WSADATA wsa;
+	struct WSA_RAII {
+		WSA_RAII() {  int ec;
+					 WSADATA wsa;
 
-                              if ((ec = WSAStartup(MAKEWORD(2,0), &wsa)) != 0)
-                                  Wuild::Syslogger(LOG_ERR) <<  "WIN32_SOCKET: winsock error: code " << ec;
-                  }
-        ~WSA_RAII() { WSACleanup(); }
-    };
+							  if ((ec = WSAStartup(MAKEWORD(2,0), &wsa)) != 0)
+								  Wuild::Syslogger(LOG_ERR) <<  "WIN32_SOCKET: winsock error: code " << ec;
+				  }
+		~WSA_RAII() { WSACleanup(); }
+	};
 
-    static WSA_RAII init ;
+	static WSA_RAII init ;
 }
 
 #endif
 
 namespace
 {
-    const size_t g_defaultBufferSize = 4 * 1024;
+	const size_t g_defaultBufferSize = 4 * 1024;
 }
 
 namespace Wuild
@@ -60,305 +60,305 @@ namespace Wuild
 std::atomic_bool TcpSocket::s_applicationInterruption(false);
 
 TcpSocket::TcpSocket(const TcpConnectionParams &params)
-    : m_params(params)
-    , m_impl(new TcpSocketPrivate())
+	: m_params(params)
+	, m_impl(new TcpSocketPrivate())
 {
-    SocketEngineCheck();
-    Syslogger() << "TcpSocket::TcpSocket() " << params.GetShortInfo();
+	SocketEngineCheck();
+	Syslogger() << "TcpSocket::TcpSocket() " << params.GetShortInfo();
 }
 
 TcpSocket::~TcpSocket()
 {
-    Disconnect();
+	Disconnect();
 }
 
 IDataSocket::Ptr TcpSocket::Create(const TcpConnectionParams &params, TcpListener *pendingListener)
 {
-    auto sock  = new TcpSocket(params);
-    sock->SetListener(pendingListener);
-    return IDataSocket::Ptr(sock);
+	auto sock  = new TcpSocket(params);
+	sock->SetListener(pendingListener);
+	return IDataSocket::Ptr(sock);
 }
 
 bool TcpSocket::Connect ()
 {
-    if (s_applicationInterruption)
-        return false;
+	if (s_applicationInterruption)
+		return false;
 
-    if (m_state == csSuccess)
-        return true;
+	if (m_state == csSuccess)
+		return true;
 
-    if (m_acceptedByListener)
-    {
-        if (m_state == csFail)
-            return false;
+	if (m_acceptedByListener)
+	{
+		if (m_state == csFail)
+			return false;
 
-        if (m_state == csPending && m_pendingListener->DoAccept(this))
-        {
-            SetBufferSize();
-            if (m_impl->SetBlocking(false))
-            {
-                m_state = csSuccess;
-                return true;
-            }
-        }
-        m_state = csFail;
-        return false;
-    }
-    Syslogger() << "Trying to connect to " << m_params.GetShortInfo();
+		if (m_state == csPending && m_pendingListener->DoAccept(this))
+		{
+			SetBufferSize();
+			if (m_impl->SetBlocking(false))
+			{
+				m_state = csSuccess;
+				return true;
+			}
+		}
+		m_state = csFail;
+		return false;
+	}
+	Syslogger() << "Trying to connect to " << m_params.GetShortInfo();
 
-    if (m_impl->m_socket == INVALID_SOCKET)
-    {
-        m_impl->m_socket = socket(m_params.m_impl->ai->ai_family, m_params.m_impl->ai->ai_socktype, m_params.m_impl->ai->ai_protocol);
-        if (m_impl->m_socket == INVALID_SOCKET)
-        {
-            Syslogger(LOG_ERR) << "socket creation failed." ;
-            Fail();
-            return false;
-        }
-    }
-    SetBufferSize();
-    if (!m_impl->SetBlocking(false))
-    {
-        Fail();
-        return false;
-    }
+	if (m_impl->m_socket == INVALID_SOCKET)
+	{
+		m_impl->m_socket = socket(m_params.m_impl->ai->ai_family, m_params.m_impl->ai->ai_socktype, m_params.m_impl->ai->ai_protocol);
+		if (m_impl->m_socket == INVALID_SOCKET)
+		{
+			Syslogger(LOG_ERR) << "socket creation failed." ;
+			Fail();
+			return false;
+		}
+	}
+	SetBufferSize();
+	if (!m_impl->SetBlocking(false))
+	{
+		Fail();
+		return false;
+	}
 
-    int cres = connect(m_impl->m_socket, m_params.m_impl->ai->ai_addr, m_params.m_impl->ai->ai_addrlen);
-    if (cres < 0)
-    {
+	int cres = connect(m_impl->m_socket, m_params.m_impl->ai->ai_addr, m_params.m_impl->ai->ai_addrlen);
+	if (cres < 0)
+	{
 #ifdef _WIN32
-        const auto err = GetLastError();
-        const bool inProgress = err == WSAEWOULDBLOCK;
+		const auto err = GetLastError();
+		const bool inProgress = err == WSAEWOULDBLOCK;
 #else
-        const auto err = errno ;
-        const bool inProgress = err == EINPROGRESS;
+		const auto err = errno ;
+		const bool inProgress = err == EINPROGRESS;
 #endif
-        if (inProgress)
-        {
-            struct timeval timeout;
-            SET_TIMEVAL_US(timeout, m_params.m_connectTimeout);
-            fd_set select_set;
-            FD_ZERO( &select_set );
-            FD_SET( m_impl->m_socket, &select_set );
-            int valopt;
-            socklen_t valopt_len = sizeof(valopt);
+		if (inProgress)
+		{
+			struct timeval timeout;
+			SET_TIMEVAL_US(timeout, m_params.m_connectTimeout);
+			fd_set select_set;
+			FD_ZERO( &select_set );
+			FD_SET( m_impl->m_socket, &select_set );
+			int valopt;
+			socklen_t valopt_len = sizeof(valopt);
 
-            if (select( m_impl->m_socket+1, 0, &select_set, 0, &timeout ) <= 0 || !FD_ISSET( m_impl->m_socket, &select_set ) ||
-                getsockopt( m_impl->m_socket, SOL_SOCKET, SO_ERROR, SOCK_OPT_ARG (&valopt), &valopt_len ) < 0 || valopt
-                    )
-            {
-                Syslogger() << "Connection timeout." ;
-                Fail();
-                return false;
-            }
-        }
-        else
-        {
-            Syslogger() << "Connection failed. ("<< cres << ") err=" << err ;
-            Fail();
-            return false;
-        }
-    }
+			if (select( m_impl->m_socket + 1, 0, &select_set, 0, &timeout ) <= 0 || !FD_ISSET( m_impl->m_socket, &select_set ) ||
+				getsockopt( m_impl->m_socket, SOL_SOCKET, SO_ERROR, SOCK_OPT_ARG (&valopt), &valopt_len ) < 0 || valopt
+					)
+			{
+				Syslogger() << "Connection timeout." ;
+				Fail();
+				return false;
+			}
+		}
+		else
+		{
+			Syslogger() << "Connection failed. ("<< cres << ") err=" << err ;
+			Fail();
+			return false;
+		}
+	}
 
-    m_state = csSuccess;
-    Syslogger() << "Connected.";
-    return true;
+	m_state = csSuccess;
+	Syslogger() << "Connected.";
+	return true;
 }
 
 void TcpSocket::Disconnect()
 {
-    m_state = csFail;
-    if (m_impl->m_socket != INVALID_SOCKET)
-    {
-        Syslogger() << "TcpSocket::Disconnect() " << m_params.GetShortInfo();
-        close( m_impl->m_socket );
-        m_impl->m_socket = INVALID_SOCKET;
-    }
+	m_state = csFail;
+	if (m_impl->m_socket != INVALID_SOCKET)
+	{
+		Syslogger() << "TcpSocket::Disconnect() " << m_params.GetShortInfo();
+		close( m_impl->m_socket );
+		m_impl->m_socket = INVALID_SOCKET;
+	}
 }
 
 bool TcpSocket::IsConnected() const
 {
-    return m_state == csSuccess;
+	return m_state == csSuccess;
 }
 
 bool TcpSocket::IsPending() const
 {
-    return m_state == csPending;
+	return m_state == csPending;
 }
 
 bool TcpSocket::Read(ByteArrayHolder & buffer)
 {
-    if (!IsSocketReadReady( ))
-        return false;
+	if (!IsSocketReadReady( ))
+		return false;
 
-    if (!SelectRead( m_params.m_readTimeout ))  //Нет данных в порту
-        return false;
+	if (!SelectRead( m_params.m_readTimeout ))  //Нет данных в порту
+		return false;
 
-    size_t bufferInitialSize = buffer.size();(void)bufferInitialSize;
-    char tmpbuffer[1024];
-    int recieved, totalRecieved = 0;
-    do {
+	size_t bufferInitialSize = buffer.size();(void)bufferInitialSize;
+	char tmpbuffer[1024];
+	int recieved, totalRecieved = 0;
+	do {
 
-      recieved =
-        #ifdef TCP_SOCKET_WIN
-            recv( m_impl->m_socket, tmpbuffer, sizeof(tmpbuffer), 0 );
-        #elif defined(TCP_SOCKET_POSIX)
-            read( m_impl->m_socket, tmpbuffer, sizeof(tmpbuffer) );
-        #endif
-      if (recieved == 0 && totalRecieved > 0)
-          break;
+	  recieved =
+		#ifdef TCP_SOCKET_WIN
+			recv( m_impl->m_socket, tmpbuffer, sizeof(tmpbuffer), 0 );
+		#else
+			read( m_impl->m_socket, tmpbuffer, sizeof(tmpbuffer) );
+		#endif
+	  if (recieved == 0 && totalRecieved > 0)
+		  break;
 
-      if (recieved <= 0)
-      {
-          auto err = errno;
-          if (err == EAGAIN)
-              break;
-          Syslogger() << "Disconnecting while Reading" ;
-          Disconnect();
-          return 0;
-      }
-      totalRecieved += recieved;
-      buffer.ref().insert(buffer.ref().end(), tmpbuffer, tmpbuffer + recieved );
+	  if (recieved <= 0)
+	  {
+		  auto err = errno;
+		  if (err == EAGAIN)
+			  break;
+		  Syslogger() << "Disconnecting while Reading" ;
+		  Disconnect();
+		  return 0;
+	  }
+	  totalRecieved += recieved;
+	  buffer.ref().insert(buffer.ref().end(), tmpbuffer, tmpbuffer + recieved );
 
-    } while(recieved == sizeof(tmpbuffer));
+	} while(recieved == sizeof(tmpbuffer));
 
 #ifdef SOCKET_DEBUG
-    Syslogger() << "AbstractChannel::Read: " << Syslogger::Binary(buffer.data() + bufferInitialSize, totalRecieved);
+	Syslogger() << "AbstractChannel::Read: " << Syslogger::Binary(buffer.data() + bufferInitialSize, totalRecieved);
 #endif
 
-    return true;
+	return true;
 }
 
 bool TcpSocket::Write(const ByteArrayHolder & buffer, size_t maxBytes)
 {
-    if (m_impl->m_socket == INVALID_SOCKET)
-        return 0;
+	if (m_impl->m_socket == INVALID_SOCKET)
+		return 0;
 
-    maxBytes = std::min(maxBytes, buffer.size());
+	maxBytes = std::min(maxBytes, buffer.size());
 
-    auto written = send( m_impl->m_socket, (const char*)(buffer.data()), maxBytes, MSG_NOSIGNAL);
-    if (written < 0)
-    {
-        Syslogger() << "Disconnecting while Writing" ;
-        Disconnect();
-        return 0;
-    }
+	auto written = send( m_impl->m_socket, (const char*)(buffer.data()), maxBytes, MSG_NOSIGNAL);
+	if (written < 0)
+	{
+		Syslogger() << "Disconnecting while Writing" ;
+		Disconnect();
+		return 0;
+	}
 
 #ifdef SOCKET_DEBUG
-    Syslogger() << "AbstractChannel::Write: " << Syslogger::Binary(buffer.data(), written);
+	Syslogger() << "AbstractChannel::Write: " << Syslogger::Binary(buffer.data(), written);
 #endif
-    return maxBytes == written;
+	return maxBytes == written;
 }
 
 void TcpSocket::SetListener(TcpListener* pendingListener)
 {
-    if (!pendingListener)
-        return;
+	if (!pendingListener)
+		return;
 
-    m_state = csPending;
-    m_pendingListener = pendingListener;
-    m_acceptedByListener = true;
+	m_state = csPending;
+	m_pendingListener = pendingListener;
+	m_acceptedByListener = true;
 }
 
 void TcpSocket::Fail ()
 {
-    Syslogger() << "Disconnection cased by Fail()";
-    Disconnect();
+	Syslogger() << "Disconnection cased by Fail()";
+	Disconnect();
 }
 
 bool TcpSocket::IsSocketReadReady()
 {
-    if (m_impl->m_socket == INVALID_SOCKET)
-        return false;
+	if (m_impl->m_socket == INVALID_SOCKET)
+		return false;
 
-    fd_set set;
-    FD_ZERO( &set );
-    FD_SET( m_impl->m_socket, &set );
+	fd_set set;
+	FD_ZERO( &set );
+	FD_SET( m_impl->m_socket, &set );
 
-    struct timeval timeout = { 0, 0 };
-    int selected = select( m_impl->m_socket + 1, &set, 0, 0, &timeout );
-    if (selected < 0)
-    {
-        Syslogger() << "Disconnect from IsSocketReadReady" ;
-        Disconnect();
-        return false;
-    }
-    return (selected != 0 && FD_ISSET( m_impl->m_socket, &set ));
+	struct timeval timeout = { 0, 0 };
+	int selected = select( m_impl->m_socket + 1U, &set, 0, 0, &timeout );
+	if (selected < 0)
+	{
+		Syslogger() << "Disconnect from IsSocketReadReady" ;
+		Disconnect();
+		return false;
+	}
+	return (selected != 0 && FD_ISSET( m_impl->m_socket, &set ));
 }
 
 bool TcpSocket::SelectRead (const TimePoint &timeout)
 {
-    if (m_impl->m_socket == INVALID_SOCKET)
-        return false;
+	if (m_impl->m_socket == INVALID_SOCKET)
+		return false;
 
-    bool res= false;
-    fd_set selected;
-    FD_ZERO( &selected );
-    FD_SET( m_impl->m_socket, &selected );
-    struct timeval timeoutTV;
-    SET_TIMEVAL_US(timeoutTV, timeout);
-    res = select( m_impl->m_socket + 1, &selected, 0, 0, &timeoutTV ) > 0 && FD_ISSET( m_impl->m_socket, &selected );
-    return res;
+	bool res= false;
+	fd_set selected;
+	FD_ZERO( &selected );
+	FD_SET( m_impl->m_socket, &selected );
+	struct timeval timeoutTV;
+	SET_TIMEVAL_US(timeoutTV, timeout);
+	res = select( m_impl->m_socket + 1, &selected, 0, 0, &timeoutTV ) > 0 && FD_ISSET( m_impl->m_socket, &selected );
+	return res;
 }
 
 void TcpSocket::SetBufferSize()
 {
-    m_recieveBufferSize = m_impl->GetRecieveBuffer();
-    if (m_recieveBufferSize < m_params.m_recommendedRecieveBufferSize)
-    {
-        if (!m_impl->SetRecieveBuffer(m_params.m_recommendedRecieveBufferSize))
-        {
-            Syslogger(LOG_INFO) << "Failed to set socket size:" << m_params.m_recommendedRecieveBufferSize;
-        }
-        m_recieveBufferSize = m_impl->GetRecieveBuffer();
-    }
+	m_recieveBufferSize = m_impl->GetRecieveBuffer();
+	if (m_recieveBufferSize < m_params.m_recommendedRecieveBufferSize)
+	{
+		if (!m_impl->SetRecieveBuffer(m_params.m_recommendedRecieveBufferSize))
+		{
+			Syslogger(LOG_INFO) << "Failed to set socket size:" << m_params.m_recommendedRecieveBufferSize;
+		}
+		m_recieveBufferSize = m_impl->GetRecieveBuffer();
+	}
 }
 
 bool TcpSocketPrivate::SetBlocking(bool blocking)
 {
-#if  defined(TCP_SOCKET_POSIX )
-    long flags = fcntl( m_socket, F_GETFL, 0 );
-    if (flags < 0)
-    {
-        Syslogger(LOG_ERR) << "fcntl(F_GETFL) failed." ;
-        return false;
-    }
-    if (!blocking)
-        flags |= O_NONBLOCK;
-    else
-        flags &= ~O_NONBLOCK;
-
-    if(fcntl( m_socket, F_SETFL, flags ) < 0)
-    {
-        Syslogger(LOG_ERR) << "fcntl(F_SETFL O_NONBLOCK) failed." ;
-        return false;
-    }
+#if  defined(TCP_SOCKET_WIN )
+	u_long flags = blocking ? 0 : 1;
+	if(ioctlsocket( m_socket, FIONBIO, &flags ) != NO_ERROR)
+	{
+		Syslogger(LOG_ERR) << "ioctlsocket(FIONBIO O_NONBLOCK) failed." ;
+		return false;
+	}
 #else
-    u_long flags = blocking ? 0 : 1;
-    if(ioctlsocket( m_socket, FIONBIO, &flags ) != NO_ERROR)
-    {
-        Syslogger(LOG_ERR) << "ioctlsocket(FIONBIO O_NONBLOCK) failed." ;
-        return false;
-    }
+	long flags = fcntl( m_socket, F_GETFL, 0 );
+	if (flags < 0)
+	{
+		Syslogger(LOG_ERR) << "fcntl(F_GETFL) failed." ;
+		return false;
+	}
+	if (!blocking)
+		flags |= O_NONBLOCK;
+	else
+		flags &= ~O_NONBLOCK;
+
+	if(fcntl( m_socket, F_SETFL, flags ) < 0)
+	{
+		Syslogger(LOG_ERR) << "fcntl(F_SETFL O_NONBLOCK) failed." ;
+		return false;
+	}
 #endif
-    return true;
+	return true;
 }
 
 bool TcpSocketPrivate::SetRecieveBuffer(uint32_t size)
 {
-    int valopt = static_cast<int>(size);
-    socklen_t valopt_len = sizeof(valopt);
-    return setsockopt(m_socket, SOL_SOCKET, SO_RCVBUF, SOCK_OPT_ARG &valopt, valopt_len) == 0;
+	int valopt = static_cast<int>(size);
+	socklen_t valopt_len = sizeof(valopt);
+	return setsockopt(m_socket, SOL_SOCKET, SO_RCVBUF, SOCK_OPT_ARG &valopt, valopt_len) == 0;
 }
 
 uint32_t TcpSocketPrivate::GetRecieveBuffer()
 {
-    int valopt = 0;
-    socklen_t valopt_len = sizeof(valopt);
-    if (getsockopt(m_socket, SOL_SOCKET, SO_RCVBUF, SOCK_OPT_ARG &valopt, &valopt_len))
-        return g_defaultBufferSize;
+	int valopt = 0;
+	socklen_t valopt_len = sizeof(valopt);
+	if (getsockopt(m_socket, SOL_SOCKET, SO_RCVBUF, SOCK_OPT_ARG &valopt, &valopt_len))
+		return g_defaultBufferSize;
 
-    return static_cast<uint32_t>(valopt);
+	return static_cast<uint32_t>(valopt);
 }
 
 }

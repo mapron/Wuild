@@ -38,13 +38,13 @@ namespace Wuild
 class ILoggerBackend
 {
 public:
-    virtual ~ILoggerBackend() = default;
+	virtual ~ILoggerBackend() = default;
 
-    /// Returns true if log should be flushed. LOG_EMERG <= loglevel <=  LOG_DEBUG
-    virtual bool LogEnabled(int logLevel) const = 0;
+	/// Returns true if log should be flushed. LOG_EMERG <= loglevel <=  LOG_DEBUG
+	virtual bool LogEnabled(int logLevel) const = 0;
 
-    /// Outputs log message to log backend.
-    virtual void FlushMessage(const std::string & message, int logLevel) const = 0;
+	/// Outputs log message to log backend.
+	virtual void FlushMessage(const std::string & message, int logLevel) const = 0;
 };
 
 /// Logger to standard output or another backend.
@@ -52,71 +52,71 @@ class Syslogger
 {
 public:
 
-     /// Change default logging behaviour.
-    static void SetLoggerBackend(std::unique_ptr<ILoggerBackend> && backend);
-    static bool IsLogLevelEnabled(int logLevel);
+	 /// Change default logging behaviour.
+	static void SetLoggerBackend(std::unique_ptr<ILoggerBackend> && backend);
+	static bool IsLogLevelEnabled(int logLevel);
 
-    /// Convenience wrapper for blobs. When outputting to Syslogger, output will be HEX-formatted.
-    class Binary
-    {
-        friend class Syslogger;
-        const unsigned char* m_data;
-        const int m_size;
-    public:
-        Binary (const void* data, int size);
-        Binary (const char* data, int size);
-        Binary (const unsigned char* data, int size);
-    };
-    /// Creates logger. If loglevel is flushable by backend, stream will be created.
-    Syslogger (int logLevel = LOG_DEBUG);
+	/// Convenience wrapper for blobs. When outputting to Syslogger, output will be HEX-formatted.
+	class Binary
+	{
+		friend class Syslogger;
+		const unsigned char* m_data;
+		const int m_size;
+	public:
+		Binary (const void* data, int size);
+		Binary (const char* data, int size);
+		Binary (const unsigned char* data, int size);
+	};
+	/// Creates logger. If loglevel is flushable by backend, stream will be created.
+	Syslogger (int logLevel = LOG_DEBUG);
 
-    /// Convenience constructor for outputting context. Context string will be enclosed in braces, if not empty.
-    Syslogger (const std::string & context, int logLevel = LOG_DEBUG);
+	/// Convenience constructor for outputting context. Context string will be enclosed in braces, if not empty.
+	Syslogger (const std::string & context, int logLevel = LOG_DEBUG);
 
-    /// Flushes all output to backend.
-    ~Syslogger();
+	/// Flushes all output to backend.
+	~Syslogger();
 
-    /// Returns true if logger is active and Stream exists.
-    operator bool() const;
+	/// Returns true if logger is active and Stream exists.
+	operator bool() const;
 
-    Syslogger& operator << (const char *str);
-    Syslogger& operator << (const Binary& SizeHolder);
-    template <class Data>  Syslogger& operator << (const Data& D) { if (m_stream) *m_stream << D; return *this;}
-    template <class Data>  Syslogger& operator << (const std::vector<Data>& D);
-    template <class Data>  Syslogger& operator << (const std::deque<Data>& D);
+	Syslogger& operator << (const char *str);
+	Syslogger& operator << (const Binary& SizeHolder);
+	template <class Data>  Syslogger& operator << (const Data& D) { if (m_stream) *m_stream << D; return *this;}
+	template <class Data>  Syslogger& operator << (const std::vector<Data>& D);
+	template <class Data>  Syslogger& operator << (const std::deque<Data>& D);
 
 private:
-    std::unique_ptr<std::ostringstream> m_stream;   //!< Stream used for buffer formatting
-    int m_logLevel;
+	std::unique_ptr<std::ostringstream> m_stream;   //!< Stream used for buffer formatting
+	int m_logLevel;
 
-    void flush();
+	void flush();
 
-    Syslogger(const Syslogger&) = delete;
-    void operator = (const Syslogger&) = delete;
-    // move operations doesn't look evil.
+	Syslogger(const Syslogger&) = delete;
+	void operator = (const Syslogger&) = delete;
+	// move operations doesn't look evil.
 };
 
 
 template <class Data>
 Syslogger& Syslogger::operator << (const std::vector<Data>& D)
 {
-    if (m_stream)
-    {
-        for (const auto & d : D)
-            *m_stream << d << ' ';
-    }
-    return *this;
+	if (m_stream)
+	{
+		for (const auto & d : D)
+			*m_stream << d << ' ';
+	}
+	return *this;
 }
 
 template <class Data>
 Syslogger& Syslogger::operator << (const std::deque<Data>& D)
 {
-    if (m_stream)
-    {
-        for (const auto & d : D)
-            *m_stream << d << ' ';
-    }
-    return *this;
+	if (m_stream)
+	{
+		for (const auto & d : D)
+			*m_stream << d << ' ';
+	}
+	return *this;
 }
 
 }

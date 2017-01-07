@@ -21,32 +21,6 @@
 #include <StringUtils.h>
 #include <algorithm>
 
-namespace {
-    // trailing slash included in path.
-    std::pair<std::string, std::string> extractPathAndName(const std::string & path)
-    {
-        size_t slash = path.find_last_of('/');
-        size_t backslash = path.find_last_of('\\');
-        if (slash != std::string::npos && backslash != std::string::npos && backslash > slash)
-            slash = backslash;
-
-        if (slash == std::string::npos)
-            return std::make_pair(std::string(), path);
-
-        return std::make_pair(path.substr(0, slash + 1), path.substr(slash + 1));
-    }
-
-    // dot included in extension.
-    std::pair<std::string, std::string> extractBaseAndExt(const std::string & fullname)
-    {
-        size_t dot = fullname.find_first_of('.');
-
-        if (dot == std::string::npos)
-            return std::make_pair(fullname, std::string());
-
-        return std::make_pair(fullname.substr(0, dot ), fullname.substr(dot));
-    }
-}
 namespace Wuild
 {
 
@@ -56,114 +30,114 @@ CompilerModule::CompilerModule()
 
 void CompilerModule::SetConfig(const ICompilerModule::Config &config)
 {
-    m_config = config;
+	m_config = config;
 }
 
 const ICompilerModule::Config &CompilerModule::GetConfig() const
 {
-    return m_config;
+	return m_config;
 }
 
 bool CompilerModule::SplitInvocation(const CompilerInvocation & original, CompilerInvocation &preprocessor, CompilerInvocation &compilation)
 {
-    CompileInfo compiler = CompileInfoById(original.m_id);
-    if (!compiler.m_parser)
-        return false;
-    CompilerInvocation origComplete = CompleteInvocation(original);
+	CompileInfo compiler = CompileInfoById(original.m_id);
+	if (!compiler.m_parser)
+		return false;
+	CompilerInvocation origComplete = CompleteInvocation(original);
 
-    if (origComplete.m_type != CompilerInvocation::InvokeType::Compile)
-        return false;
+	if (origComplete.m_type != CompilerInvocation::InvokeType::Compile)
+		return false;
 
-    compiler.m_parser->SetCompilerInvocation(origComplete);
-    compiler.m_parser->SetInvokeType(CompilerInvocation::InvokeType::Preprocess);
-    compiler.m_parser->RemovePDB();
-    preprocessor = compiler.m_parser->GetCompilerInvocation();
+	compiler.m_parser->SetCompilerInvocation(origComplete);
+	compiler.m_parser->SetInvokeType(CompilerInvocation::InvokeType::Preprocess);
+	compiler.m_parser->RemovePDB();
+	preprocessor = compiler.m_parser->GetCompilerInvocation();
 
-    compiler.m_parser->SetCompilerInvocation(origComplete);
-    compiler.m_parser->RemovePDB();
-    compiler.m_parser->RemovePrepocessorFlags();
-    compiler.m_parser->RemoveDependencyFiles();
-    compilation = compiler.m_parser->GetCompilerInvocation();
+	compiler.m_parser->SetCompilerInvocation(origComplete);
+	compiler.m_parser->RemovePDB();
+	compiler.m_parser->RemovePrepocessorFlags();
+	compiler.m_parser->RemoveDependencyFiles();
+	compilation = compiler.m_parser->GetCompilerInvocation();
 
-    const std::string srcFilename = origComplete.GetInput(); // we hope  .cpp is coming after -c flag. It's naive.
-    const std::string objFilename = origComplete.GetOutput();
-    std::string preprocessedFilename = objFilename;
-    bool outIsVar = preprocessedFilename[0] == '$'; // ninja hack...
-    if (!outIsVar)
-    {
-        preprocessedFilename = GetPreprocessedPath(srcFilename, objFilename);
-        preprocessor.SetOutput(preprocessedFilename);
-        compilation.SetInput(preprocessedFilename);
-    }
+	const std::string srcFilename = origComplete.GetInput(); // we hope  .cpp is coming after -c flag. It's naive.
+	const std::string objFilename = origComplete.GetOutput();
+	std::string preprocessedFilename = objFilename;
+	bool outIsVar = preprocessedFilename[0] == '$'; // ninja hack...
+	if (!outIsVar)
+	{
+		preprocessedFilename = GetPreprocessedPath(srcFilename, objFilename);
+		preprocessor.SetOutput(preprocessedFilename);
+		compilation.SetInput(preprocessedFilename);
+	}
 
-    if (!compiler.m_append.empty())
-        compilation.m_args.push_back(compiler.m_append);
+	if (!compiler.m_append.empty())
+		compilation.m_args.push_back(compiler.m_append);
 
-    return true;
+	return true;
 }
 
 CompilerInvocation CompilerModule::CompleteInvocation(const CompilerInvocation &original)
 {
-    CompilerInvocation inv;
-    inv.m_args.clear();
-    inv.m_ignoredArgs = original.m_ignoredArgs;
-    for (auto arg : original.m_args)
-    {
-        StringVector argSplit;
-        StringUtils::SplitString(StringUtils::Trim(arg), argSplit, ' ', false, true); //TODO: paths with spaces not supported!
-        inv.m_args.insert(inv.m_args.end(), argSplit.begin(), argSplit.end());
-    }
+	CompilerInvocation inv;
+	inv.m_args.clear();
+	inv.m_ignoredArgs = original.m_ignoredArgs;
+	for (auto arg : original.m_args)
+	{
+		StringVector argSplit;
+		StringUtils::SplitString(StringUtils::Trim(arg), argSplit, ' ', false, true); //TODO: paths with spaces not supported!
+		inv.m_args.insert(inv.m_args.end(), argSplit.begin(), argSplit.end());
+	}
 
-    CompileInfo info = CompileInfoById(original.m_id);
-    if (info.m_valid)
-    {
-        inv.m_id = info.m_id;
-        inv.m_type = original.m_type;        
-        inv = info.m_parser->ProcessCompilerInvocation(inv);
-    }
-    return inv;
+	CompileInfo info = CompileInfoById(original.m_id);
+	if (info.m_valid)
+	{
+		inv.m_id = info.m_id;
+		inv.m_type = original.m_type;
+		inv = info.m_parser->ProcessCompilerInvocation(inv);
+	}
+	return inv;
 }
 
 CompilerInvocation CompilerModule::FilterFlags(const CompilerInvocation &original)
 {
-    CompileInfo info = CompileInfoById(original.m_id);
-    if (info.m_valid)
-    {
-         CompilerInvocation flags = CompleteInvocation(original);
-         if (flags.m_type == CompilerInvocation::InvokeType::Preprocess)
-         {
-            info.m_parser->SetCompilerInvocation(flags);
-            info.m_parser->RemovePDB();
-            return info.m_parser->GetCompilerInvocation();
-         }
-         else if (flags.m_type == CompilerInvocation::InvokeType::Compile)
-         {
-            info.m_parser->SetCompilerInvocation(flags);
-            info.m_parser->RemovePrepocessorFlags();
-            info.m_parser->RemoveDependencyFiles();
-            info.m_parser->RemovePDB();
-            return info.m_parser->GetCompilerInvocation();
-         }
-    }
-    return original;
+	CompileInfo info = CompileInfoById(original.m_id);
+	if (info.m_valid)
+	{
+		 CompilerInvocation flags = CompleteInvocation(original);
+		 if (flags.m_type == CompilerInvocation::InvokeType::Preprocess)
+		 {
+			info.m_parser->SetCompilerInvocation(flags);
+			info.m_parser->RemovePDB();
+			return info.m_parser->GetCompilerInvocation();
+		 }
+		 else if (flags.m_type == CompilerInvocation::InvokeType::Compile)
+		 {
+			info.m_parser->SetCompilerInvocation(flags);
+			info.m_parser->RemovePrepocessorFlags();
+			info.m_parser->RemoveDependencyFiles();
+			info.m_parser->RemovePDB();
+			return info.m_parser->GetCompilerInvocation();
+		 }
+	}
+	return original;
 }
 
 std::string CompilerModule::GetPreprocessedPath(const std::string & sourcePath,
-                                                const std::string & objectPath) const
+												const std::string & objectPath) const
 {
-    FileInfo sourceInfo(sourcePath);
-    FileInfo objectInfo(objectPath);
+	FileInfo sourceInfo(sourcePath);
+	FileInfo objectInfo(objectPath);
 
-    const std::string preprocessed = objectInfo.GetDir(true) + "pp_" + objectInfo.GetNameWE() + sourceInfo.GetFullExtension();
-    return preprocessed;
+	const std::string preprocessed = objectInfo.GetDir(true) + "pp_" + objectInfo.GetNameWE() + sourceInfo.GetFullExtension();
+	return preprocessed;
 }
 
 CompilerModule::CompileInfo CompilerModule::CompileInfoById(const CompilerInvocation::Id &id) const
 {
-    if (id.m_compilerId.empty())
-        return CompileInfoByExecutable(id.m_compilerExecutable);
+	if (id.m_compilerId.empty())
+		return CompileInfoByExecutable(id.m_compilerExecutable);
 
-    return CompileInfoByCompilerId(id.m_compilerId);
+	return CompileInfoByCompilerId(id.m_compilerId);
 }
 
 CompilerModule::CompileInfo CompilerModule::CompileInfoByExecutable(const std::string &executable) const
@@ -173,41 +147,41 @@ CompilerModule::CompileInfo CompilerModule::CompileInfoByExecutable(const std::s
    std::replace(exec.begin(), exec.end(), '\\', '/');
 #endif
 
-    CompilerModule::CompileInfo info;
-    for (const Config::CompilerUnit & unit : m_config.m_modules)
-    {
-        if (std::find(unit.m_names.cbegin(), unit.m_names.cend(), exec) != unit.m_names.cend())
-        {
-            return CompileInfoByUnit(unit);
-        }
-    }
-    return info;
+	CompilerModule::CompileInfo info;
+	for (const Config::CompilerUnit & unit : m_config.m_modules)
+	{
+		if (std::find(unit.m_names.cbegin(), unit.m_names.cend(), exec) != unit.m_names.cend())
+		{
+			return CompileInfoByUnit(unit);
+		}
+	}
+	return info;
 }
 
 CompilerModule::CompileInfo CompilerModule::CompileInfoByCompilerId(const std::string &compilerId) const
 {
-    CompilerModule::CompileInfo info;
-    for (const Config::CompilerUnit & unit : m_config.m_modules)
-    {
-        if (unit.m_id == compilerId)
-            return CompileInfoByUnit(unit);
-    }
-    return info;
+	CompilerModule::CompileInfo info;
+	for (const Config::CompilerUnit & unit : m_config.m_modules)
+	{
+		if (unit.m_id == compilerId)
+			return CompileInfoByUnit(unit);
+	}
+	return info;
 }
 
 CompilerModule::CompileInfo CompilerModule::CompileInfoByUnit(const ICompilerModule::Config::CompilerUnit &unit) const
 {
-    CompileInfo info;
-    info.m_append = unit.m_appendOption;
-    info.m_id.m_compilerId = unit.m_id;
-    info.m_id.m_compilerExecutable = unit.m_names[0];
-    if (unit.m_type == Config::ToolchainType::GCC)
-        info.m_parser.reset(new GccCommandLineParser());
-    else if (unit.m_type == Config::ToolchainType::MSVC)
-        info.m_parser.reset(new MsvcCommandLineParser());
-    if (info.m_parser)
-        info.m_valid = true;
-    return info;
+	CompileInfo info;
+	info.m_append = unit.m_appendOption;
+	info.m_id.m_compilerId = unit.m_id;
+	info.m_id.m_compilerExecutable = unit.m_names[0];
+	if (unit.m_type == Config::ToolchainType::GCC)
+		info.m_parser.reset(new GccCommandLineParser());
+	else if (unit.m_type == Config::ToolchainType::MSVC)
+		info.m_parser.reset(new MsvcCommandLineParser());
+	if (info.m_parser)
+		info.m_valid = true;
+	return info;
 }
 
 

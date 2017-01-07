@@ -19,8 +19,8 @@ namespace Wuild
 class CompilerProxyServerConfig : public IConfig
 {
 public:
-    int m_listenPort = 0;
-    std::string m_toolId;
-    bool Validate(std::ostream * errStream = nullptr) const override;
+	int m_listenPort = 0;
+	std::string m_toolId;
+	bool Validate(std::ostream * errStream = nullptr) const override;
 };
 }

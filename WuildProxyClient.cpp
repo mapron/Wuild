@@ -18,20 +18,20 @@
 
 int main(int argc, char** argv)
 {
-    using namespace Wuild;
-    ConfiguredApplication app(argc, argv, "WuildProxyClient", "proxy");
+	using namespace Wuild;
+	ConfiguredApplication app(argc, argv, "WuildProxyClient", "proxy");
 
-    CompilerProxyClient::Config proxyConfig;
-    if (!app.GetCompilerProxyServerConfig(proxyConfig))
-        return 1;
+	CompilerProxyClient::Config proxyConfig;
+	if (!app.GetCompilerProxyServerConfig(proxyConfig))
+		return 1;
 
-    CompilerProxyClient proxyClient;
-    if (!proxyClient.SetConfig(proxyConfig))
-        return 1;
+	CompilerProxyClient proxyClient;
+	if (!proxyClient.SetConfig(proxyConfig))
+		return 1;
 
-    proxyClient.Start();
+	proxyClient.Start();
 
-    proxyClient.RunTask(StringUtils::StringVectorFromArgv(argc, argv));
+	proxyClient.RunTask(StringUtils::StringVectorFromArgv(argc, argv));
 
-    return ExecAppLoop();
+	return ExecAppLoop();
 }

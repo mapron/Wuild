@@ -19,33 +19,33 @@
 
 int main(int argc, char** argv)
 {
-    using namespace Wuild;
-    ConfiguredApplication app(argc, argv, "WuildProxyServer", "proxy");
+	using namespace Wuild;
+	ConfiguredApplication app(argc, argv, "WuildProxyServer", "proxy");
 
-    auto compilerModule = CheckedCreateCompilerModule(app);
-    if (!compilerModule)
-        return 1;
+	auto compilerModule = CheckedCreateCompilerModule(app);
+	if (!compilerModule)
+		return 1;
 
-    CompilerProxyServer::Config proxyConfig;
-    if (!app.GetCompilerProxyServerConfig(proxyConfig))
-        return 1;
+	CompilerProxyServer::Config proxyConfig;
+	if (!app.GetCompilerProxyServerConfig(proxyConfig))
+		return 1;
 
-    RemoteToolClient::Config config;
-    if (!app.GetRemoteToolClientConfig(config))
-        return 1;
+	RemoteToolClient::Config config;
+	if (!app.GetRemoteToolClientConfig(config))
+		return 1;
 
-    RemoteToolClient rcClient;
-    if (!rcClient.SetConfig(config))
-        return 1;
+	RemoteToolClient rcClient;
+	if (!rcClient.SetConfig(config))
+		return 1;
 
-    auto localExecutor = LocalExecutor::Create(compilerModule, app.m_tempDir);
+	auto localExecutor = LocalExecutor::Create(compilerModule, app.m_tempDir);
 
-    CompilerProxyServer proxyServer(localExecutor, rcClient);
-    if (!proxyServer.SetConfig(proxyConfig))
-        return 1;
+	CompilerProxyServer proxyServer(localExecutor, rcClient);
+	if (!proxyServer.SetConfig(proxyConfig))
+		return 1;
 
-    rcClient.Start();
-    proxyServer.Start();
+	rcClient.Start();
+	proxyServer.Start();
 
-    return ExecAppLoop();
+	return ExecAppLoop();
 }

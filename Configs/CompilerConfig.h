@@ -19,18 +19,18 @@ namespace Wuild
 class CompilerConfig : public IConfig
 {
 public:
-    enum class ToolchainType { GCC, MSVC };
-    struct CompilerUnit
-    {
-        std::string m_id;
-        std::string m_appendOption;
-        ToolchainType m_type = ToolchainType::GCC;
-        std::vector<std::string> m_names;
-    };
-    std::vector<CompilerUnit> m_modules;
-    StringVector m_toolIds;
-    std::string GetFirstToolId() const;
-    std::string GetFirstToolName() const;
-    bool Validate(std::ostream * errStream = nullptr) const override;
+	enum class ToolchainType { GCC, MSVC };
+	struct CompilerUnit
+	{
+		std::string m_id;
+		std::string m_appendOption;
+		ToolchainType m_type = ToolchainType::GCC;
+		std::vector<std::string> m_names;
+	};
+	std::vector<CompilerUnit> m_modules;
+	StringVector m_toolIds;
+	std::string GetFirstToolId() const;
+	std::string GetFirstToolName() const;
+	bool Validate(std::ostream * errStream = nullptr) const override;
 };
 }

@@ -28,29 +28,29 @@ namespace Wuild
 class ICompilerModule
 {
 public:
-    using Config = CompilerConfig;
-    using StringPair = std::pair<std::string, std::string>;
-    using Ptr = std::shared_ptr<ICompilerModule>;
+	using Config = CompilerConfig;
+	using StringPair = std::pair<std::string, std::string>;
+	using Ptr = std::shared_ptr<ICompilerModule>;
 
 public:
-    virtual ~ICompilerModule() = default;
+	virtual ~ICompilerModule() = default;
 
-    virtual void SetConfig(const Config & config)  = 0;
-    virtual const Config& GetConfig() const = 0;
+	virtual void SetConfig(const Config & config)  = 0;
+	virtual const Config& GetConfig() const = 0;
 
-    /// Split invocation on two steps. If succeeded, returns true.
-    virtual bool SplitInvocation(const CompilerInvocation & original,
-                                 CompilerInvocation & preprocessor,
-                                 CompilerInvocation & compilation) = 0;
+	/// Split invocation on two steps. If succeeded, returns true.
+	virtual bool SplitInvocation(const CompilerInvocation & original,
+								 CompilerInvocation & preprocessor,
+								 CompilerInvocation & compilation) = 0;
 
-    /// Normalizes invocation struct, making possible to replace input/output files. Substitute toolId if possible.
-    virtual CompilerInvocation CompleteInvocation(const CompilerInvocation & original) = 0;
+	/// Normalizes invocation struct, making possible to replace input/output files. Substitute toolId if possible.
+	virtual CompilerInvocation CompleteInvocation(const CompilerInvocation & original) = 0;
 
-    /// Remove preprocessor flags from splitted compilation phase; also remove extra preprocessor flags which not supported for distributed build.
-    virtual CompilerInvocation FilterFlags(const CompilerInvocation & original) = 0;
+	/// Remove preprocessor flags from splitted compilation phase; also remove extra preprocessor flags which not supported for distributed build.
+	virtual CompilerInvocation FilterFlags(const CompilerInvocation & original) = 0;
 
-    /// Get preprocessed filename path.
-    virtual std::string GetPreprocessedPath(const std::string & sourcePath, const std::string & objectPath) const = 0;
+	/// Get preprocessed filename path.
+	virtual std::string GetPreprocessedPath(const std::string & sourcePath, const std::string & objectPath) const = 0;
 
 };
 

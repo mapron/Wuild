@@ -28,47 +28,47 @@ namespace Wuild
 {
 class CompilerModuleStub : public ICompilerModule
 {
-    Config m_config;
+	Config m_config;
 public:
-    CompilerModuleStub(const Config& config) : m_config(config) {}
+	CompilerModuleStub(const Config& config) : m_config(config) {}
 
-    void SetConfig(const Config& config) override { m_config = config; }
-    const Config& GetConfig() const override { return m_config; }
+	void SetConfig(const Config& config) override { m_config = config; }
+	const Config& GetConfig() const override { return m_config; }
 
-    bool SplitInvocation(const CompilerInvocation & ,
-                 CompilerInvocation &,
-                 CompilerInvocation &) { return false;}
+	bool SplitInvocation(const CompilerInvocation & ,
+				 CompilerInvocation &,
+				 CompilerInvocation &) { return false;}
 
-    CompilerInvocation CompleteInvocation(const CompilerInvocation & original) { return original; }
+	CompilerInvocation CompleteInvocation(const CompilerInvocation & original) { return original; }
 
-    CompilerInvocation FilterFlags(const CompilerInvocation & original)  { return original; }
+	CompilerInvocation FilterFlags(const CompilerInvocation & original)  { return original; }
 
-    std::string GetPreprocessedPath(const std::string &, const std::string & objectPath) const override { return objectPath + ".pp";}
+	std::string GetPreprocessedPath(const std::string &, const std::string & objectPath) const override { return objectPath + ".pp";}
 
 };
 
 class TestConfiguration
 {
-    TestConfiguration() = delete;
-    ~TestConfiguration() = delete;
+	TestConfiguration() = delete;
+	~TestConfiguration() = delete;
 
 public:
 
-    static bool GetTestToolConfig(ICompilerModule::Config & settings)
-    {
-        settings.m_toolIds.push_back("testTool");
-        settings.m_modules.resize(1);
-        settings.m_modules[0].m_id = "testTool";
-        settings.m_modules[0].m_names = StringVector(1, "test");
-        return true;
-    }
-    static const std::string g_testProgram;
+	static bool GetTestToolConfig(ICompilerModule::Config & settings)
+	{
+		settings.m_toolIds.push_back("testTool");
+		settings.m_modules.resize(1);
+		settings.m_modules[0].m_id = "testTool";
+		settings.m_modules[0].m_names = StringVector(1, "test");
+		return true;
+	}
+	static const std::string g_testProgram;
 
-    static ICompilerModule::Ptr g_compilerModule;
+	static ICompilerModule::Ptr g_compilerModule;
 
-    static bool g_compilerModuleRequired;
+	static bool g_compilerModuleRequired;
 
-    static void ExitHandler (int code){ std::cout << (code == 0 ? "OK" : "FAIL") << std::endl; }
+	static void ExitHandler (int code){ std::cout << (code == 0 ? "OK" : "FAIL") << std::endl; }
 };
 
 StringVector CreateTestProgramInvocation();

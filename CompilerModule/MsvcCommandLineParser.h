@@ -20,14 +20,14 @@ namespace Wuild
 /// Parse command line arguments for cl.exe
 class MsvcCommandLineParser: public AbstractCommandLineParser
 {
-    int m_invokeTypeIndex = -1;
+	int m_invokeTypeIndex = -1;
 
 public:
-    void UpdateInfo() override;
+	void UpdateInfo() override;
 
-    void SetInvokeType(CompilerInvocation::InvokeType type) override;
+	void SetInvokeType(CompilerInvocation::InvokeType type) override;
 
-    void RemovePDB() override;
-    void RemovePrepocessorFlags() override;
+	void RemovePDB() override;
+	void RemovePrepocessorFlags() override;
 };
 }

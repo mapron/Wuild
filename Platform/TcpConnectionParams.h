@@ -22,24 +22,24 @@ struct TcpConnectionParamsPrivate;
 /// Contains information about host, port and timeouts.
 struct TcpConnectionParams
 {
-    TcpConnectionParams();
-    ~TcpConnectionParams();
+	TcpConnectionParams();
+	~TcpConnectionParams();
 
-    /// Returns true if host resolved correctly.
-    bool SetPoint(int port, std::string host = std::string());
+	/// Returns true if host resolved correctly.
+	bool SetPoint(int port, std::string host = std::string());
 
-    /// Outputs host:port as string.
-    std::string GetShortInfo() const;
+	/// Outputs host:port as string.
+	std::string GetShortInfo() const;
 
-    TimePoint m_readTimeout = 0.0;                        //!< Scoket read timeout
-    TimePoint m_connectTimeout = 1.0;                     //!< Connection timeout
-    bool      m_skipFailedConnection = true;              //!< Do not retry recreate listener on fail.
-    size_t    m_recommendedRecieveBufferSize = 4 * 1024;  //!< Buffer size is recommended for socket. If socket has lower size, buffer will be optionally increased (bu not ought to)
+	TimePoint m_readTimeout = 0.0;                        //!< Scoket read timeout
+	TimePoint m_connectTimeout = 1.0;                     //!< Connection timeout
+	bool      m_skipFailedConnection = true;              //!< Do not retry recreate listener on fail.
+	size_t    m_recommendedRecieveBufferSize = 4 * 1024;  //!< Buffer size is recommended for socket. If socket has lower size, buffer will be optionally increased (bu not ought to)
 
-    std::shared_ptr<TcpConnectionParamsPrivate> m_impl; //!< making possible to copy params.
+	std::shared_ptr<TcpConnectionParamsPrivate> m_impl; //!< making possible to copy params.
 
 private:
-    int m_port = 0;
-    std::string m_host;
+	int m_port = 0;
+	std::string m_host;
 };
 }

@@ -37,152 +37,152 @@ std::atomic_int Application::m_exitCode(0);
 
 void Application::SignalHandler(int Signal)
 {
-    std::string signalName;
-    switch (Signal)
-    {
-        case SIGTERM:
-            signalName = "SIGTERM";
-            break;
+	std::string signalName;
+	switch (Signal)
+	{
+		case SIGTERM:
+			signalName = "SIGTERM";
+			break;
 
-        case SIGINT:            
-            signalName = "SIGINT";
-            break;
-    }   
-    Syslogger(LOG_WARNING) << "recieved " << signalName << ".";
-    Application::Interrupt();
+		case SIGINT:
+			signalName = "SIGINT";
+			break;
+	}
+	Syslogger(LOG_WARNING) << "recieved " << signalName << ".";
+	Application::Interrupt();
 }
 
 Application::Application()
 {
 #ifdef _WIN32
-    char buf[MAX_PATH + 1];
-    int size = GetTempPathA(MAX_PATH, buf);
-    m_tmpDir = std::string(buf, size-1);
+	char buf[MAX_PATH + 1];
+	int size = GetTempPathA(MAX_PATH, buf);
+	m_tmpDir = std::string(buf, size-1);
 #elif defined(__APPLE__)
-    m_tmpDir = getenv("TMPDIR");
+	m_tmpDir = getenv("TMPDIR");
 #else
-    m_tmpDir = "/tmp";
+	m_tmpDir = "/tmp";
 #endif
 
-    char *envPath;
-    char *envDrive;
-    if (envPath = getenv("USERPROFILE")) {
-        m_homeDir = envPath;
-    }
-    else if ((envDrive = getenv("HOMEDRIVE")) && (envPath = getenv("HOMEPATH")) ) {
-        m_homeDir= std::string(envDrive) + envPath;
+	char *envPath;
+	char *envDrive;
+	if (envPath = getenv("USERPROFILE")) {
+		m_homeDir = envPath;
+	}
+	else if ((envDrive = getenv("HOMEDRIVE")) && (envPath = getenv("HOMEPATH")) ) {
+		m_homeDir= std::string(envDrive) + envPath;
 
-    }
-    if (envPath = getenv("HOME")) {
-        m_homeDir = envPath;
-    }
+	}
+	if (envPath = getenv("HOME")) {
+		m_homeDir = envPath;
+	}
 
-    m_organization = g_defaultOrganization;
-    m_appName = g_defaultAppname;
+	m_organization = g_defaultOrganization;
+	m_appName = g_defaultAppname;
 }
 
 Application & Application::Instance()
 {
-    static Application instance;
-    return instance;
+	static Application instance;
+	return instance;
 }
 
 void Application::Interrupt(int exitCode)
 {
-    m_exitCode = exitCode;
-    s_applicationInterruption = true;
-    TcpSocket::s_applicationInterruption = true;
+	m_exitCode = exitCode;
+	s_applicationInterruption = true;
+	TcpSocket::s_applicationInterruption = true;
 }
 
 int Application::GetExitCode()
 {
-    return m_exitCode;
+	return m_exitCode;
 }
 
 std::string Application::GetExecutablePath ()
 {
-    #ifndef _WIN32
-    int len;
-    char path[1024];
-    char* slash;
+	#ifndef _WIN32
+	int len;
+	char path[1024];
+	char* slash;
 
-    // Read symbolic link /proc/self/exe
+	// Read symbolic link /proc/self/exe
 
-    len = readlink("/proc/self/exe", path, sizeof(path));
-    if(len == -1)
-        return std::string("./");
+	len = readlink("/proc/self/exe", path, sizeof(path));
+	if(len == -1)
+		return std::string("./");
 
-    path[len] = '\0';
+	path[len] = '\0';
 
-    // Get the directory in the path by stripping exe name
+	// Get the directory in the path by stripping exe name
 
-    slash = strrchr(path, '/');
-    if(! slash || slash == path)
-        return std::string("./");
+	slash = strrchr(path, '/');
+	if(! slash || slash == path)
+		return std::string("./");
 
-    *slash = '\0';    // trip slash and exe name
+	*slash = '\0';    // trip slash and exe name
 
-    return std::string(path) + "/";
-    #else
+	return std::string(path) + "/";
+	#else
 
-    WCHAR szFileName[MAX_PATH];
+	WCHAR szFileName[MAX_PATH];
 
-    GetModuleFileNameW( nullptr, szFileName, MAX_PATH );
-    std::wstring w (szFileName);
-    std::string s1(w.begin(), w.end() );
-    int pos = 0;
-    for (size_t i=s1.size()-1;i>0; i--) {
-       if (s1[i] == '\\') {
-          pos = i; break;
-       }
-    }
+	GetModuleFileNameW( nullptr, szFileName, MAX_PATH );
+	std::wstring w (szFileName);
+	std::string s1(w.begin(), w.end() );
+	int pos = 0;
+	for (size_t i=s1.size()-1;i>0; i--) {
+	   if (s1[i] == '\\') {
+		  pos = i; break;
+	   }
+	}
 
-    return std::string(s1.begin(), s1.begin() + pos + 1);
+	return std::string(s1.begin(), s1.begin() + pos + 1);
 
 #endif
 }
 
 std::string Application::GetTempDir(bool autoCreate) const
 {
-    std::string dirNameBase= m_tmpDir + "/" + m_organization;
-    if (autoCreate)
-        FileInfo(dirNameBase).Mkdirs();
+	std::string dirNameBase= m_tmpDir + "/" + m_organization;
+	if (autoCreate)
+		FileInfo(dirNameBase).Mkdirs();
 
-    const std::string dirName = dirNameBase + "/" + m_appName + "/";
-    if (autoCreate)
-        FileInfo(dirName).Mkdirs();
-    return dirName;
+	const std::string dirName = dirNameBase + "/" + m_appName + "/";
+	if (autoCreate)
+		FileInfo(dirName).Mkdirs();
+	return dirName;
 }
 
 std::string Application::GetAppDataDir(bool autoCreate)
 {
 #ifndef _WIN32
-    const std::string appDataRoot = GetHomeDir();
+	const std::string appDataRoot = GetHomeDir();
 #else
-    const std::string appDataRoot = getenv("LOCALAPPDATA");
+	const std::string appDataRoot = getenv("LOCALAPPDATA");
 #endif
-    const std::string dirName = appDataRoot + "/." + m_organization + "/";
-    if (autoCreate)
-        FileInfo(dirName).Mkdirs();
-    return dirName;
+	const std::string dirName = appDataRoot + "/." + m_organization + "/";
+	if (autoCreate)
+		FileInfo(dirName).Mkdirs();
+	return dirName;
 }
 
 void Application::SetSignalHandlers()
 {
-    signal(SIGTERM, SignalHandler);
-    signal(SIGINT, SignalHandler);
+	signal(SIGTERM, SignalHandler);
+	signal(SIGINT, SignalHandler);
 }
 
 void Application::WaitForTermination(int terminateAfterMS, int usleepTimeout)
 {
-    TimePoint start(true);
-    while (!s_applicationInterruption)
-    {
-        if (terminateAfterMS != -1 && start.GetElapsedTime().GetUS() > terminateAfterMS * 1000)
-            s_applicationInterruption = true;
+	TimePoint start(true);
+	while (!s_applicationInterruption)
+	{
+		if (terminateAfterMS != -1 && start.GetElapsedTime().GetUS() > terminateAfterMS * 1000)
+			s_applicationInterruption = true;
 
-        usleep(usleepTimeout);
-    }
+		usleep(usleepTimeout);
+	}
 }
 
 }

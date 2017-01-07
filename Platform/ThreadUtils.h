@@ -31,36 +31,36 @@ namespace Wuild
 template <class T>
 class ThreadSafeQueue
 {
-    mutable std::mutex m_mutex;
-    std::queue<T> m_impl;
+	mutable std::mutex m_mutex;
+	std::queue<T> m_impl;
 public:
-    size_t size() const
-    {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        return m_impl.size();
-    }
-    bool empty() const
-    {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        return m_impl.empty();
-    }
+	size_t size() const
+	{
+		std::lock_guard<std::mutex> lock(m_mutex);
+		return m_impl.size();
+	}
+	bool empty() const
+	{
+		std::lock_guard<std::mutex> lock(m_mutex);
+		return m_impl.empty();
+	}
 
-    void push(const T& val)
-    {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        m_impl.push(val);
-    }
-    bool pop(T& val)
-    {
-        std::lock_guard<std::mutex> lock(m_mutex);
+	void push(const T& val)
+	{
+		std::lock_guard<std::mutex> lock(m_mutex);
+		m_impl.push(val);
+	}
+	bool pop(T& val)
+	{
+		std::lock_guard<std::mutex> lock(m_mutex);
 
-        if (m_impl.size()) {
-            val = m_impl.front();
-            m_impl.pop();
-            return true;
-        }
-        return false;
-    }
+		if (m_impl.size()) {
+			val = m_impl.front();
+			m_impl.pop();
+			return true;
+		}
+		return false;
+	}
 };
 
 }

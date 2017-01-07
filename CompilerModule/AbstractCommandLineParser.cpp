@@ -20,20 +20,20 @@ namespace Wuild
 
 bool AbstractCommandLineParser::IsIgnored(const std::string &arg) const
 {
-    return std::find(m_invocation.m_ignoredArgs.cbegin(), m_invocation.m_ignoredArgs.cend(), arg) != m_invocation.m_ignoredArgs.cend();
+	return std::find(m_invocation.m_ignoredArgs.cbegin(), m_invocation.m_ignoredArgs.cend(), arg) != m_invocation.m_ignoredArgs.cend();
 }
 
 CompilerInvocation AbstractCommandLineParser::GetCompilerInvocation() const
 {
-    return m_invocation;
+	return m_invocation;
 }
 
 void AbstractCommandLineParser::SetCompilerInvocation(const CompilerInvocation &invocation)
 {
-    m_invocation = invocation;
-    UpdateInfo();
-    if (invocation.m_type != CompilerInvocation::InvokeType::Unknown)
-        m_invocation.m_type = invocation.m_type;
+	m_invocation = invocation;
+	UpdateInfo();
+	if (invocation.m_type != CompilerInvocation::InvokeType::Unknown)
+		m_invocation.m_type = invocation.m_type;
 }
 
 }
