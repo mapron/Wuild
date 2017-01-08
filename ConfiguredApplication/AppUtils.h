@@ -15,7 +15,7 @@
 #include "ConfiguredApplication.h"
 
 #include <Application.h>
-#include <CompilerModule.h>
+#include <InvocationRewriter.h>
 
 #include <functional>
 

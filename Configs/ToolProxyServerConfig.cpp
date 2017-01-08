@@ -11,7 +11,7 @@
  * limitations under the License.h
  */
 
-#include "CompilerProxyServerConfig.h"
+#include "ToolProxyServerConfig.h"
 
 #include <iostream>
 

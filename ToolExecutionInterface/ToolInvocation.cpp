@@ -11,7 +11,7 @@
  * limitations under the License.h
  */
 
-#include "CompilerInvocation.h"
+#include "ToolInvocation.h"
 
 #include <StringUtils.h>
 

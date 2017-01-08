@@ -16,7 +16,7 @@
 #include <AppUtils.h>
 #include <ConfiguredApplication.h>
 #include <Application.h>
-#include <CompilerModule.h>
+#include <InvocationRewriter.h>
 #include <Syslogger.h>
 
 #include <iostream>

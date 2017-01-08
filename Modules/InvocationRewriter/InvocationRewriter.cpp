@@ -11,7 +11,7 @@
  * limitations under the License.h
  */
 
-#include "CompilerModule.h"
+#include "InvocationRewriter.h"
 
 #include "GccCommandLineParser.h"
 #include "MsvcCommandLineParser.h"

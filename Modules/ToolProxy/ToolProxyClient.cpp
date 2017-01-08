@@ -11,9 +11,9 @@
  * limitations under the License.h
  */
 
-#include "CompilerProxyClient.h"
+#include "ToolProxyClient.h"
 
-#include "CompilerProxyFrames.h"
+#include "ToolProxyFrames.h"
 
 #include <Syslogger.h>
 #include <SocketFrameHandler.h>

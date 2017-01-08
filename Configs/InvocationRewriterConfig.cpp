@@ -11,7 +11,7 @@
  * limitations under the License.h
  */
 
-#include "CompilerConfig.h"
+#include "InvocationRewriterConfig.h"
 
 #include <iostream>
 

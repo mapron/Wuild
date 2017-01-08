@@ -13,7 +13,7 @@
 
 #include "AppUtils.h"
 
-#include <CompilerProxyServer.h>
+#include <ToolProxyServer.h>
 #include <RemoteToolClient.h>
 #include <LocalExecutor.h>
 

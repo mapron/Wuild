@@ -12,22 +12,23 @@
  */
 
 #pragma once
-#include "SocketFrameHandler.h"
-
-#include <CompilerInvocation.h>
+#include <SocketFrameHandler.h>
+#include <ToolInvocation.h>
 #include <TimePoint.h>
 #include <CommonTypes.h>
 
+/// Declaration of channel structures for RemoteToolServer and RemoteToolClient
 namespace Wuild
 {
 
-class ToolProxyRequest : public SocketFrameExt
+class RemoteToolRequest : public SocketFrameExt
 {
 public:
 	static const uint8_t s_frameTypeId = s_minimalUserFrameId + 1;
-	using Ptr = std::shared_ptr<ToolProxyRequest>;
+	using Ptr = std::shared_ptr<RemoteToolRequest>;
 
 	ToolInvocation m_invocation;
+	ByteArrayHolder    m_fileData;
 
 	uint8_t             FrameTypeId() const override { return s_frameTypeId;}
 
@@ -37,14 +38,16 @@ public:
 
 };
 
-class ToolProxyResponse : public SocketFrameExt
+class RemoteToolResponse : public SocketFrameExt
 {
 public:
 	static const uint8_t s_frameTypeId = s_minimalUserFrameId + 2;
-	using Ptr = std::shared_ptr<ToolProxyResponse>;
+	using Ptr = std::shared_ptr<RemoteToolResponse>;
 
-	bool    m_result = true;
-	std::string m_stdOut;
+	bool             m_result = true;
+	ByteArrayHolder  m_fileData;
+	std::string      m_stdOut;
+	TimePoint        m_executionTime;
 
 	void                LogTo(std::ostream& os) const override;
 	uint8_t             FrameTypeId() const override { return s_frameTypeId;}

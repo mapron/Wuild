@@ -13,11 +13,11 @@
 
 #pragma once
 
-#include "CompilerInvocation.h"
+#include "ToolInvocation.h"
 
 #include <CommonTypes.h>
 #include <StringUtils.h>
-#include <CompilerConfig.h>
+#include <InvocationRewriterConfig.h>
 
 #include <sstream>
 namespace Wuild

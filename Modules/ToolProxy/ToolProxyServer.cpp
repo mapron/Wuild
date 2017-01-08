@@ -11,9 +11,9 @@
  * limitations under the License.h
  */
 
-#include "CompilerProxyServer.h"
+#include "ToolProxyServer.h"
 
-#include "SocketFrameService.h"
+#include <SocketFrameService.h>
 
 namespace Wuild
 {

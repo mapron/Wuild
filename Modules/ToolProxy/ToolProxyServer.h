@@ -13,9 +13,9 @@
 
 #pragma once
 
-#include "CompilerProxyFrames.h"
+#include "ToolProxyFrames.h"
 
-#include <CompilerProxyServerConfig.h>
+#include <ToolProxyServerConfig.h>
 #include <RemoteToolClient.h>
 #include <ILocalExecutor.h>
 

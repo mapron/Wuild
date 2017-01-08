@@ -19,7 +19,7 @@
 #include <TimePoint.h>
 #include <CommonTypes.h>
 #include <RemoteToolClientConfig.h>
-#include <CompilerInvocation.h>
+#include <ToolInvocation.h>
 
 #include <functional>
 #include <atomic>

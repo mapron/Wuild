@@ -11,7 +11,7 @@
  * limitations under the License.h
  */
 
-#include "CompilerProxyFrames.h"
+#include "ToolProxyFrames.h"
 
 #include <ByteOrderStream.h>
 

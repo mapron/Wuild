@@ -13,7 +13,7 @@
 
 #pragma once
 
-#include "ICompilerModule.h"
+#include "IInvocationRewriter.h"
 #include "ICommandLineParser.h"
 
 namespace Wuild

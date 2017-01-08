@@ -13,7 +13,7 @@
 
 #pragma once
 
-#include "CompilerInvocation.h"
+#include "ToolInvocation.h"
 
 #include <TimePoint.h>
 #include <CommonTypes.h>

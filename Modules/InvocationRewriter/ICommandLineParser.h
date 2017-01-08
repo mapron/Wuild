@@ -13,37 +13,34 @@
 
 #pragma once
 
-#include "CoordinatorTypes.h"
+#include "ToolInvocation.h"
 
-#include <ThreadLoop.h>
-#include <CompilerProxyServerConfig.h>
-
-#include <functional>
-#include <atomic>
-#include <mutex>
+#include <CommonTypes.h>
 
 namespace Wuild
 {
-class SocketFrameHandler;
-/// TODO:
-class ToolProxyClient
+/// Abstract command line parser for tool invocation
+class ICommandLineParser
 {
 public:
-	using Config = ToolProxyServerConfig;
+	using Ptr = std::shared_ptr<ICommandLineParser>;
 
 public:
-	ToolProxyClient();
-	~ToolProxyClient();
+	virtual ~ICommandLineParser() = default;
 
-	bool SetConfig(const Config & config);
+	virtual ToolInvocation GetToolInvocation() const = 0;
+	virtual void SetToolInvocation(const ToolInvocation & invocation) = 0;
 
-	void Start();
+	ToolInvocation ProcessToolInvocation(const ToolInvocation & invocation)
+	{
+		SetToolInvocation(invocation);
+		return GetToolInvocation();
+	}
 
-	void RunTask(const StringVector & args);
+	virtual void SetInvokeType(ToolInvocation::InvokeType type) = 0;
 
-protected:
-	std::unique_ptr<SocketFrameHandler> m_client;
-	Config m_config;
+	virtual void RemovePDB() = 0;
+	virtual void RemoveDependencyFiles() = 0;
+	virtual void RemovePrepocessorFlags() = 0;
 };
-
 }

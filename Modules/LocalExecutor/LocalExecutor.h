@@ -13,7 +13,7 @@
 
 #pragma once
 #include <ILocalExecutor.h>
-#include <ICompilerModule.h>
+#include <IInvocationRewriter.h>
 #include <ThreadLoop.h>
 
 #include <queue>

@@ -16,7 +16,7 @@
 #include <ConfiguredApplication.h>
 
 #include <RemoteToolClient.h>
-#include <CompilerModule.h>
+#include <InvocationRewriter.h>
 #include <ThreadUtils.h>
 #include <Syslogger.h>
 

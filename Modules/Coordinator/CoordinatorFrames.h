@@ -12,8 +12,9 @@
  */
 
 #pragma once
-#include "SocketFrameHandler.h"
 #include "CoordinatorTypes.h"
+
+#include <SocketFrameHandler.h>
 
 /// Definition of coordinator service structures
 namespace Wuild

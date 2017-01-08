@@ -15,13 +15,13 @@
 
 #include <CommonTypes.h>
 #include <Syslogger.h>
-#include <CompilerConfig.h>
+#include <InvocationRewriterConfig.h>
 #include <LoggerConfig.h>
 #include <RemoteToolClientConfig.h>
 #include <RemoteToolServerConfig.h>
 #include <CoordinatorServerConfig.h>
 #include <CoordinatorClientConfig.h>
-#include <CompilerProxyServerConfig.h>
+#include <ToolProxyServerConfig.h>
 
 #include <algorithm>
 

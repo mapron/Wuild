@@ -13,7 +13,7 @@
 
 #include "AppUtils.h"
 
-#include <CompilerProxyClient.h>
+#include <ToolProxyClient.h>
 #include <StringUtils.h>
 
 int main(int argc, char** argv)

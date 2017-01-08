@@ -37,12 +37,12 @@ endif()
 
 function(AddTarget)
 	set(options APP)
-	set(oneValueArgs NAME ROOT)
+	set(oneValueArgs NAME ROOT SUBDIR)
 	set(multiValueArgs CSRC INCLUDES DEPS EXCLUDE OPTIONS)
 	cmake_parse_arguments(AddTarget "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )
 	set(_sources)
 	if (NOT AddTarget_ROOT)
-		set(AddTarget_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/${AddTarget_NAME})
+		set(AddTarget_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/${AddTarget_SUBDIR}${AddTarget_NAME})
 	endif()
 	foreach (csrc ${AddTarget_CSRC})
 		file(GLOB src ${AddTarget_ROOT}/${csrc})
@@ -135,20 +135,27 @@ AddTarget(NAME Platform CSRC *.cpp *.h
 AddTarget(NAME Configs CSRC *.cpp *.h
 	DEPS Platform)
 
-AddTarget(NAME CompilerInterface CSRC *.cpp *.h
+AddTarget(NAME ToolExecutionInterface CSRC *.cpp *.h
 	DEPS Configs Platform)
 
-AddTarget(NAME Networking CSRC *.cpp *.h
-	DEPS Configs Platform CompilerInterface
+AddTarget(NAME Coordinator SUBDIR Modules/ CSRC *.cpp *.h
+	DEPS Configs Platform ToolExecutionInterface
 	)
 
-AddTarget(NAME CompilerModule CSRC *.cpp *.h
-	DEPS Configs Platform CompilerInterface
+AddTarget(NAME RemoteTool SUBDIR Modules/ CSRC *.cpp *.h
+	DEPS Configs Platform ToolExecutionInterface Coordinator
 	)
 
-AddTarget(NAME LocalExecutor  CSRC *.cpp *.h
-	DEPS
-		ninja_subprocess Configs Platform Networking CompilerModule CompilerInterface
+AddTarget(NAME ToolProxy SUBDIR Modules/ CSRC *.cpp *.h
+	DEPS Configs Platform ToolExecutionInterface RemoteTool Coordinator
+	)
+
+AddTarget(NAME InvocationRewriter SUBDIR Modules/ CSRC *.cpp *.h
+	DEPS Configs Platform ToolExecutionInterface
+	)
+
+AddTarget(NAME LocalExecutor SUBDIR Modules/  CSRC *.cpp *.h
+	DEPS ninja_subprocess Configs Platform Networking InvocationRewriter ToolExecutionInterface
 	)
 
 AddTarget(NAME ConfiguredApplication CSRC *.cpp *.h
@@ -157,7 +164,7 @@ AddTarget(NAME ConfiguredApplication CSRC *.cpp *.h
 
 
 set(main_deps
-	ConfiguredApplication Configs LocalExecutor CompilerModule CompilerInterface Networking Platform ninja_subprocess ninja_lib
+	ConfiguredApplication Configs LocalExecutor InvocationRewriter ToolExecutionInterface ToolProxy RemoteTool Coordinator Platform ninja_subprocess ninja_lib
 	)
 
 set(sys_deps)
