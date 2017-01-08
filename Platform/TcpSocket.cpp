@@ -213,8 +213,8 @@ bool TcpSocket::Read(ByteArrayHolder & buffer)
 	  {
 #ifdef _WIN32
 		  const auto err = GetLastError();
-		  if (err == WSAEWOULDBLOCK)
-			  break;
+		 // if (err == WSAEWOULDBLOCK)
+		//	  break;
 #else
 		  const auto err = errno ;
 		  if (err == EAGAIN)

@@ -43,9 +43,9 @@ bool SameDrive(StringPiece a, StringPiece b)  {
 string IncludesNormalize::Join(const vector<string>& list, char sep) {
   string ret;
   for (size_t i = 0; i < list.size(); ++i) {
-    ret += list[i];
-    if (i != list.size() - 1)
-      ret += sep;
+	ret += list[i];
+	if (i != list.size() - 1)
+	  ret += sep;
   }
   return ret;
 }
@@ -55,7 +55,7 @@ vector<string> IncludesNormalize::Split(const string& input, char sep) {
   stringstream ss(input);
   string item;
   while (getline(ss, item, sep))
-    elems.push_back(item);
+	elems.push_back(item);
   return elems;
 }
 
@@ -69,8 +69,8 @@ string IncludesNormalize::AbsPath(StringPiece s) {
   char result[_MAX_PATH];
   GetFullPathName(s.AsString().c_str(), sizeof(result), result, NULL);
   for (char* c = result; *c; ++c)
-    if (*c == '\\')
-      *c = '/';
+	if (*c == '\\')
+	  *c = '/';
   return result;
 }
 
@@ -79,43 +79,38 @@ string IncludesNormalize::Relativize(StringPiece path, const string& start) {
   vector<string> path_list = Split(AbsPath(path), '/');
   int i;
   for (i = 0; i < static_cast<int>(min(start_list.size(), path_list.size()));
-       ++i) {
-    if (ToLower(start_list[i]) != ToLower(path_list[i]))
-      break;
+	   ++i) {
+	if (ToLower(start_list[i]) != ToLower(path_list[i]))
+	  break;
   }
 
   vector<string> rel_list;
   for (int j = 0; j < static_cast<int>(start_list.size() - i); ++j)
-    rel_list.push_back("..");
+	rel_list.push_back("..");
   for (int j = i; j < static_cast<int>(path_list.size()); ++j)
-    rel_list.push_back(path_list[j]);
+	rel_list.push_back(path_list[j]);
   if (rel_list.size() == 0)
-    return ".";
+	return ".";
   return Join(rel_list, '/');
 }
 
 bool IncludesNormalize::Normalize(const string& input, const char* relative_to,
-                                  string* result, string* err) {
-  char copy[_MAX_PATH + 1];
-  size_t len = input.size();
-  if (len > _MAX_PATH) {
-    *err = "path too long";
-    return false;
-  }
-  strncpy(copy, input.c_str(), input.size() + 1);
+								  string* result, string* err) {
+
+  string copy = input;
   unsigned int slash_bits;
-  if (!CanonicalizePath(copy, &len, &slash_bits, err))
-    return false;
-  StringPiece partially_fixed(copy, len);
+  if (!CanonicalizePath(&copy, &slash_bits, err))
+	return false;
+  StringPiece partially_fixed(copy.c_str(), copy.size());
 
   string curdir;
   if (!relative_to) {
-    curdir = AbsPath(".");
-    relative_to = curdir.c_str();
+	curdir = AbsPath(".");
+	relative_to = curdir.c_str();
   }
   if (!SameDrive(partially_fixed, relative_to)) {
-    *result = partially_fixed.AsString();
-    return true;
+	*result = partially_fixed.AsString();
+	return true;
   }
   *result = Relativize(partially_fixed, relative_to);
   return true;

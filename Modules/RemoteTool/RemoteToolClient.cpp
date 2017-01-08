@@ -116,7 +116,7 @@ public:
 			}
 		}
 		if (handler)
-		{			
+		{
 			handler->QueueFrame(task.m_request, task.m_callback);
 			m_requests.pop_front();
 		}
@@ -251,9 +251,11 @@ void RemoteToolClient::InvokeTool(const ToolInvocation & invocation, InvokeCallb
 	TimePoint start(true);
 	const std::string inputFilename  = invocation.GetInput();
 	const std::string outputFilename = invocation.GetOutput();
-	auto frameCallback = [this, callback, start, outputFilename](SocketFrame::Ptr responseFrame, SocketFrameHandler::TReplyState state)
+	auto taskIndex = m_taskIndex++;
+	auto frameCallback = [this, callback, start, outputFilename, taskIndex](SocketFrame::Ptr responseFrame, SocketFrameHandler::TReplyState state)
 	{
 		m_queuedTasks--;
+		Syslogger(LOG_INFO) << "RECIEVING [" << taskIndex << "]:" << outputFilename << ", m_queuedTasks=" << m_queuedTasks;
 		TaskExecutionInfo info;
 		if (state == SocketFrameHandler::rsTimeout)
 		{
@@ -306,7 +308,7 @@ void RemoteToolClient::InvokeTool(const ToolInvocation & invocation, InvokeCallb
 	{
 		std::lock_guard<std::mutex> lock(m_sessionInfoMutex);
 		m_sessionInfo.m_currentUsedThreads ++;
-		Syslogger(LOG_INFO) << "QueueFrame -> " << SocketFrame::Ptr(wrap.m_request) << " usedThreads: " << m_sessionInfo.m_currentUsedThreads;
+		Syslogger(LOG_INFO) << "QueueFrame [" << taskIndex << "] -> " << SocketFrame::Ptr(wrap.m_request) << " usedThreads: " << m_sessionInfo.m_currentUsedThreads;
 	}
 	m_queuedTasks++;
 	m_impl->QueueTask(wrap);

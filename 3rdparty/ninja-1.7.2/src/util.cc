@@ -54,6 +54,18 @@
 #include "edit_distance.h"
 #include "metrics.h"
 
+#ifdef HAS_BOOST
+#include <boost/filesystem.hpp>
+namespace fs = boost::filesystem;
+#define u8string string
+#define CODE_ARG(arg)
+#else
+#include <experimental/filesystem>
+namespace fs = std::experimental::filesystem;
+#define CODE_ARG(arg) , arg
+#endif
+
+
 void Fatal(const char* msg, ...) {
   va_list ap;
   fprintf(stderr, "ninja: fatal: ");
@@ -93,151 +105,27 @@ void Error(const char* msg, ...) {
 bool CanonicalizePath(string* path, unsigned int* slash_bits, string* err) {
   METRIC_RECORD("canonicalize str");
   size_t len = path->size();
-  char* str = 0;
-  if (len > 0)
-    str = &(*path)[0];
-  if (!CanonicalizePath(str, &len, slash_bits, err))
-    return false;
-  path->resize(len);
+  if (!len)
+  {
+	  *err = "empty path";
+	  return false;
+  }
+  slash_bits = 0;
+  std::error_code errc;
+  *path = fs::canonical(fs::path(*path) CODE_ARG(errc)).u8string();
   return true;
 }
-
-#ifdef _WIN32
-static unsigned int ShiftOverBit(int offset, unsigned int bits) {
-  // e.g. for |offset| == 2:
-  // | ... 9 8 7 6 5 4 3 2 1 0 |
-  // \_________________/   \_/
-  //        above         below
-  // So we drop the bit at offset and move above "down" into its place.
-  unsigned int above = bits & ~((1 << (offset + 1)) - 1);
-  unsigned int below = bits & ((1 << offset) - 1);
-  return (above >> 1) | below;
+bool CanonicalizePath(char *path, size_t *len, unsigned int *slash_bits, string *err)
+{
+	string copy(path, *len);
+	bool ret = CanonicalizePath(&copy, slash_bits, err);
+	if (ret)
+	{
+		strcpy(path, copy.c_str());
+	}
+	return ret;
 }
-#endif
 
-bool CanonicalizePath(char* path, size_t* len, unsigned int* slash_bits,
-                      string* err) {
-  // WARNING: this function is performance-critical; please benchmark
-  // any changes you make to it.
-  METRIC_RECORD("canonicalize path");
-  if (*len == 0) {
-    *err = "empty path";
-    return false;
-  }
-
-  const int kMaxPathComponents = 30;
-  char* components[kMaxPathComponents];
-  int component_count = 0;
-
-  char* start = path;
-  char* dst = start;
-  const char* src = start;
-  const char* end = start + *len;
-
-#ifdef _WIN32
-  unsigned int bits = 0;
-  unsigned int bits_mask = 1;
-  int bits_offset = 0;
-  // Convert \ to /, setting a bit in |bits| for each \ encountered.
-  for (char* c = path; c < end; ++c) {
-    switch (*c) {
-      case '\\':
-        bits |= bits_mask;
-        *c = '/';
-        // Intentional fallthrough.
-      case '/':
-        bits_mask <<= 1;
-        bits_offset++;
-    }
-  }
-  if (bits_offset > 32) {
-    *err = "too many path components";
-    return false;
-  }
-  bits_offset = 0;
-#endif
-
-  if (*src == '/') {
-#ifdef _WIN32
-    bits_offset++;
-    // network path starts with //
-    if (*len > 1 && *(src + 1) == '/') {
-      src += 2;
-      dst += 2;
-      bits_offset++;
-    } else {
-      ++src;
-      ++dst;
-    }
-#else
-    ++src;
-    ++dst;
-#endif
-  }
-
-  while (src < end) {
-    if (*src == '.') {
-      if (src + 1 == end || src[1] == '/') {
-        // '.' component; eliminate.
-        src += 2;
-#ifdef _WIN32
-        bits = ShiftOverBit(bits_offset, bits);
-#endif
-        continue;
-      } else if (src[1] == '.' && (src + 2 == end || src[2] == '/')) {
-        // '..' component.  Back up if possible.
-        if (component_count > 0) {
-          dst = components[component_count - 1];
-          src += 3;
-          --component_count;
-#ifdef _WIN32
-          bits = ShiftOverBit(bits_offset, bits);
-          bits_offset--;
-          bits = ShiftOverBit(bits_offset, bits);
-#endif
-        } else {
-          *dst++ = *src++;
-          *dst++ = *src++;
-          *dst++ = *src++;
-        }
-        continue;
-      }
-    }
-
-    if (*src == '/') {
-      src++;
-#ifdef _WIN32
-      bits = ShiftOverBit(bits_offset, bits);
-#endif
-      continue;
-    }
-
-    if (component_count == kMaxPathComponents)
-      Fatal("path has too many components : %s", path);
-    components[component_count] = dst;
-    ++component_count;
-
-    while (*src != '/' && src != end)
-      *dst++ = *src++;
-#ifdef _WIN32
-    bits_offset++;
-#endif
-    *dst++ = *src++;  // Copy '/' or final \0 character as well.
-  }
-
-  if (dst == start) {
-    *dst++ = '.';
-    *dst++ = '\0';
-  }
-
-  *len = dst - start - 1;
-#ifdef _WIN32
-  *slash_bits = bits;
-#else
-  *slash_bits = 0;
-#endif
-  return true;
-}
 
 static inline bool IsKnownShellSafeCharacter(char ch) {
   if ('A' <= ch && ch <= 'Z') return true;
@@ -245,37 +133,37 @@ static inline bool IsKnownShellSafeCharacter(char ch) {
   if ('0' <= ch && ch <= '9') return true;
 
   switch (ch) {
-    case '_':
-    case '+':
-    case '-':
-    case '.':
-    case '/':
-      return true;
-    default:
-      return false;
+	case '_':
+	case '+':
+	case '-':
+	case '.':
+	case '/':
+	  return true;
+	default:
+	  return false;
   }
 }
 
 static inline bool IsKnownWin32SafeCharacter(char ch) {
   switch (ch) {
-    case ' ':
-    case '"':
-      return false;
-    default:
-      return true;
+	case ' ':
+	case '"':
+	  return false;
+	default:
+	  return true;
   }
 }
 
 static inline bool StringNeedsShellEscaping(const string& input) {
   for (size_t i = 0; i < input.size(); ++i) {
-    if (!IsKnownShellSafeCharacter(input[i])) return true;
+	if (!IsKnownShellSafeCharacter(input[i])) return true;
   }
   return false;
 }
 
 static inline bool StringNeedsWin32Escaping(const string& input) {
   for (size_t i = 0; i < input.size(); ++i) {
-    if (!IsKnownWin32SafeCharacter(input[i])) return true;
+	if (!IsKnownWin32SafeCharacter(input[i])) return true;
   }
   return false;
 }
@@ -284,8 +172,8 @@ void GetShellEscapedString(const string& input, string* result) {
   assert(result);
 
   if (!StringNeedsShellEscaping(input)) {
-    result->append(input);
-    return;
+	result->append(input);
+	return;
   }
 
   const char kQuote = '\'';
@@ -295,12 +183,12 @@ void GetShellEscapedString(const string& input, string* result) {
 
   string::const_iterator span_begin = input.begin();
   for (string::const_iterator it = input.begin(), end = input.end(); it != end;
-       ++it) {
-    if (*it == kQuote) {
-      result->append(span_begin, it);
-      result->append(kEscapeSequence);
-      span_begin = it;
-    }
+	   ++it) {
+	if (*it == kQuote) {
+	  result->append(span_begin, it);
+	  result->append(kEscapeSequence);
+	  span_begin = it;
+	}
   }
   result->append(span_begin, input.end());
   result->push_back(kQuote);
@@ -310,8 +198,8 @@ void GetShellEscapedString(const string& input, string* result) {
 void GetWin32EscapedString(const string& input, string* result) {
   assert(result);
   if (!StringNeedsWin32Escaping(input)) {
-    result->append(input);
-    return;
+	result->append(input);
+	return;
   }
 
   const char kQuote = '"';
@@ -321,21 +209,21 @@ void GetWin32EscapedString(const string& input, string* result) {
   size_t consecutive_backslash_count = 0;
   string::const_iterator span_begin = input.begin();
   for (string::const_iterator it = input.begin(), end = input.end(); it != end;
-       ++it) {
-    switch (*it) {
-      case kBackslash:
-        ++consecutive_backslash_count;
-        break;
-      case kQuote:
-        result->append(span_begin, it);
-        result->append(consecutive_backslash_count + 1, kBackslash);
-        span_begin = it;
-        consecutive_backslash_count = 0;
-        break;
-      default:
-        consecutive_backslash_count = 0;
-        break;
-    }
+	   ++it) {
+	switch (*it) {
+	  case kBackslash:
+		++consecutive_backslash_count;
+		break;
+	  case kQuote:
+		result->append(span_begin, it);
+		result->append(consecutive_backslash_count + 1, kBackslash);
+		span_begin = it;
+		consecutive_backslash_count = 0;
+		break;
+	  default:
+		consecutive_backslash_count = 0;
+		break;
+	}
   }
   result->append(span_begin, input.end());
   result->append(consecutive_backslash_count, kBackslash);
@@ -348,48 +236,48 @@ int ReadFile(const string& path, string* contents, string* err) {
   // than using the generic fopen code below.
   err->clear();
   HANDLE f = ::CreateFile(path.c_str(),
-                          GENERIC_READ,
-                          FILE_SHARE_READ,
-                          NULL,
-                          OPEN_EXISTING,
-                          FILE_FLAG_SEQUENTIAL_SCAN,
-                          NULL);
+						  GENERIC_READ,
+						  FILE_SHARE_READ,
+						  NULL,
+						  OPEN_EXISTING,
+						  FILE_FLAG_SEQUENTIAL_SCAN,
+						  NULL);
   if (f == INVALID_HANDLE_VALUE) {
-    err->assign(GetLastErrorString());
-    return -ENOENT;
+	err->assign(GetLastErrorString());
+	return -ENOENT;
   }
 
   for (;;) {
-    DWORD len;
-    char buf[64 << 10];
-    if (!::ReadFile(f, buf, sizeof(buf), &len, NULL)) {
-      err->assign(GetLastErrorString());
-      contents->clear();
-      return -1;
-    }
-    if (len == 0)
-      break;
-    contents->append(buf, len);
+	DWORD len;
+	char buf[64 << 10];
+	if (!::ReadFile(f, buf, sizeof(buf), &len, NULL)) {
+	  err->assign(GetLastErrorString());
+	  contents->clear();
+	  return -1;
+	}
+	if (len == 0)
+	  break;
+	contents->append(buf, len);
   }
   ::CloseHandle(f);
   return 0;
 #else
   FILE* f = fopen(path.c_str(), "rb");
   if (!f) {
-    err->assign(strerror(errno));
-    return -errno;
+	err->assign(strerror(errno));
+	return -errno;
   }
 
   char buf[64 << 10];
   size_t len;
   while ((len = fread(buf, 1, sizeof(buf), f)) > 0) {
-    contents->append(buf, len);
+	contents->append(buf, len);
   }
   if (ferror(f)) {
-    err->assign(strerror(errno));  // XXX errno?
-    contents->clear();
-    fclose(f);
-    return -errno;
+	err->assign(strerror(errno));  // XXX errno?
+	contents->clear();
+	fclose(f);
+	return -errno;
   }
   fclose(f);
   return 0;
@@ -400,35 +288,35 @@ void SetCloseOnExec(int fd) {
 #ifndef _WIN32
   int flags = fcntl(fd, F_GETFD);
   if (flags < 0) {
-    perror("fcntl(F_GETFD)");
+	perror("fcntl(F_GETFD)");
   } else {
-    if (fcntl(fd, F_SETFD, flags | FD_CLOEXEC) < 0)
-      perror("fcntl(F_SETFD)");
+	if (fcntl(fd, F_SETFD, flags | FD_CLOEXEC) < 0)
+	  perror("fcntl(F_SETFD)");
   }
 #else
   HANDLE hd = (HANDLE) _get_osfhandle(fd);
   if (! SetHandleInformation(hd, HANDLE_FLAG_INHERIT, 0)) {
-    fprintf(stderr, "SetHandleInformation(): %s", GetLastErrorString().c_str());
+	fprintf(stderr, "SetHandleInformation(): %s", GetLastErrorString().c_str());
   }
 #endif  // ! _WIN32
 }
 
 
 const char* SpellcheckStringV(const string& text,
-                              const vector<const char*>& words) {
+							  const vector<const char*>& words) {
   const bool kAllowReplacements = true;
   const int kMaxValidEditDistance = 3;
 
   int min_distance = kMaxValidEditDistance + 1;
   const char* result = NULL;
   for (vector<const char*>::const_iterator i = words.begin();
-       i != words.end(); ++i) {
-    int distance = EditDistance(*i, text, kAllowReplacements,
-                                kMaxValidEditDistance);
-    if (distance < min_distance) {
-      min_distance = distance;
-      result = *i;
-    }
+	   i != words.end(); ++i) {
+	int distance = EditDistance(*i, text, kAllowReplacements,
+								kMaxValidEditDistance);
+	if (distance < min_distance) {
+	  min_distance = distance;
+	  result = *i;
+	}
   }
   return result;
 }
@@ -441,7 +329,7 @@ const char* SpellcheckString(const char* text, ...) {
   vector<const char*> words;
   const char* word;
   while ((word = va_arg(ap, const char*)))
-    words.push_back(word);
+	words.push_back(word);
   va_end(ap);
   return SpellcheckStringV(text, words);
 }
@@ -452,15 +340,15 @@ string GetLastErrorString() {
 
   char* msg_buf;
   FormatMessageA(
-        FORMAT_MESSAGE_ALLOCATE_BUFFER |
-        FORMAT_MESSAGE_FROM_SYSTEM |
-        FORMAT_MESSAGE_IGNORE_INSERTS,
-        NULL,
-        err,
-        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-        (char*)&msg_buf,
-        0,
-        NULL);
+		FORMAT_MESSAGE_ALLOCATE_BUFFER |
+		FORMAT_MESSAGE_FROM_SYSTEM |
+		FORMAT_MESSAGE_IGNORE_INSERTS,
+		NULL,
+		err,
+		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+		(char*)&msg_buf,
+		0,
+		NULL);
   string msg = msg_buf;
   LocalFree(msg_buf);
   return msg;
@@ -481,20 +369,20 @@ string StripAnsiEscapeCodes(const string& in) {
   stripped.reserve(in.size());
 
   for (size_t i = 0; i < in.size(); ++i) {
-    if (in[i] != '\33') {
-      // Not an escape code.
-      stripped.push_back(in[i]);
-      continue;
-    }
+	if (in[i] != '\33') {
+	  // Not an escape code.
+	  stripped.push_back(in[i]);
+	  continue;
+	}
 
-    // Only strip CSIs for now.
-    if (i + 1 >= in.size()) break;
-    if (in[i + 1] != '[') continue;  // Not a CSI.
-    i += 2;
+	// Only strip CSIs for now.
+	if (i + 1 >= in.size()) break;
+	if (in[i + 1] != '[') continue;  // Not a CSI.
+	i += 2;
 
-    // Skip everything up to and including the next [a-zA-Z].
-    while (i < in.size() && !islatinalpha(in[i]))
-      ++i;
+	// Skip everything up to and including the next [a-zA-Z].
+	while (i < in.size() && !islatinalpha(in[i]))
+	  ++i;
   }
   return stripped;
 }
@@ -524,19 +412,19 @@ static double CalculateProcessorLoad(uint64_t idle_ticks, uint64_t total_ticks)
 
   double load;
   if (first_call || ticks_not_updated_since_last_call) {
-    load = previous_load;
+	load = previous_load;
   } else {
-    // Calculate load.
-    double idle_to_total_ratio =
-        ((double)idle_ticks_since_last_time) / total_ticks_since_last_time;
-    double load_since_last_call = 1.0 - idle_to_total_ratio;
+	// Calculate load.
+	double idle_to_total_ratio =
+		((double)idle_ticks_since_last_time) / total_ticks_since_last_time;
+	double load_since_last_call = 1.0 - idle_to_total_ratio;
 
-    // Filter/smooth result when possible.
-    if(previous_load > 0) {
-      load = 0.9 * previous_load + 0.1 * load_since_last_call;
-    } else {
-      load = load_since_last_call;
-    }
+	// Filter/smooth result when possible.
+	if(previous_load > 0) {
+	  load = 0.9 * previous_load + 0.1 * load_since_last_call;
+	} else {
+	  load = load_since_last_call;
+	}
   }
 
   previous_load = load;
@@ -556,21 +444,21 @@ static uint64_t FileTimeToTickCount(const FILETIME & ft)
 double GetLoadAverage() {
   FILETIME idle_time, kernel_time, user_time;
   BOOL get_system_time_succeeded =
-      GetSystemTimes(&idle_time, &kernel_time, &user_time);
+	  GetSystemTimes(&idle_time, &kernel_time, &user_time);
 
   double posix_compatible_load;
   if (get_system_time_succeeded) {
-    uint64_t idle_ticks = FileTimeToTickCount(idle_time);
+	uint64_t idle_ticks = FileTimeToTickCount(idle_time);
 
-    // kernel_time from GetSystemTimes already includes idle_time.
-    uint64_t total_ticks =
-        FileTimeToTickCount(kernel_time) + FileTimeToTickCount(user_time);
+	// kernel_time from GetSystemTimes already includes idle_time.
+	uint64_t total_ticks =
+		FileTimeToTickCount(kernel_time) + FileTimeToTickCount(user_time);
 
-    double processor_load = CalculateProcessorLoad(idle_ticks, total_ticks);
-    posix_compatible_load = processor_load * GetProcessorCount();
+	double processor_load = CalculateProcessorLoad(idle_ticks, total_ticks);
+	posix_compatible_load = processor_load * GetProcessorCount();
 
   } else {
-    posix_compatible_load = -0.0;
+	posix_compatible_load = -0.0;
   }
 
   return posix_compatible_load;
@@ -579,7 +467,7 @@ double GetLoadAverage() {
 double GetLoadAverage() {
   perfstat_cpu_total_t cpu_stats;
   if (perfstat_cpu_total(NULL, &cpu_stats, sizeof(cpu_stats), 1) < 0) {
-    return -0.0f;
+	return -0.0f;
   }
 
   // Calculation taken from comment in libperfstats.h
@@ -589,9 +477,9 @@ double GetLoadAverage() {
 double GetLoadAverage() {
   double loadavg[3] = { 0.0f, 0.0f, 0.0f };
   if (getloadavg(loadavg, 3) < 0) {
-    // Maybe we should return an error here or the availability of
-    // getloadavg(3) should be checked when ninja is configured.
-    return -0.0f;
+	// Maybe we should return an error here or the availability of
+	// getloadavg(3) should be checked when ninja is configured.
+	return -0.0f;
   }
   return loadavg[0];
 }
@@ -601,10 +489,10 @@ string ElideMiddle(const string& str, size_t width) {
   const int kMargin = 3;  // Space for "...".
   string result = str;
   if (result.size() + kMargin > width) {
-    size_t elide_size = (width - kMargin) / 2;
-    result = result.substr(0, elide_size)
-      + "..."
-      + result.substr(result.size() - elide_size, elide_size);
+	size_t elide_size = (width - kMargin) / 2;
+	result = result.substr(0, elide_size)
+	  + "..."
+	  + result.substr(result.size() - elide_size, elide_size);
   }
   return result;
 }
@@ -612,7 +500,7 @@ string ElideMiddle(const string& str, size_t width) {
 bool Truncate(const string& path, size_t size, string* err) {
 #ifdef _WIN32
   int fh = _sopen(path.c_str(), _O_RDWR | _O_CREAT, _SH_DENYNO,
-                  _S_IREAD | _S_IWRITE);
+				  _S_IREAD | _S_IWRITE);
   int success = _chsize(fh, size);
   _close(fh);
 #else
@@ -621,8 +509,9 @@ bool Truncate(const string& path, size_t size, string* err) {
   // Both truncate() and _chsize() return 0 on success and set errno and return
   // -1 on failure.
   if (success < 0) {
-    *err = strerror(errno);
-    return false;
+	*err = strerror(errno);
+	return false;
   }
   return true;
 }
+
