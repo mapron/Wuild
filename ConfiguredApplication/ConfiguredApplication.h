@@ -58,6 +58,8 @@ public:
 	bool GetRemoteToolClientConfig(RemoteToolClientConfig & config, bool silent = false) const;
 	bool GetRemoteToolServerConfig(RemoteToolServerConfig & config, bool silent = false) const;
 
+	std::string DumpAllConfigValues() const;
+
 private:
 	StringVector m_remainArgs;
 	std::vector<char*> m_remainArgv;

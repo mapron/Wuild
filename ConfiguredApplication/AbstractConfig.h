@@ -39,6 +39,7 @@ public:
 	StringVector GetStringList(const std::string & group, const std::string & key, const StringVector & defValue = StringVector()) const;
 	bool GetBool(const std::string & group, const std::string & key, bool defValue = false) const;
 
+	std::string DumpAllValues() const;
 private:
 	void SetArg(const std::string & group, const std::string & arg);
 	const std::string * Find(const std::string & group, const std::string & key) const;

@@ -65,6 +65,8 @@ ConfiguredApplication::ConfiguredApplication(int argc, char **argv, const std::s
 	// if global variable is set in inifile, override in again with commandline
 	config.ReadCommandLine(inputArgs, g_commandLinePrefix);
 
+
+
 	ReadLoggingConfig();
 	ReadInvocationRewriterConfig();
 	ReadRemoteToolClientConfig();
@@ -199,6 +201,11 @@ bool ConfiguredApplication::GetRemoteToolServerConfig(RemoteToolServerConfig &co
 	}
 	config = m_remoteToolServerConfig;
 	return true;
+}
+
+std::string ConfiguredApplication::DumpAllConfigValues() const
+{
+	return m_config->DumpAllValues();
 }
 
 void ConfiguredApplication::ReadCoordinatorClientConfig(CoordinatorClientConfig &config, const std::string &groupName)
