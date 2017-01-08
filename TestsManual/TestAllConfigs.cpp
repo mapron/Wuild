@@ -24,6 +24,8 @@ int main(int argc, char** argv)
 	if (!CreateInvocationRewriter(app))
 	   return 1;
 
+	Syslogger() << "Configuration: " << app.DumpAllConfigValues();
+
 	//app.m_loggerConfig.m_maxLogLevel = LOG_DEBUG;
 	app.InitLogging(app.m_loggerConfig);
 

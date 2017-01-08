@@ -88,6 +88,7 @@ bool SocketFrameHandler::Quant()
 		{
 			m_lastSucceessfulRead = TimePoint(true);
 		}
+		UpdateLogContext();
 	}
 	if (!check)
 		return m_retryConnectOnFail;
@@ -124,11 +125,13 @@ void SocketFrameHandler::SetTcpChannel(const std::string& host, int port, TimePo
 	params.m_readTimeout = m_settings.m_tcpReadTimeout;
 	params.m_recommendedRecieveBufferSize = m_settings.m_recommendedRecieveBufferSize;
 	TcpSocket::Create(params).swap(m_channel);
+	UpdateLogContext();
 }
 
 void SocketFrameHandler::SetChannel(IDataSocket::Ptr channel)
 {
 	m_channel = channel;
+	UpdateLogContext();
 }
 
 void SocketFrameHandler::DisconnectChannel()
@@ -167,7 +170,19 @@ void SocketFrameHandler::RegisterFrameReader(SocketFrameHandler::IFrameReader::P
 
 void SocketFrameHandler::SetLogContext(const std::string &context)
 {
-	m_logContext = context;
+	m_logContextAdditional = context;
+}
+
+void SocketFrameHandler::UpdateLogContext()
+{
+	std::string channelContext;
+	if (m_channel)
+	{
+		channelContext = m_channel->GetLogContext();
+		if (!m_logContextAdditional.empty())
+			channelContext += " ";
+	}
+	m_logContext = channelContext + m_logContextAdditional;
 }
 
 // protected:

@@ -30,14 +30,15 @@ TcpListener::TcpListener(const TcpConnectionParams & params)
 	, m_params(params)
 {
 	SocketEngineCheck();
-	Syslogger() << "Adding TCP server: " <<  m_params.GetShortInfo();
+	m_logContext = m_params.GetShortInfo();
+	Syslogger(m_logContext) << "Adding TCP server";
 }
 
 TcpListener::~TcpListener()
 {
 	if (m_impl->m_socket != INVALID_SOCKET)
 	{
-		Syslogger() << "disconnecting listener..." ;
+		Syslogger(m_logContext) << "disconnecting listener..." ;
 		close( m_impl->m_socket );
 	}
 }
@@ -56,7 +57,7 @@ IDataSocket::Ptr TcpListener::GetPendingConnection()
 	if (m_waitingAccept)
 		return nullptr;
 	m_waitingAccept = true;
-	Syslogger() << "new connection established" ;
+	Syslogger(m_logContext) << "new connection established" ;
 	return TcpSocket::Create(m_params, this);
 }
 
@@ -68,7 +69,7 @@ bool TcpListener::HasPendingConnections()
 	if (!StartListen())
 	{
 		m_listenerFailed = true;
-		Syslogger(LOG_ERR) << "Failed to listen on " << m_params.GetShortInfo() ;
+		Syslogger(m_logContext, LOG_ERR) << "Failed to listen on " << m_params.GetShortInfo() ;
 		return false;
 	}
 
@@ -80,7 +81,7 @@ bool TcpListener::StartListen()
 	if (m_impl->m_socket != INVALID_SOCKET)
 		return true;
 
-	Syslogger(LOG_INFO) << "Start listen on: " <<  m_params.GetShortInfo();
+	Syslogger(m_logContext, LOG_INFO) << "Start listen on: " <<  m_params.GetShortInfo();
 
 	m_impl->m_socket = socket( m_params.m_impl->ai->ai_family, m_params.m_impl->ai->ai_socktype, m_params.m_impl->ai->ai_protocol );
 	if (m_impl->m_socket == INVALID_SOCKET)
@@ -128,7 +129,7 @@ bool TcpListener::IsListenerReadReady()
 	int selected = select( m_impl->m_socket + 1, &set, 0, 0, &timeout );
 	if (selected < 0)
 	{
-		Syslogger() << "Disconnect from IsListenerReadReady" ;
+		Syslogger(m_logContext) << "Disconnect from IsListenerReadReady" ;
 		return false;
 	}
 	bool res = (selected != 0 && FD_ISSET( m_impl->m_socket, &set ));
@@ -145,11 +146,11 @@ bool TcpListener::DoAccept(TcpSocket *client)
 	Socket = accept( m_impl->m_socket, (struct sockaddr*)&incoming_address, &incoming_length );
 	long value = 0;
 
-	setsockopt( Socket, SOL_SOCKET, SO_KEEPALIVE,
-			#ifdef _WIN32
-				(char*)
-			#endif
-				&value, sizeof(value) );
+	setsockopt( Socket, SOL_SOCKET, SO_KEEPALIVE, SOCK_OPT_ARG &value, sizeof(value) );
+
+	const std::string peerIp = (incoming_length == sizeof(sockaddr_in) ? inet_ntoa( incoming_address.sin_addr ) : std::string());
+
+	client->m_logContext = peerIp + "->:" + std::to_string(m_params.GetPort());
 
 	client->m_impl->m_socket =  Socket;
 	m_waitingAccept = false;

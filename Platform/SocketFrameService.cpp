@@ -38,7 +38,7 @@ SocketFrameService::SocketFrameService(int autoStartListenPort)
 
 SocketFrameService::~SocketFrameService()
 {
-	Syslogger() << "SocketFrameService::~SocketFrameService()";
+	Syslogger(m_logContext) << "SocketFrameService::~SocketFrameService()";
 	for (auto workerPtr : m_workers)
 		workerPtr->Stop(false);
 	m_workers.clear();
@@ -48,7 +48,7 @@ SocketFrameService::~SocketFrameService()
 
 int SocketFrameService::QueueFrameToAll(SocketFrameHandler *sender, SocketFrame::Ptr message)
 {
-	Syslogger() << "QueueFrameToAll";
+	Syslogger(m_logContext) << "QueueFrameToAll";
 	int ret = 0;
 	std::lock_guard<std::mutex> lock(m_workersLock);
 
@@ -72,7 +72,11 @@ void SocketFrameService::AddTcpListener(int port, std::string ip)
 
 	params.m_connectTimeout = TimePoint(0.001);
 	params.m_recommendedRecieveBufferSize = m_settings.m_recommendedRecieveBufferSize;
-	m_listenters.push_back(TcpListener::Create(params));
+	auto listener = TcpListener::Create(params);
+	if (!m_logContext.empty())
+		m_logContext += ", ";
+	m_logContext += listener->GetLogContext();
+	m_listenters.push_back(listener);
 }
 
 void SocketFrameService::Start()
@@ -99,7 +103,7 @@ void SocketFrameService::Quant()
 
 			(*workerIt)->Stop(false);
 			m_workersUnactive.push_back(DeadClient(*workerIt, TimePoint(true)));
-			Syslogger() << "SocketFrameService::quant() erasing unactive worker ";
+			Syslogger(m_logContext) << "SocketFrameService::quant() erasing unactive worker ";
 			workerIt = m_workers.erase(workerIt);
 			continue;
 		}
@@ -122,7 +126,7 @@ void SocketFrameService::Quant()
 		auto client = listenter->GetPendingConnection();
 		if (client)
 		{
-			Syslogger() << "SocketFrameService::quant() adding new worker ";
+			Syslogger(m_logContext) << "SocketFrameService::quant() adding new worker ";
 			AddWorker(client, m_nextWorkerId++);
 		}
 	}

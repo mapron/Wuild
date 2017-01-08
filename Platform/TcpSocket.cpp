@@ -64,7 +64,8 @@ TcpSocket::TcpSocket(const TcpConnectionParams &params)
 	, m_impl(new TcpSocketPrivate())
 {
 	SocketEngineCheck();
-	Syslogger() << "TcpSocket::TcpSocket() " << params.GetShortInfo();
+	m_logContext = params.GetShortInfo();
+	Syslogger(m_logContext) << "TcpSocket::TcpSocket() ";
 }
 
 TcpSocket::~TcpSocket()
@@ -104,14 +105,14 @@ bool TcpSocket::Connect ()
 		m_state = csFail;
 		return false;
 	}
-	Syslogger() << "Trying to connect to " << m_params.GetShortInfo();
+	Syslogger(m_logContext) << "Trying to connect..." ;
 
 	if (m_impl->m_socket == INVALID_SOCKET)
 	{
 		m_impl->m_socket = socket(m_params.m_impl->ai->ai_family, m_params.m_impl->ai->ai_socktype, m_params.m_impl->ai->ai_protocol);
 		if (m_impl->m_socket == INVALID_SOCKET)
 		{
-			Syslogger(LOG_ERR) << "socket creation failed." ;
+			Syslogger(m_logContext, LOG_ERR) << "socket creation failed." ;
 			Fail();
 			return false;
 		}
@@ -147,21 +148,21 @@ bool TcpSocket::Connect ()
 				getsockopt( m_impl->m_socket, SOL_SOCKET, SO_ERROR, SOCK_OPT_ARG (&valopt), &valopt_len ) < 0 || valopt
 					)
 			{
-				Syslogger() << "Connection timeout." ;
+				Syslogger(m_logContext) << "Connection timeout." ;
 				Fail();
 				return false;
 			}
 		}
 		else
 		{
-			Syslogger() << "Connection failed. ("<< cres << ") err=" << err ;
+			Syslogger(m_logContext) << "Connection failed. ("<< cres << ") err=" << err ;
 			Fail();
 			return false;
 		}
 	}
 
 	m_state = csSuccess;
-	Syslogger() << "Connected.";
+	Syslogger(m_logContext) << "Connected.";
 	return true;
 }
 
@@ -170,7 +171,7 @@ void TcpSocket::Disconnect()
 	m_state = csFail;
 	if (m_impl->m_socket != INVALID_SOCKET)
 	{
-		Syslogger() << "TcpSocket::Disconnect() " << m_params.GetShortInfo();
+		Syslogger(m_logContext) << "TcpSocket::Disconnect() ";
 		close( m_impl->m_socket );
 		m_impl->m_socket = INVALID_SOCKET;
 	}
@@ -217,7 +218,7 @@ bool TcpSocket::Read(ByteArrayHolder & buffer)
 		  if (err == EAGAIN)
 			  break;
 #endif
-		  Syslogger() << "Disconnecting while Reading" << err ;
+		  Syslogger(m_logContext) << "Disconnecting while Reading" << err ;
 		  Disconnect();
 		  return false;
 	  }
@@ -227,7 +228,7 @@ bool TcpSocket::Read(ByteArrayHolder & buffer)
 	} while(recieved == sizeof(tmpbuffer));
 
 #ifdef SOCKET_DEBUG
-	Syslogger() << "AbstractChannel::Read: " << Syslogger::Binary(buffer.data() + bufferInitialSize, totalRecieved);
+	Syslogger(m_logContext) << "AbstractChannel::Read: " << Syslogger::Binary(buffer.data() + bufferInitialSize, totalRecieved);
 #endif
 
 	return true;
@@ -248,13 +249,13 @@ bool TcpSocket::Write(const ByteArrayHolder & buffer, size_t maxBytes)
 #else
 		const auto err = errno ;
 #endif
-		Syslogger() << "Disconnecting while Writing, err=" << err ;
+		Syslogger(m_logContext) << "Disconnecting while Writing, err=" << err ;
 		Disconnect();
 		return false;
 	}
 
 #ifdef SOCKET_DEBUG
-	Syslogger() << "AbstractChannel::Write: " << Syslogger::Binary(buffer.data(), written);
+	Syslogger(m_logContext) << "AbstractChannel::Write: " << Syslogger::Binary(buffer.data(), written);
 #endif
 	return maxBytes == written;
 }
@@ -271,7 +272,7 @@ void TcpSocket::SetListener(TcpListener* pendingListener)
 
 void TcpSocket::Fail ()
 {
-	Syslogger() << "Disconnection cased by Fail()";
+	Syslogger(m_logContext) << "Disconnection cased by Fail()";
 	Disconnect();
 }
 
@@ -288,7 +289,7 @@ bool TcpSocket::IsSocketReadReady()
 	int selected = select( m_impl->m_socket + 1U, &set, 0, 0, &timeout );
 	if (selected < 0)
 	{
-		Syslogger() << "Disconnect from IsSocketReadReady" ;
+		Syslogger(m_logContext) << "Disconnect from IsSocketReadReady" ;
 		Disconnect();
 		return false;
 	}
@@ -317,7 +318,7 @@ void TcpSocket::SetBufferSize()
 	{
 		if (!m_impl->SetRecieveBuffer(m_params.m_recommendedRecieveBufferSize))
 		{
-			Syslogger(LOG_INFO) << "Failed to set recieve socket buffer size:" << m_params.m_recommendedRecieveBufferSize;
+			Syslogger(m_logContext, LOG_INFO) << "Failed to set recieve socket buffer size:" << m_params.m_recommendedRecieveBufferSize;
 		}
 		m_recieveBufferSize = m_impl->GetRecieveBuffer();
 	}
@@ -326,7 +327,7 @@ void TcpSocket::SetBufferSize()
 	{
 		if (!m_impl->SetSendBuffer(m_params.m_recommendedSendBufferSize))
 		{
-			Syslogger(LOG_INFO) << "Failed to set send socket buffer size:" << m_params.m_recommendedSendBufferSize;
+			Syslogger(m_logContext, LOG_INFO) << "Failed to set send socket buffer size:" << m_params.m_recommendedSendBufferSize;
 		}
 		m_sendBufferSize = m_impl->GetSendBuffer();
 	}

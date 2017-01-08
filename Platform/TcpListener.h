@@ -33,6 +33,7 @@ public:
 
 	IDataSocket::Ptr GetPendingConnection() override;
 	bool StartListen() override;
+	std::string GetLogContext() const override { return m_logContext;}
 
 	/// Accepting TcpSocket, which was created through GetPendingConnection.
 	/// TcpSocket calls this, there is no need to call DoAccept manually.
@@ -45,6 +46,7 @@ private:
 	bool IsListenerReadReady ();
 	std::unique_ptr<TcpListenerPrivate> m_impl;
 	TcpConnectionParams m_params;
+	std::string m_logContext;
 
 	bool m_listenerFailed = false;
 	bool m_waitingAccept = false;

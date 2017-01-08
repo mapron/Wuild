@@ -145,6 +145,7 @@ public:
 
 //Logging:
 	void   SetLogContext(const std::string & context);
+	void   UpdateLogContext();
 
 protected:
 
@@ -197,8 +198,9 @@ protected:
 	bool mutable                m_setConnectionOptionsNeedSend {false};
 	TimePoint                   m_remoteTimeDiffToPast;
 
+	std::string                 m_logContextAdditional;
 	std::string                 m_logContext;
-	ThreadLoop                        m_thread;
+	ThreadLoop                  m_thread;
 };
 
 /// Convenience FrameReader creator. FrameType is SocketFrame successor.

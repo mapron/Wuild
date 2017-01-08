@@ -31,6 +31,9 @@ struct TcpConnectionParams
 	/// Outputs host:port as string.
 	std::string GetShortInfo() const;
 
+	int GetPort() const { return m_port; }
+	const std::string& GetHost() const { return m_host; }
+
 	TimePoint m_readTimeout = 0.0;                        //!< Scoket read timeout
 	TimePoint m_connectTimeout = 1.0;                     //!< Connection timeout
 	bool      m_skipFailedConnection = true;              //!< Do not retry recreate listener on fail.

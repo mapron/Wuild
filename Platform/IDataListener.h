@@ -30,6 +30,9 @@ public:
 
 	/// Start listen session on port. If fails to bind, returns false.
 	virtual bool StartListen() = 0;
+
+	/// Some descriptive string for listener
+	virtual std::string GetLogContext() const = 0;
 };
 
 }

@@ -43,5 +43,14 @@ public:
 
 	/// Write data to socket. Returns false on error.
 	virtual bool Write(const ByteArrayHolder & buffer, size_t maxBytes = size_t(-1)) = 0;
+
+	/// Buffer available for reading
+	virtual uint32_t GetRecieveBufferSize() const = 0;
+
+	/// Buffer available for writing
+	virtual uint32_t GetSendBufferSize() const = 0;
+
+	/// Some descriptive string for socket
+	virtual std::string GetLogContext() const = 0;
 };
 }

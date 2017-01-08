@@ -51,8 +51,10 @@ public:
 	bool Write(const ByteArrayHolder & buffer, size_t maxBytes) override;
 
 	/// Socker buffer size available for reading.
-	uint32_t GetRecieveBufferSize() const { return m_recieveBufferSize; }
-	uint32_t GetSendBufferSize() const { return m_sendBufferSize; }
+	uint32_t GetRecieveBufferSize() const override { return m_recieveBufferSize; }
+	uint32_t GetSendBufferSize() const override { return m_sendBufferSize; }
+
+	std::string GetLogContext() const override { return m_logContext; }
 
 protected:
 	void SetListener(TcpListener* pendingListener);
@@ -67,6 +69,7 @@ protected:
 	TcpConnectionParams  m_params;
 	uint32_t             m_recieveBufferSize = 0;
 	uint32_t             m_sendBufferSize = 0;
+	std::string          m_logContext;
 
 private:
 	std::unique_ptr<TcpSocketPrivate> m_impl;

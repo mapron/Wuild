@@ -90,6 +90,7 @@ protected:
 
 	uint32_t                                          m_nextWorkerId {0};
 	ThreadLoop                                        m_mainThread;
+	std::string                                       m_logContext;
 
 };
 
