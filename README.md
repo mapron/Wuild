@@ -8,16 +8,17 @@ Wuild is written in C++, using Ninja (<https://github.com/ninja-build>) as one o
 
 # Code structure and terminology
 Platform directory contains platform core primitives to base on: sockets, threads, file utilities.  
-LocalExecutor is lib for running tasks based on Ninja's SubprocessSet.  
 CompilerInterface declares CompilerInvocation and LocalExecutorTask.  
-CompilerModule splits tool invocation into preprocess and compilation.  
 Configs contains settings structures for other services.  
 ConfiguredApplication integrates utility options.  
-Main application logic contained in Networking library:
+Main application logic contained in Modules directory:
+- LocalExecutor is lib for running tasks on local host based on Ninja's SubprocessSet.  
+- InvocationRewriter splits tool invocation into preprocess and compilation.  
 - RemoteToolServer executes compilator on a host, and recives tasks for such execution;
-- CoordinatorSever maintains list of RemoteToolServers (or Workers)
-- RemoteToolClient sends compilation task to different Workers; Workers retrived from Coordinator.
+- CoordinatorSever maintains list of RemoteToolServers
+- RemoteToolClient sends compilation task to different ToolServers; ToolServers retrived from Coordinator.
 - CompilerProxy is WIP.
+Main application binaries holded in root directory.
 
 # Installation
 ### Requirements 
@@ -50,8 +51,8 @@ gcc_cpp=/usr/bin/g++,g++
 gcc_c=/usr/bin/gcc,gcc 
 
 [coordinator]
-listenPort=7767           ; this will be used to coordinate clients and workers. 
-                          ; for now, just use the same machine for worker and coordinator.
+listenPort=7767           ; this will be used to coordinate clients and tool server. 
+                          ; for now, just use the same machine for tool server and coordinator.
 [toolServer]
 threadCount=8            ; set host CPU's used for compilation
 listenHost=192.168.0.2    ; network ip or host name for incoming connections
@@ -60,10 +61,10 @@ coordinatorHost=localhost
 coordinatorPort=7767 
 ```
 
-Then setup autorunning of WuildWorker and WuildCoordinator at Server. For testing, just start them in console.
+Then setup autorunning of WuildToolServer and WuildCoordinator at Server. For testing, just start them in console. 
 
 ### Running Wuild build
-At this moment, only Ninja integration is supported. So, generate ```CMake -G 'Ninja' -DCMAKE_MAKE_PROGRAM=/path/to/WuildNinja``` for some project, and run WuildNinja just as ninja. If all done correctly, build will be distributed between workers.  
+At this moment, only Ninja integration is supported. So, generate ```CMake -G 'Ninja' -DCMAKE_MAKE_PROGRAM=/path/to/WuildNinja``` for some project, and run WuildNinja just as ninja. If all done correctly, build will be distributed between tool servers.  
 If not, see Thoubleshooting.
 
 # Troubleshooting
