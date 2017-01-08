@@ -160,10 +160,7 @@ bool RemoteExecutor::StartCommand(void *userData, const std::string &command)
 	auto callback = [this, userData, outputFilename]( const RemoteToolClient::TaskExecutionInfo & info)
 	{
 		bool result = info.m_result;
-
-		Syslogger(LOG_INFO) << outputFilename
-								   << " -> " << result << ", " <<  info.GetProfilingStr()
-									  ;
+		Syslogger() << outputFilename<< " -> " << result << ", " <<  info.GetProfilingStr() ;
 		std::lock_guard<std::mutex> lock(m_resultsMutex);
 		m_results.emplace_back(userData, result, info.m_stdOutput);
 	};

@@ -116,7 +116,7 @@ public:
 			}
 		}
 		if (handler)
-		{
+		{			
 			handler->QueueFrame(task.m_request, task.m_callback);
 			m_requests.pop_front();
 		}
@@ -249,8 +249,8 @@ void RemoteToolClient::AddClient(const ToolServerInfo &info, bool start)
 void RemoteToolClient::InvokeTool(const ToolInvocation & invocation, InvokeCallback callback)
 {
 	TimePoint start(true);
-	std::string inputFilename  = invocation.GetInput();
-	std::string outputFilename = invocation.GetOutput();
+	const std::string inputFilename  = invocation.GetInput();
+	const std::string outputFilename = invocation.GetOutput();
 	auto frameCallback = [this, callback, start, outputFilename](SocketFrame::Ptr responseFrame, SocketFrameHandler::TReplyState state)
 	{
 		m_queuedTasks--;
@@ -296,6 +296,8 @@ void RemoteToolClient::InvokeTool(const ToolInvocation & invocation, InvokeCallb
 
 	RemoteToolRequest::Ptr toolRequest(new RemoteToolRequest());
 	toolRequest->m_invocation = invocation;
+	toolRequest->m_invocation.SetInput (FileInfo(inputFilename ).GetFullname());
+	toolRequest->m_invocation.SetOutput(FileInfo(outputFilename).GetFullname());
 	toolRequest->m_fileData = inputData;
 	RemoteToolRequestWrap wrap;
 	wrap.m_request = toolRequest;
@@ -306,8 +308,8 @@ void RemoteToolClient::InvokeTool(const ToolInvocation & invocation, InvokeCallb
 	{
 		std::lock_guard<std::mutex> lock(m_sessionInfoMutex);
 		m_sessionInfo.m_currentUsedThreads ++;
+		Syslogger(LOG_INFO) << "QueueFrame -> " << SocketFrame::Ptr(wrap.m_request) << " usedThreads: " << m_sessionInfo.m_currentUsedThreads;
 	}
-
 	m_queuedTasks++;
 	m_impl->QueueTask(wrap);
 }
