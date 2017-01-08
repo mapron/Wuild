@@ -229,9 +229,9 @@ void ConfiguredApplication::ReadLoggingConfig()
 
 void ConfiguredApplication::ReadInvocationRewriterConfig()
 {
-	const std::string defaultGroup("compiler");
+	const std::string defaultGroup("tools");
 
-	m_invocationRewriterConfig.m_toolIds = m_config->GetStringList(defaultGroup, "modules");
+	m_invocationRewriterConfig.m_toolIds = m_config->GetStringList(defaultGroup, "toolIds");
 	for (const auto & id : m_invocationRewriterConfig.m_toolIds)
 	{
 		InvocationRewriterConfig::Tool unit;
@@ -258,7 +258,7 @@ void ConfiguredApplication::ReadInvocationRewriterConfig()
 
 void ConfiguredApplication::ReadRemoteToolClientConfig()
 {
-	const std::string defaultGroup("client");
+	const std::string defaultGroup("toolClient");
 	m_remoteToolClientConfig.m_invocationAttempts = m_config->GetInt(defaultGroup, "invocationAttempts", m_remoteToolClientConfig.m_invocationAttempts);
 	m_remoteToolClientConfig.m_minimalRemoteTasks = m_config->GetInt(defaultGroup, "minimalRemoteTasks", m_remoteToolClientConfig.m_minimalRemoteTasks);
 	int queueTimeoutMS = m_config->GetInt(defaultGroup, "queueTimeoutMS");
@@ -270,11 +270,11 @@ void ConfiguredApplication::ReadRemoteToolClientConfig()
 
 void ConfiguredApplication::ReadRemoteToolServerConfig()
 {
-	const std::string defaultGroup("worker");
-	m_remoteToolServerConfig.m_listenPort   = m_config->GetInt(defaultGroup, "listenPort");
+	const std::string defaultGroup("toolServer");
+	m_remoteToolServerConfig.m_listenPort   = m_config->GetInt(defaultGroup,    "listenPort");
 	m_remoteToolServerConfig.m_listenHost   = m_config->GetString(defaultGroup, "listenHost");
-	m_remoteToolServerConfig.m_workersCount = m_config->GetInt(defaultGroup, "workersCount");
-	m_remoteToolServerConfig.m_workerId     = m_config->GetString(defaultGroup, "workerId");
+	m_remoteToolServerConfig.m_threadCount  = m_config->GetInt(defaultGroup,    "threadCount");
+	m_remoteToolServerConfig.m_serverName   = m_config->GetString(defaultGroup, "serverName");
 	ReadCoordinatorClientConfig(m_remoteToolServerConfig.m_coordinator, defaultGroup);
 }
 

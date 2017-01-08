@@ -64,10 +64,10 @@ void RemoteToolServer::Start()
 	CoordinatorWorkerInfo & info = m_impl->m_info;
 	info.m_connectionHost = m_config.m_listenHost;
 	info.m_connectionPort = m_config.m_listenPort;
-	info.m_totalThreads = m_config.m_workersCount;
-	info.m_workerId = m_config.m_workerId;
+	info.m_totalThreads = m_config.m_threadCount;
+	info.m_workerId = m_config.m_serverName;
 	info.m_toolIds = m_impl->m_executor->GetToolIds();
-	m_impl->m_executor->SetWorkersCount(m_config.m_workersCount);
+	m_impl->m_executor->SetWorkersCount(m_config.m_threadCount);
 
 	m_impl->m_coordinator.SetWorkerInfo(info);
 	if (!m_impl->m_coordinator.SetConfig(m_config.m_coordinator))

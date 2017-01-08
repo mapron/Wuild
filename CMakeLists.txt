@@ -188,14 +188,14 @@ foreach (testname AllConfigs Compiler Coordinator Inflate Networking Worker )
 		)
 endforeach()
 
-foreach (appname Coordinator CoordinatorStatus Worker Proxy ProxyClient)
+foreach (appname Coordinator CoordinatorStatus ToolServer Proxy ProxyClient)
 	AddTarget(APP NAME Wuild${appname} ROOT ${CMAKE_CURRENT_SOURCE_DIR}/
 		CSRC Wuild${appname}.cpp
 		DEPS ${main_deps} ${sys_deps}
 		)
 endforeach()
 
-AddTarget(APP NAME Wuild ROOT ${NINJA_ROOT}/
+AddTarget(APP NAME WuildNinja ROOT ${NINJA_ROOT}/
 	CSRC ninja.cc remote_executor_impl.h state_rewrite.*
 	DEPS ${main_deps} ninja_subprocess ${sys_deps}
 	)

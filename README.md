@@ -33,25 +33,27 @@ Installation is not ready yet, so you just get "Wuild*" binaries in cmake bin di
 Suppose you have machine 192.168.0.1 (or "client") running Linux and Gcc toolchaing, and machine 192.168.0.2 (or "server") just the same configuration (but more CPU resources). Create "Wuild.ini" in home directory on each machine with these contents:
 - Client:
 ```
-[compiler]
-modules=gcc_cpp,gcc_c     ; comma-separated logical compiler names
+[tools]
+toolIds=gcc_cpp,gcc_c     ; comma-separated logical compiler names
 gcc_cpp=/usr/bin/g++,g++
 gcc_c=/usr/bin/gcc,gcc    ; comma-separated possible binaries names, first must be absolute
-[client]
+
+[toolClient]
 coordinatorHost=192.168.56.2   ; ip or hostname
 coordinatorPort=7767 
 ```
 - Server
 ```
-[compiler]
-modules=gcc_cpp,gcc_c     ; compiler names must be identical on client and server
+[tools]
+toolIds=gcc_cpp,gcc_c     ; compiler names must be identical on client and server
 gcc_cpp=/usr/bin/g++,g++
 gcc_c=/usr/bin/gcc,gcc 
+
 [coordinator]
 listenPort=7767           ; this will be used to coordinate clients and workers. 
                           ; for now, just use the same machine for worker and coordinator.
-[worker]
-workersCount=8            ; set host CPU's used for compilation
+[toolServer]
+threadCount=8            ; set host CPU's used for compilation
 listenHost=192.168.0.2    ; network ip or host name for incoming connections
 listenPort=7765           ; should be different for coordinator's
 coordinatorHost=localhost 
@@ -61,7 +63,7 @@ coordinatorPort=7767
 Then setup autorunning of WuildWorker and WuildCoordinator at Server. For testing, just start them in console.
 
 ### Running Wuild build
-At this moment, only Ninja integration is supported. So, generate ```CMake -G 'Ninja' -DCMAKE_MAKE_PROGRAM=/path/to/Wuild``` for some project, and run Wuild. If all done correctly, build will be distributed between workers.  
+At this moment, only Ninja integration is supported. So, generate ```CMake -G 'Ninja' -DCMAKE_MAKE_PROGRAM=/path/to/WuildNinja``` for some project, and run WuildNinja just as ninja. If all done correctly, build will be distributed between workers.  
 If not, see Thoubleshooting.
 
 # Troubleshooting

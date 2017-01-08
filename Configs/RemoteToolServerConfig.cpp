@@ -32,7 +32,7 @@ bool RemoteToolServerConfig::Validate(std::ostream *errStream) const
 			*errStream << "Invalid listenPort.";
 		return false;
 	}
-	if (m_workersCount <= 0)
+	if (m_threadCount <= 0)
 	{
 		if (errStream)
 			*errStream << "workersCount: Number of thread should be greater than zero.";
