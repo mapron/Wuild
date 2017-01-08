@@ -30,11 +30,11 @@ namespace Wuild
 {
 static const size_t g_recommendedBufferSize = 64 * 1024;
 
-class CoordinatorWorkerInfoWrap
+class ToolServerInfoWrap
 {
 public:
 	SocketFrameHandler::Ptr m_handler;
-	CoordinatorWorkerInfo m_worker;
+	ToolServerInfo m_toolServerInfo;
 	bool m_state = false;
 	int m_busyMine {0};
 	int m_busyOthers {0};
@@ -54,7 +54,7 @@ class RemoteToolClientImpl
 {
 public:
 	std::mutex m_clientsInfoMutex;
-	std::deque<CoordinatorWorkerInfoWrap> m_clientsInfo;
+	std::deque<ToolServerInfoWrap> m_clientsInfo;
 	std::mutex m_requestsMutex;
 	std::deque<RemoteToolRequestWrap> m_requests;
 	std::unique_ptr<SocketFrameService> m_server;
@@ -97,15 +97,15 @@ public:
 
 		SocketFrameHandler::Ptr handler;
 		int minimalLoad = std::numeric_limits<int>::max();
-		for (CoordinatorWorkerInfoWrap & client : m_clientsInfo)
+		for (ToolServerInfoWrap & client : m_clientsInfo)
 		{
 			if (client.m_state)
 			{
-				const StringVector & toolIds = client.m_worker.m_toolIds;
+				const StringVector & toolIds = client.m_toolServerInfo.m_toolIds;
 				const std::string & toolId = task.m_request->m_invocation.m_id.m_toolId;
 				const bool toolExists = (std::find(toolIds.cbegin(), toolIds.cend(), toolId) != toolIds.cend());
 				if (!toolExists) continue;
-				int clientLoad = (client.m_busyMine + client.m_busyOthers) * client.m_eachTaskWeight / client.m_worker.m_totalThreads;
+				int clientLoad = (client.m_busyMine + client.m_busyOthers) * client.m_eachTaskWeight / client.m_toolServerInfo.m_totalThreads;
 				if (clientLoad < minimalLoad)
 				{
 					handler = client.m_handler;
@@ -126,13 +126,13 @@ public:
 RemoteToolClient::RemoteToolClient()
 	: m_impl(new RemoteToolClientImpl())
 {
-	m_impl->m_coordinator.SetWorkerChangeCallback([this](const CoordinatorWorkerInfo& info){
+	m_impl->m_coordinator.SetToolServerChangeCallback([this](const ToolServerInfo& info){
 		bool found = false;
-		for (CoordinatorWorkerInfoWrap & clientsInfo : m_impl->m_clientsInfo)
+		for (ToolServerInfoWrap & clientsInfo : m_impl->m_clientsInfo)
 		{
-			if (clientsInfo.m_worker.EqualIdTo(info))
+			if (clientsInfo.m_toolServerInfo.EqualIdTo(info))
 			{
-				clientsInfo.m_worker = info;
+				clientsInfo.m_toolServerInfo = info;
 				found = true;
 			}
 		}
@@ -183,19 +183,19 @@ void RemoteToolClient::SetRemoteAvailableCallback(RemoteToolClient::RemoteAvaila
 	m_remoteAvailableCallback = callback;
 }
 
-void RemoteToolClient::AddClient(const CoordinatorWorkerInfo &info, bool start)
+void RemoteToolClient::AddClient(const ToolServerInfo &info, bool start)
 {
 // TODO: check for requred tool ids!
 	Syslogger() << "RemoteToolClient::AddClient " << info.m_connectionHost  << ":" <<  info.m_connectionPort;
-	CoordinatorWorkerInfoWrap wrapNew;
-	wrapNew.m_worker = info;
+	ToolServerInfoWrap wrapNew;
+	wrapNew.m_toolServerInfo = info;
 	m_impl->m_clientsInfo.push_back(std::move(wrapNew));
-	CoordinatorWorkerInfoWrap & wrap = *(m_impl->m_clientsInfo.rbegin());
+	ToolServerInfoWrap & wrap = *(m_impl->m_clientsInfo.rbegin());
 	SocketFrameHandlerSettings settings;
 	settings.m_recommendedRecieveBufferSize = g_recommendedBufferSize;
 	wrap.m_handler.reset(new SocketFrameHandler( settings));
 	wrap.m_handler->RegisterFrameReader(SocketFrameReaderTemplate<RemoteToolResponse>::Create());
-	wrap.m_handler->SetTcpChannel(wrap.m_worker.m_connectionHost, wrap.m_worker.m_connectionPort);
+	wrap.m_handler->SetTcpChannel(wrap.m_toolServerInfo.m_connectionHost, wrap.m_toolServerInfo.m_connectionPort);
 
 	wrap.m_handler->SetChannelNotifier([this, &wrap](bool state){
 		std::lock_guard<std::mutex> lock(m_impl->m_clientsInfoMutex);
@@ -269,11 +269,11 @@ void RemoteToolClient::InvokeTool(const ToolInvocation & invocation, InvokeCallb
 void RemoteToolClient::RecalcAvailable()
 {
 	int available = 0;
-	for (CoordinatorWorkerInfoWrap & client : m_impl->m_clientsInfo)
+	for (ToolServerInfoWrap & client : m_impl->m_clientsInfo)
 	{
 		if (client.m_state)
 		{
-			available += client.m_worker.m_totalThreads - client.m_busyMine - client.m_busyOthers;
+			available += client.m_toolServerInfo.m_totalThreads - client.m_busyMine - client.m_busyOthers;
 		}
 		else
 		{

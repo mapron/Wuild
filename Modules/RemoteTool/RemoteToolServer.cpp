@@ -27,13 +27,13 @@ static const size_t g_recommendedBufferSize = 64 * 1024;
 class RemoteToolServerImpl
 {
 public:
-	CoordinatorWorkerInfo m_info;
+	ToolServerInfo m_info;
 	CoordinatorClient m_coordinator;
 	std::unique_ptr<SocketFrameService> m_server;
 	ILocalExecutor::Ptr m_executor;
-	std::map<SocketFrameHandler*, WorkerSessionInfo> m_sessions;
+	std::map<SocketFrameHandler*, ToolServerSessionInfo> m_sessions;
 	std::atomic_int_least64_t m_sessionIdCounter { 0 };
-	void SendSessionInfo(const WorkerSessionInfo & info);
+	void SendSessionInfo(const ToolServerSessionInfo & info);
 };
 
 RemoteToolServer::RemoteToolServer(ILocalExecutor::Ptr executor)
@@ -61,15 +61,15 @@ bool RemoteToolServer::SetConfig(const RemoteToolServer::Config &config)
 
 void RemoteToolServer::Start()
 {
-	CoordinatorWorkerInfo & info = m_impl->m_info;
+	ToolServerInfo & info = m_impl->m_info;
 	info.m_connectionHost = m_config.m_listenHost;
 	info.m_connectionPort = m_config.m_listenPort;
 	info.m_totalThreads = m_config.m_threadCount;
-	info.m_workerId = m_config.m_serverName;
+	info.m_toolServerId = m_config.m_serverName;
 	info.m_toolIds = m_impl->m_executor->GetToolIds();
-	m_impl->m_executor->SetWorkersCount(m_config.m_threadCount);
+	m_impl->m_executor->SetThreadCount(m_config.m_threadCount);
 
-	m_impl->m_coordinator.SetWorkerInfo(info);
+	m_impl->m_coordinator.SetToolServerInfo(info);
 	if (!m_impl->m_coordinator.SetConfig(m_config.m_coordinator))
 		return;
 
@@ -96,7 +96,7 @@ void RemoteToolServer::Start()
 				response->m_executionTime = result->m_executionTime;
 				outputCallback(response);
 				{
-					WorkerSessionInfo & sessionInfo = m_impl->m_sessions[handler];
+					ToolServerSessionInfo & sessionInfo = m_impl->m_sessions[handler];
 					sessionInfo.m_totalExecutionTime += result->m_executionTime;
 					sessionInfo.m_tasksCount++;
 					if (!result->m_result)
@@ -109,7 +109,7 @@ void RemoteToolServer::Start()
 
 	m_impl->m_server->SetHandlerDestroyCallback([this](SocketFrameHandler * handler){
 
-		WorkerSessionInfo sessionInfo = m_impl->m_sessions[handler];
+		ToolServerSessionInfo sessionInfo = m_impl->m_sessions[handler];
 		m_impl->m_sessions.erase(handler);
 		m_impl->SendSessionInfo(sessionInfo);
 	});
@@ -119,13 +119,13 @@ void RemoteToolServer::Start()
 	m_impl->m_coordinator.Start();
 }
 
-void RemoteToolServerImpl::SendSessionInfo(const WorkerSessionInfo &info)
+void RemoteToolServerImpl::SendSessionInfo(const ToolServerSessionInfo &info)
 {
 	if (!info.m_tasksCount)
 		return;
 
 	Syslogger() << "Finished " << info.ToString();
-	m_coordinator.SendWorkerSessionInfo(info);
+	m_coordinator.SendToolServerSessionInfo(info);
 }
 
 

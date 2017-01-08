@@ -39,10 +39,10 @@ public:
 	{
 		return StringVector(1, g_testTool);
 	}
-	void SetWorkersCount(int) override {}
+	void SetThreadCount(int) override {}
 };
 
-const int g_workerTestPort = 12345;
+const int g_toolsServerTestPort = 12345;
 const int g_coordinatorTestPort = 12346;
 
 int main(int argc, char** argv)
@@ -60,19 +60,19 @@ int main(int argc, char** argv)
 	CoordinatorClient::Config coordClientConfig;
 	coordClientConfig.m_coordinatorHost = "localhost";
 	coordClientConfig.m_coordinatorPort = g_coordinatorTestPort;
-	coordClientConfig.m_sendWorkerInterval = TimePoint(1.0);
-	coordClientConfig.m_logContext = "coordinator:worker";
+	coordClientConfig.m_sendInfoInterval = TimePoint(1.0);
+	coordClientConfig.m_logContext = "coordinator:toolServer";
 
 	CoordinatorServer::Config coordServerConfig;
 	coordServerConfig.m_listenPort = g_coordinatorTestPort;
 
-	RemoteToolServer::Config workerConfig;
-	workerConfig.m_coordinator = coordClientConfig;
-	workerConfig.m_listenHost = "localhost";
-	workerConfig.m_listenPort = g_workerTestPort;
+	RemoteToolServer::Config toolServerConfig;
+	toolServerConfig.m_coordinator = coordClientConfig;
+	toolServerConfig.m_listenHost = "localhost";
+	toolServerConfig.m_listenPort = g_toolsServerTestPort;
 
-	coordClientConfig.m_logContext = "coordinator:client";
-	coordClientConfig.m_sendWorkerInterval = TimePoint(false);
+	coordClientConfig.m_logContext = "coordinator:toolClient";
+	coordClientConfig.m_sendInfoInterval = TimePoint(false);
 
 	RemoteToolClient::Config clientConfig;
 	clientConfig.m_coordinator = coordClientConfig;
@@ -81,7 +81,7 @@ int main(int argc, char** argv)
 	clientConfig.m_queueTimeout = TimePoint(1.0);
 
 	RemoteToolServer rcServer(executor);
-	if (!rcServer.SetConfig(workerConfig))
+	if (!rcServer.SetConfig(toolServerConfig))
 		return 1;
 
 	RemoteToolClient rcClient;

@@ -66,11 +66,10 @@ StringVector LocalExecutor::GetToolIds() const
 	return m_invocationRewriter->GetConfig().m_toolIds;
 }
 
-void LocalExecutor::SetWorkersCount(int workers)
+void LocalExecutor::SetThreadCount(int threads)
 {
-	m_maxWorkers = workers;
+	m_maxSubProcesses = threads;
 }
-
 
 LocalExecutor::~LocalExecutor()
 {
@@ -135,7 +134,7 @@ void LocalExecutor::Quant()
 		task->m_callback(result);
 	}
 
-	if (m_subprocs->running_.size() < m_maxWorkers)
+	if (m_subprocs->running_.size() < m_maxSubProcesses)
 	{
 		auto task = GetNextTask();
 		if (task)

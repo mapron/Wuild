@@ -17,10 +17,10 @@
 namespace Wuild
 {
 
-std::string CoordinatorWorkerInfo::ToString(bool outputTools, bool outputClients) const
+std::string ToolServerInfo::ToString(bool outputTools, bool outputClients) const
 {
 	std::ostringstream os;
-	os <<  m_connectionHost << ":" << m_connectionPort << " (" << m_workerId << "), threads: " << m_totalThreads;
+	os <<  m_connectionHost << ":" << m_connectionPort << " (" << m_toolServerId << "), threads: " << m_totalThreads;
 	if (outputTools)
 	{
 		os << " Tools: ";
@@ -36,16 +36,16 @@ std::string CoordinatorWorkerInfo::ToString(bool outputTools, bool outputClients
 	return os.str();
 }
 
-bool CoordinatorWorkerInfo::EqualIdTo(const CoordinatorWorkerInfo &rh) const
+bool ToolServerInfo::EqualIdTo(const ToolServerInfo &rh) const
 {
 	return true
-			&& m_workerId == rh.m_workerId
+			&& m_toolServerId == rh.m_toolServerId
 			&& m_connectionHost == rh.m_connectionHost
 			&& m_connectionPort == rh.m_connectionPort
 			;
 }
 
-bool CoordinatorWorkerInfo::ConnectedClientInfo::operator ==(const CoordinatorWorkerInfo::ConnectedClientInfo &rh) const
+bool ToolServerInfo::ConnectedClientInfo::operator ==(const ToolServerInfo::ConnectedClientInfo &rh) const
 {
 	return true
 			&& m_usedThreads == rh.m_usedThreads
@@ -55,7 +55,7 @@ bool CoordinatorWorkerInfo::ConnectedClientInfo::operator ==(const CoordinatorWo
 			;
 }
 
-bool CoordinatorWorkerInfo::operator ==(const CoordinatorWorkerInfo &rh) const
+bool ToolServerInfo::operator ==(const ToolServerInfo &rh) const
 {
 	return true
 			&& EqualIdTo(rh)
@@ -65,29 +65,29 @@ bool CoordinatorWorkerInfo::operator ==(const CoordinatorWorkerInfo &rh) const
 			;
 }
 
-std::vector<CoordinatorWorkerInfo *> CoordinatorInfo::Update(const CoordinatorWorkerInfo &newWorker)
+std::vector<ToolServerInfo *> CoordinatorInfo::Update(const ToolServerInfo &newToolServer)
 {
-	return Update(std::deque<CoordinatorWorkerInfo>(1, newWorker));
+	return Update(std::deque<ToolServerInfo>(1, newToolServer));
 }
 
-std::vector<CoordinatorWorkerInfo *> CoordinatorInfo::Update(const std::deque<CoordinatorWorkerInfo> &newWorkers)
+std::vector<ToolServerInfo *> CoordinatorInfo::Update(const std::deque<ToolServerInfo> &newNoolServers)
 {
-	std::vector<CoordinatorWorkerInfo *> res;
+	std::vector<ToolServerInfo *> res;
 
-	for (const CoordinatorWorkerInfo &newWorker : newWorkers)
+	for (const ToolServerInfo &newToolServer : newNoolServers)
 	{
-		if (newWorker.m_connectionHost.empty())
+		if (newToolServer.m_connectionHost.empty())
 			continue;
 
 		bool found = false;
-		for (auto & workerInfo : m_workers)
+		for (auto & toolServerInfo : m_toolServers)
 		{
-		   if (workerInfo.EqualIdTo(newWorker))
+		   if (toolServerInfo.EqualIdTo(newToolServer))
 		   {
-			   if (workerInfo != newWorker)
+			   if (toolServerInfo != newToolServer)
 			   {
-				   res.push_back(&workerInfo);
-				   workerInfo = newWorker;
+				   res.push_back(&toolServerInfo);
+				   toolServerInfo = newToolServer;
 			   }
 			   found = true;
 			   break;
@@ -95,8 +95,8 @@ std::vector<CoordinatorWorkerInfo *> CoordinatorInfo::Update(const std::deque<Co
 		}
 		if (!found)
 		{
-			m_workers.push_back(newWorker);
-			res.push_back(&*m_workers.rbegin());
+			m_toolServers.push_back(newToolServer);
+			res.push_back(&*m_toolServers.rbegin());
 		}
 	}
 	return res;
@@ -105,18 +105,18 @@ std::vector<CoordinatorWorkerInfo *> CoordinatorInfo::Update(const std::deque<Co
 std::string CoordinatorInfo::ToString(bool outputTools, bool outputClients) const
 {
 	std::ostringstream os;
-	os << "Total workers: " << m_workers.size();
-	for (const auto & w : m_workers)
+	os << "Total tool servers: " << m_toolServers.size();
+	for (const auto & w : m_toolServers)
 		os << "\n" << w.ToString(outputTools, outputClients);
 	return os.str();
 }
 
 bool CoordinatorInfo::operator ==(const CoordinatorInfo &rh) const
 {
-	return m_workers == rh.m_workers;
+	return m_toolServers == rh.m_toolServers;
 }
 
-std::string WorkerSessionInfo::ToString(bool full) const
+std::string ToolServerSessionInfo::ToString(bool full) const
 {
 	std::ostringstream os;
 	os  << "sid=" << m_sessionId

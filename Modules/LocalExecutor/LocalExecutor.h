@@ -41,7 +41,7 @@ public:
 	void AddTask(LocalExecutorTask::Ptr task) override;
 	TaskPair SplitTask(LocalExecutorTask::Ptr task, std::string & err) override;
 	StringVector GetToolIds() const override;
-	void SetWorkersCount(int workers) override;
+	void SetThreadCount(int threads) override;
 
 	~LocalExecutor();
 
@@ -51,7 +51,7 @@ private:
 	LocalExecutorTask::Ptr GetNextTask();
 	void Quant();
 
-	size_t m_maxWorkers = 1;
+	size_t m_maxSubProcesses = 1;
 	size_t m_taskId = 0;
 	std::mutex m_queueMutex;
 	using Guard = std::lock_guard<std::mutex>;

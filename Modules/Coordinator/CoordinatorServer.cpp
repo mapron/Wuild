@@ -46,7 +46,7 @@ bool CoordinatorServer::SetConfig(const CoordinatorServer::Config &config)
 void CoordinatorServer::Start()
 {
 	m_server.reset(new SocketFrameService( m_config.m_listenPort ));
-	m_server->RegisterFrameReader(SocketFrameReaderTemplate<CoordinatorWorkerSession>::Create([this](const CoordinatorWorkerSession& inputMessage, SocketFrameHandler::OutputCallback){
+	m_server->RegisterFrameReader(SocketFrameReaderTemplate<CoordinatorToolServerSession>::Create([this](const CoordinatorToolServerSession& inputMessage, SocketFrameHandler::OutputCallback){
 		std::lock_guard<std::mutex> lock(m_latestSessionsMutex);
 		m_latestSessions.push_back(inputMessage.m_session);
 		if ((int)m_latestSessions.size() > m_config.m_lastestSessionsSize)
@@ -60,9 +60,9 @@ void CoordinatorServer::Start()
 
 	m_server->SetHandlerInitCallback([this](SocketFrameHandler * handler){
 
-		handler->RegisterFrameReader(SocketFrameReaderTemplate<CoordinatorWorkerStatus>::Create([this, handler](const CoordinatorWorkerStatus& inputMessage, SocketFrameHandler::OutputCallback ){
+		handler->RegisterFrameReader(SocketFrameReaderTemplate<CoordinatorToolServerStatus>::Create([this, handler](const CoordinatorToolServerStatus& inputMessage, SocketFrameHandler::OutputCallback ){
 
-			std::vector<CoordinatorWorkerInfo*> modified;
+			std::vector<ToolServerInfo*> modified;
 			{
 				std::lock_guard<std::mutex> lock(m_infoMutex);
 				modified = m_info.Update(inputMessage.m_info);
@@ -79,12 +79,12 @@ void CoordinatorServer::Start()
 
 	m_server->SetHandlerDestroyCallback([this](SocketFrameHandler * handler){
 		std::lock_guard<std::mutex> lock(m_infoMutex);
-		auto workerIt =  m_info.m_workers.begin();
-		for (;workerIt != m_info.m_workers.end(); ++workerIt )
+		auto toolServerIt =  m_info.m_toolServers.begin();
+		for (;toolServerIt != m_info.m_toolServers.end(); ++toolServerIt )
 		{
-		   if ( workerIt->m_opaqueFrameHandler == handler)
+		   if ( toolServerIt->m_opaqueFrameHandler == handler)
 		   {
-			   m_info.m_workers.erase(workerIt);
+			   m_info.m_toolServers.erase(toolServerIt);
 			   return;
 		   }
 		}

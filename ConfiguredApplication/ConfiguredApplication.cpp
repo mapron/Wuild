@@ -206,8 +206,8 @@ void ConfiguredApplication::ReadCoordinatorClientConfig(CoordinatorClientConfig 
 	config.m_coordinatorPort = m_config->GetInt(groupName, "coordinatorPort");
 	config.m_coordinatorHost = m_config->GetString(groupName, "coordinatorHost");
 	config.m_enabled = m_config->GetBool(groupName, "coordinatorEnabled", true);
-	int sendWorkerIntervalMS = m_config->GetInt(groupName, "coordinatorPortMS", 15000);
-	config.m_sendWorkerInterval = TimePoint(sendWorkerIntervalMS / 1000.);
+	int sendInfoIntervalMS = m_config->GetInt(groupName, "sendInfoIntervalMS", 15000);
+	config.m_sendInfoInterval = TimePoint(sendInfoIntervalMS / 1000.);
 }
 
 void ConfiguredApplication::ReadLoggingConfig()

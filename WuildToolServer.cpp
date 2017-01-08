@@ -19,10 +19,10 @@
 int main(int argc, char** argv)
 {
 	using namespace Wuild;
-	ConfiguredApplication app(argc, argv, "WuildWorker", "worker");
+	ConfiguredApplication app(argc, argv, "WuildToolServer", "toolServer");
 
-	RemoteToolServer::Config workerConfig;
-	if (!app.GetRemoteToolServerConfig(workerConfig))
+	RemoteToolServer::Config toolServerConfig;
+	if (!app.GetRemoteToolServerConfig(toolServerConfig))
 		return 1;
 
 	auto invocationRewriter = CheckedCreateInvocationRewriter(app);
@@ -32,7 +32,7 @@ int main(int argc, char** argv)
 	auto localExecutor = LocalExecutor::Create(invocationRewriter, app.m_tempDir);
 
 	RemoteToolServer rcService(localExecutor);
-	if (!rcService.SetConfig(workerConfig))
+	if (!rcService.SetConfig(toolServerConfig))
 		return 1;
 
 	rcService.Start();

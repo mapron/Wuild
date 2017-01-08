@@ -36,6 +36,6 @@ public:
 	virtual StringVector GetToolIds() const = 0;
 
 	/// Sets maximal process count.
-	virtual void SetWorkersCount(int workers) = 0;
+	virtual void SetThreadCount(int threads) = 0;
 };
 }

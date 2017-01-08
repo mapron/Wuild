@@ -35,7 +35,7 @@ bool RemoteToolServerConfig::Validate(std::ostream *errStream) const
 	if (m_threadCount <= 0)
 	{
 		if (errStream)
-			*errStream << "workersCount: Number of thread should be greater than zero.";
+			*errStream << "threadCount: Number of threads should be greater than zero.";
 		return false;
 	}
 

@@ -17,12 +17,12 @@
 #include <RemoteToolServer.h>
 #include <LocalExecutor.h>
 
-const int g_workerTestPort = 12345;
+const int g_toolsServerTestPort = 12345;
 
 int main(int argc, char** argv)
 {
 	using namespace Wuild;
-	ConfiguredApplication app(argc, argv, "TestWorker");
+	ConfiguredApplication app(argc, argv, "TestToolServer");
 	if (!CreateInvocationRewriter(app))
 	   return 1;
 
@@ -42,24 +42,24 @@ int main(int argc, char** argv)
 	LocalExecutorTask::Ptr taskPP = tasks.first;
 	LocalExecutorTask::Ptr taskCC = tasks.second;
 
-	RemoteToolServer::Config workerConfig;
-	workerConfig.m_listenHost = "localhost";
-	workerConfig.m_listenPort = g_workerTestPort;
-	workerConfig.m_coordinator.m_enabled = false;
+	RemoteToolServer::Config toolServerConfig;
+	toolServerConfig.m_listenHost = "localhost";
+	toolServerConfig.m_listenPort = g_toolsServerTestPort;
+	toolServerConfig.m_coordinator.m_enabled = false;
 
 	RemoteToolServer rcServer(localExecutor);
-	if (!rcServer.SetConfig(workerConfig))
+	if (!rcServer.SetConfig(toolServerConfig))
 		return 1;
 
 	rcServer.Start();
 
 	RemoteToolClient rcClient;
-	CoordinatorWorkerInfo workerInfo;
-	workerInfo.m_connectionHost = "localhost";
-	workerInfo.m_connectionPort = g_workerTestPort;
-	workerInfo.m_toolIds = TestConfiguration::s_invocationRewriter->GetConfig().m_toolIds;
-	workerInfo.m_totalThreads = 1;
-	rcClient.AddClient(workerInfo);
+	ToolServerInfo toolServerInfo;
+	toolServerInfo.m_connectionHost = "localhost";
+	toolServerInfo.m_connectionPort = g_toolsServerTestPort;
+	toolServerInfo.m_toolIds = TestConfiguration::s_invocationRewriter->GetConfig().m_toolIds;
+	toolServerInfo.m_totalThreads = 1;
+	rcClient.AddClient(toolServerInfo);
 	RemoteToolClient::Config clientConfig;
 	clientConfig.m_coordinator.m_enabled = false;
 	rcClient.SetConfig(clientConfig);

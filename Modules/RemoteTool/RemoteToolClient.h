@@ -27,7 +27,7 @@
 namespace Wuild
 {
 class RemoteToolClientImpl;
-class CoordinatorWorkerInfoWrap;
+class ToolServerInfoWrap;
 
 /**
  * @brief Transforms local tool execution command to remote.
@@ -59,7 +59,7 @@ public:
 	bool SetConfig(const Config & config);
 
 	/// Explicitly add new remote tool server client (used for testing)
-	void AddClient(const CoordinatorWorkerInfo & info, bool start = false);
+	void AddClient(const ToolServerInfo & info, bool start = false);
 
 	int GetFreeRemoteThreads() const;
 
@@ -71,7 +71,7 @@ public:
 	void InvokeTool(const ToolInvocation & invocation, InvokeCallback callback);
 
 protected:
-	void AddClientInternal(CoordinatorWorkerInfoWrap &info, bool start = false);
+	void AddClientInternal(ToolServerInfoWrap &info, bool start = false);
 	void RecalcAvailable();
 
 	ThreadLoop m_thread;

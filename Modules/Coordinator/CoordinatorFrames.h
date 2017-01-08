@@ -39,7 +39,7 @@ public:
 	using Ptr = std::shared_ptr<CoordinatorListResponse>;
 
 	CoordinatorInfo m_info;
-	WorkerSessionInfo::List m_latestSessions;
+	ToolServerSessionInfo::List m_latestSessions;
 
 	void                LogTo(std::ostream& os) const override { os << m_info.ToString(); }
 	uint8_t             FrameTypeId() const override { return s_frameTypeId;}
@@ -48,13 +48,13 @@ public:
 	State               WriteInternal(ByteOrderDataStreamWriter &stream) const override;
 };
 
-class CoordinatorWorkerStatus : public SocketFrameExt
+class CoordinatorToolServerStatus : public SocketFrameExt
 {
 public:
 	static const uint8_t s_frameTypeId = s_minimalUserFrameId + 3;
-	using Ptr = std::shared_ptr<CoordinatorWorkerStatus>;
+	using Ptr = std::shared_ptr<CoordinatorToolServerStatus>;
 
-	CoordinatorWorkerInfo m_info;
+	ToolServerInfo m_info;
 
 	void                LogTo(std::ostream& os) const override { os << " STATUS:" << m_info.ToString(); }
 	uint8_t             FrameTypeId() const override { return s_frameTypeId;}
@@ -63,13 +63,13 @@ public:
 	State               WriteInternal(ByteOrderDataStreamWriter &stream) const override;
 };
 
-class CoordinatorWorkerSession : public SocketFrameExt
+class CoordinatorToolServerSession : public SocketFrameExt
 {
 public:
 	static const uint8_t s_frameTypeId = s_minimalUserFrameId + 4;
-	using Ptr = std::shared_ptr<CoordinatorWorkerSession>;
+	using Ptr = std::shared_ptr<CoordinatorToolServerSession>;
 
-	WorkerSessionInfo m_session;
+	ToolServerSessionInfo m_session;
 
 	void                LogTo(std::ostream& os) const override { os << " SESSION:" << m_session.ToString(); }
 	uint8_t             FrameTypeId() const override { return s_frameTypeId;}

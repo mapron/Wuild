@@ -32,7 +32,7 @@ inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator << (const 
 }
 
 template<>
-inline ByteOrderDataStreamReader& ByteOrderDataStreamReader::operator >> (CoordinatorWorkerInfo::ConnectedClientInfo &client)
+inline ByteOrderDataStreamReader& ByteOrderDataStreamReader::operator >> (ToolServerInfo::ConnectedClientInfo &client)
 {
 	*this
 		>> client.m_usedThreads
@@ -43,7 +43,7 @@ inline ByteOrderDataStreamReader& ByteOrderDataStreamReader::operator >> (Coordi
 	return *this;
 }
 template<>
-inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator << (const CoordinatorWorkerInfo::ConnectedClientInfo &client)
+inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator << (const ToolServerInfo::ConnectedClientInfo &client)
 {
 	*this
 		<< client.m_usedThreads
@@ -55,10 +55,10 @@ inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator << (const 
 }
 
 template<>
-inline ByteOrderDataStreamReader& ByteOrderDataStreamReader::operator >> (CoordinatorWorkerInfo &info)
+inline ByteOrderDataStreamReader& ByteOrderDataStreamReader::operator >> (ToolServerInfo &info)
 {
 	*this
-		>> info.m_workerId
+		>> info.m_toolServerId
 		>> info.m_connectionHost
 		>> info.m_connectionPort
 		>> info.m_toolIds
@@ -68,10 +68,10 @@ inline ByteOrderDataStreamReader& ByteOrderDataStreamReader::operator >> (Coordi
 	return *this;
 }
 template<>
-inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator << (const CoordinatorWorkerInfo &info)
+inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator << (const ToolServerInfo &info)
 {
 	*this
-		<< info.m_workerId
+		<< info.m_toolServerId
 		<< info.m_connectionHost
 		<< info.m_connectionPort
 		<< info.m_toolIds
@@ -81,7 +81,7 @@ inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator << (const 
 	return *this;
 }
 template<>
-inline ByteOrderDataStreamReader& ByteOrderDataStreamReader::operator >> (WorkerSessionInfo &session)
+inline ByteOrderDataStreamReader& ByteOrderDataStreamReader::operator >> (ToolServerSessionInfo &session)
 {
 	*this
 		>> session.m_clientId
@@ -93,7 +93,7 @@ inline ByteOrderDataStreamReader& ByteOrderDataStreamReader::operator >> (Worker
 	return *this;
 }
 template<>
-inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator << (const WorkerSessionInfo &session)
+inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator << (const ToolServerSessionInfo &session)
 {
 	*this
 		<< session.m_clientId
@@ -108,36 +108,36 @@ inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator << (const 
 
 SocketFrame::State CoordinatorListResponse::ReadInternal(ByteOrderDataStreamReader &stream)
 {
-	stream  >> m_info.m_workers >> m_latestSessions;
+	stream  >> m_info.m_toolServers >> m_latestSessions;
 
 	return stOk;
 }
 
 SocketFrame::State CoordinatorListResponse::WriteInternal(ByteOrderDataStreamWriter &stream) const
 {
-	stream << m_info.m_workers <<  m_latestSessions;
+	stream << m_info.m_toolServers <<  m_latestSessions;
 	return stOk;
 }
 
-SocketFrame::State CoordinatorWorkerStatus::ReadInternal(ByteOrderDataStreamReader &stream)
+SocketFrame::State CoordinatorToolServerStatus::ReadInternal(ByteOrderDataStreamReader &stream)
 {
 	stream >> m_info;
 	return stOk;
 }
 
-SocketFrame::State CoordinatorWorkerStatus::WriteInternal(ByteOrderDataStreamWriter &stream) const
+SocketFrame::State CoordinatorToolServerStatus::WriteInternal(ByteOrderDataStreamWriter &stream) const
 {
 	stream << m_info;
 	return stOk;
 }
 
-SocketFrame::State CoordinatorWorkerSession::ReadInternal(ByteOrderDataStreamReader &stream)
+SocketFrame::State CoordinatorToolServerSession::ReadInternal(ByteOrderDataStreamReader &stream)
 {
 	stream >> m_session;
 	return stOk;
 }
 
-SocketFrame::State CoordinatorWorkerSession::WriteInternal(ByteOrderDataStreamWriter &stream) const
+SocketFrame::State CoordinatorToolServerSession::WriteInternal(ByteOrderDataStreamWriter &stream) const
 {
 	stream << m_session;
 	return stOk;

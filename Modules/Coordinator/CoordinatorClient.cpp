@@ -50,9 +50,9 @@ bool CoordinatorClient::SetConfig(const CoordinatorClient::Config &config)
 	return true;
 }
 
-void CoordinatorClient::SetWorkerChangeCallback(CoordinatorClient::WorkerChangeCallback callback)
+void CoordinatorClient::SetToolServerChangeCallback(CoordinatorClient::ToolServerChangeCallback callback)
 {
-	m_workerChangeCallback = callback;
+	m_toolServerChangeCallback = callback;
 }
 
 void CoordinatorClient::SetInfoArrivedCallback(CoordinatorClient::InfoArrivedCallback callback)
@@ -69,12 +69,12 @@ void CoordinatorClient::Start()
 	m_client->RegisterFrameReader(SocketFrameReaderTemplate<CoordinatorListResponse>::Create([this](const CoordinatorListResponse& inputMessage, SocketFrameHandler::OutputCallback){
 		 std::lock_guard<std::mutex> lock(m_coordMutex);
 
-		 Syslogger(this->m_config.m_logContext) << " list arrived [" << inputMessage.m_info.m_workers.size() << "]";
-		 auto modified = m_coord.Update(inputMessage.m_info.m_workers);
-		 if (!modified.empty() && m_workerChangeCallback)
+		 Syslogger(this->m_config.m_logContext) << " list arrived [" << inputMessage.m_info.m_toolServers.size() << "]";
+		 auto modified = m_coord.Update(inputMessage.m_info.m_toolServers);
+		 if (!modified.empty() && m_toolServerChangeCallback)
 		 {
-			 for (const CoordinatorWorkerInfo * worker: modified)
-				 m_workerChangeCallback(*worker);
+			 for (const ToolServerInfo * toolServer: modified)
+				 m_toolServerChangeCallback(*toolServer);
 
 		 }
 		 if (m_infoArrivedCallback)
@@ -93,22 +93,22 @@ void CoordinatorClient::Start()
 	m_thread.Exec(std::bind(&CoordinatorClient::Quant, this));
 }
 
-void CoordinatorClient::SetWorkerInfo(const CoordinatorWorkerInfo &info)
+void CoordinatorClient::SetToolServerInfo(const ToolServerInfo &info)
 {
-	std::lock_guard<std::mutex> lock(m_workerMutex);
-	if (m_worker == info)
+	std::lock_guard<std::mutex> lock(m_toolServerInfoMutex);
+	if (m_toolServerInfo == info)
 		return;
-	m_needSendWorkerInfo = true;
-	m_worker = info;
+	m_needSendToolServerInfo = true;
+	m_toolServerInfo = info;
 }
 
-void CoordinatorClient::SendWorkerSessionInfo(const WorkerSessionInfo &sessionInfo)
+void CoordinatorClient::SendToolServerSessionInfo(const ToolServerSessionInfo &sessionInfo)
 {
 	if (!m_client)
 		return;
 	Syslogger(this->m_config.m_logContext) << " sending session " <<  sessionInfo.m_clientId;
 
-	CoordinatorWorkerSession::Ptr message(new CoordinatorWorkerSession());
+	CoordinatorToolServerSession::Ptr message(new CoordinatorToolServerSession());
 	message->m_session = sessionInfo;
 	m_client->QueueFrame(message);
 }
@@ -118,17 +118,17 @@ void CoordinatorClient::Quant()
 	if (!m_clientState)
 		return;
 
-	if (m_config.m_sendWorkerInterval && m_needSendWorkerInfo)
+	if (m_config.m_sendInfoInterval && m_needSendToolServerInfo)
 	{
-		if (!m_lastSend || m_lastSend.GetElapsedTime() > m_config.m_sendWorkerInterval)
+		if (!m_lastSend || m_lastSend.GetElapsedTime() > m_config.m_sendInfoInterval)
 		{
 			m_lastSend = TimePoint(true);
-			m_needSendWorkerInfo = false;
+			m_needSendToolServerInfo = false;
 			{
-				std::lock_guard<std::mutex> lock(m_workerMutex);
-				Syslogger(this->m_config.m_logContext) << " sending worker " <<  m_worker.m_workerId;
-				CoordinatorWorkerStatus::Ptr message(new CoordinatorWorkerStatus());
-				message->m_info = m_worker;
+				std::lock_guard<std::mutex> lock(m_toolServerInfoMutex);
+				Syslogger(this->m_config.m_logContext) << " sending tool server " <<  m_toolServerInfo.m_toolServerId;
+				CoordinatorToolServerStatus::Ptr message(new CoordinatorToolServerStatus());
+				message->m_info = m_toolServerInfo;
 				m_client->QueueFrame(message);
 			}
 		}

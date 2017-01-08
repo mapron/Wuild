@@ -32,15 +32,15 @@ int main(int argc, char** argv)
 		return 1;
 
 
-	client.SetInfoArrivedCallback([](const CoordinatorInfo& info, const WorkerSessionInfo::List & sessions){
-		std::cout << "Coordinator connected workers: \n";
-		for (const CoordinatorWorkerInfo & worker : info.m_workers)
+	client.SetInfoArrivedCallback([](const CoordinatorInfo& info, const ToolServerSessionInfo::List & sessions){
+		std::cout << "Coordinator connected tool servers: \n";
+		for (const ToolServerInfo & toolServer : info.m_toolServers)
 		{
-			std::cout <<  worker.ToString(true, true) << "\n";
+			std::cout <<  toolServer.ToString(true, true) << "\n";
 		}
 
 		std::cout << "\n Coordinator latest sessions: \n";
-		for (const WorkerSessionInfo & session : sessions)
+		for (const ToolServerSessionInfo & session : sessions)
 		{
 			std::cout <<  session.ToString(true) << "\n";
 		}

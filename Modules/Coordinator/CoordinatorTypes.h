@@ -21,9 +21,9 @@
 namespace Wuild
 {
 /// Information about remote tool server state.
-struct CoordinatorWorkerInfo
+struct ToolServerInfo
 {
-	std::string m_workerId;
+	std::string m_toolServerId;
 	std::string m_connectionHost;
 	int16_t m_connectionPort = 0;
 	StringVector m_toolIds;
@@ -41,23 +41,23 @@ struct CoordinatorWorkerInfo
 	};
 	std::vector<ConnectedClientInfo> m_connectedClients;
 	std::string ToString(bool outputTools = false, bool outputClients = false) const;
-	bool EqualIdTo(const CoordinatorWorkerInfo & rh) const;
+	bool EqualIdTo(const ToolServerInfo & rh) const;
 
 	void *m_opaqueFrameHandler = nullptr;
 
-	bool operator ==(const CoordinatorWorkerInfo& rh) const;
-	bool operator !=(const CoordinatorWorkerInfo& rh) const { return !(*this == rh);}
+	bool operator ==(const ToolServerInfo& rh) const;
+	bool operator !=(const ToolServerInfo& rh) const { return !(*this == rh);}
 };
 
-/// Worker info list
+/// Tool server info list
 struct CoordinatorInfo
 {
-	std::deque<CoordinatorWorkerInfo> m_workers;
+	std::deque<ToolServerInfo> m_toolServers;
 
 	/// returns list of changed items pointers.
-	std::vector<CoordinatorWorkerInfo*> Update(const CoordinatorWorkerInfo & newWorker);
+	std::vector<ToolServerInfo*> Update(const ToolServerInfo & newToolServer);
 	/// returns list of changed items pointers.
-	std::vector<CoordinatorWorkerInfo*> Update(const std::deque<CoordinatorWorkerInfo> &newWorkers);
+	std::vector<ToolServerInfo*> Update(const std::deque<ToolServerInfo> &newNoolServers);
 
 	std::string ToString(bool outputTools = false, bool outputClients = false) const;
 
@@ -66,9 +66,9 @@ struct CoordinatorInfo
 };
 
 /// Information about finished compilation session (sequence of tool executions)
-struct WorkerSessionInfo
+struct ToolServerSessionInfo
 {
-	using List = std::deque<WorkerSessionInfo>;
+	using List = std::deque<ToolServerSessionInfo>;
 	std::string m_clientId;
 	uint64_t m_sessionId;
 	TimePoint m_totalExecutionTime;

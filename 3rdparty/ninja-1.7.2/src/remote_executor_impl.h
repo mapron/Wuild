@@ -81,7 +81,7 @@ public:
 
 #ifdef  TEST_CLIENT
 		m_localExecutor = LocalExecutor::Create(m_compiler, m_app.m_tempDir);
-		m_app.m_remoteToolServerConfig.m_workersCount = 2;
+		m_app.m_remoteToolServerConfig.m_threadCount = 2;
 		m_app.m_remoteToolServerConfig.m_listenHost = "localhost";
 		m_app.m_remoteToolServerConfig.m_listenPort = 12345;
 		m_app.m_remoteToolServerConfig.m_coordinator.m_enabled = false;
@@ -90,12 +90,12 @@ public:
 		if (!m_toolServer->SetConfig(m_app.m_remoteToolServerConfig))
 			return;
 
-		CoordinatorWorkerInfo workerInfo;
-		workerInfo.m_connectionHost = "localhost";
-		workerInfo.m_connectionPort = 12345;
-		workerInfo.m_toolIds = m_compiler->GetConfig().m_toolIds;
-		workerInfo.m_totalThreads = 2;
-		m_remoteService.AddClient(workerInfo);
+		ToolServerInfo toolServerInfo;
+		toolServerInfo.m_connectionHost = "localhost";
+		toolServerInfo.m_connectionPort = 12345;
+		toolServerInfo.m_toolIds = m_compiler->GetConfig().m_toolIds;
+		toolServerInfo.m_totalThreads = 2;
+		m_remoteService.AddClient(toolServerInfo);
 
 		remoteToolConfig.m_coordinator.m_enabled = false;
 		m_remoteService.SetConfig(remoteToolConfig);

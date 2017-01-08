@@ -26,12 +26,12 @@ namespace Wuild
 {
 class SocketFrameHandler;
 
-/// Retrives and send tool server worker information.
+/// Retrives and send tool server information.
 class CoordinatorClient
 {
 public:
-	using WorkerChangeCallback = std::function<void(const CoordinatorWorkerInfo&)>;
-	using InfoArrivedCallback = std::function<void(const CoordinatorInfo&, const WorkerSessionInfo::List &)>;
+	using ToolServerChangeCallback = std::function<void(const ToolServerInfo&)>;
+	using InfoArrivedCallback = std::function<void(const CoordinatorInfo&, const ToolServerSessionInfo::List &)>;
 	using Config = CoordinatorClientConfig;
 
 public:
@@ -39,17 +39,17 @@ public:
 	~CoordinatorClient();
 
 	bool SetConfig(const Config & config);
-	void SetWorkerChangeCallback(WorkerChangeCallback callback);
+	void SetToolServerChangeCallback(ToolServerChangeCallback callback);
 	void SetInfoArrivedCallback(InfoArrivedCallback callback);
 
 	void Start();
 
-	void SetWorkerInfo(const CoordinatorWorkerInfo & info);
-	void SendWorkerSessionInfo( const WorkerSessionInfo & sessionInfo );
+	void SetToolServerInfo(const ToolServerInfo & info);
+	void SendToolServerSessionInfo( const ToolServerSessionInfo & sessionInfo );
 
 protected:
 	void Quant();
-	WorkerChangeCallback m_workerChangeCallback;
+	ToolServerChangeCallback m_toolServerChangeCallback;
 	InfoArrivedCallback m_infoArrivedCallback;
 
 	std::unique_ptr<SocketFrameHandler> m_client;
@@ -59,11 +59,11 @@ protected:
 	std::atomic_bool m_clientState { false };
 
 	CoordinatorInfo m_coord;
-	CoordinatorWorkerInfo m_worker;
-	std::atomic_bool m_needSendWorkerInfo {true};
+	ToolServerInfo m_toolServerInfo;
+	std::atomic_bool m_needSendToolServerInfo {true};
 	std::atomic_bool m_needRequestData {true};
 	std::mutex m_coordMutex;
-	std::mutex m_workerMutex;
+	std::mutex m_toolServerInfoMutex;
 
 	Config m_config;
 };

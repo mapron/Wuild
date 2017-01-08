@@ -25,7 +25,7 @@ public:
 	bool m_enabled = true;
 	std::string m_coordinatorHost;
 	int m_coordinatorPort = 0;
-	TimePoint m_sendWorkerInterval;
+	TimePoint m_sendInfoInterval;
 
 	bool Validate(std::ostream * errStream = nullptr) const override;
 };
