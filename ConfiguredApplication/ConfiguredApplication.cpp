@@ -66,11 +66,11 @@ ConfiguredApplication::ConfiguredApplication(int argc, char **argv, const std::s
 	config.ReadCommandLine(inputArgs, g_commandLinePrefix);
 
 	ReadLoggingConfig();
-	ReadCompilerConfig();
+	ReadInvocationRewriterConfig();
 	ReadRemoteToolClientConfig();
 	ReadRemoteToolServerConfig();
 	ReadCoordinatorServerConfig();
-	ReadCompilerProxyServerConfig();
+	ReadToolProxyServerConfig();
 
 	InitLogging(m_loggerConfig);
 
@@ -136,17 +136,17 @@ bool ConfiguredApplication::InitLogging(const LoggerConfig &loggerConfig)
 	return true;
 }
 
-bool ConfiguredApplication::GetCompilerConfig(CompilerConfig & config, bool silent) const
+bool ConfiguredApplication::GetInvocationRewriterConfig(InvocationRewriterConfig & config, bool silent) const
 {
 	// TODO: make template, remove copy-paste.
 	std::ostringstream os;
-	if (!m_compilerConfig.Validate(&os))
+	if (!m_invocationRewriterConfig.Validate(&os))
 	{
 		if (!silent)
 			Syslogger(LOG_ERR) << os.str();
 		return false;
 	}
-	config = m_compilerConfig;
+	config = m_invocationRewriterConfig;
 	return true;
 }
 
@@ -163,15 +163,15 @@ bool ConfiguredApplication::GetCoordinatorServerConfig(CoordinatorServerConfig &
 	return true;
 }
 
-bool ConfiguredApplication::GetCompilerProxyServerConfig(CompilerProxyServerConfig &config) const
+bool ConfiguredApplication::GetToolProxyServerConfig(ToolProxyServerConfig &config) const
 {
 	std::ostringstream os;
-	if (!m_compilerProxyServerConfig.Validate(&os))
+	if (!m_toolProxyServerConfig.Validate(&os))
 	{
 		Syslogger(LOG_ERR) << os.str();
 		return false;
 	}
-	config = m_compilerProxyServerConfig;
+	config = m_toolProxyServerConfig;
 	return true;
 }
 
@@ -227,14 +227,14 @@ void ConfiguredApplication::ReadLoggingConfig()
 
 }
 
-void ConfiguredApplication::ReadCompilerConfig()
+void ConfiguredApplication::ReadInvocationRewriterConfig()
 {
 	const std::string defaultGroup("compiler");
 
-	m_compilerConfig.m_toolIds = m_config->GetStringList(defaultGroup, "modules");
-	for (const auto & id : m_compilerConfig.m_toolIds)
+	m_invocationRewriterConfig.m_toolIds = m_config->GetStringList(defaultGroup, "modules");
+	for (const auto & id : m_invocationRewriterConfig.m_toolIds)
 	{
-		CompilerConfig::CompilerUnit unit;
+		InvocationRewriterConfig::Tool unit;
 		unit.m_id = id;
 		std::string append = m_config->GetString(defaultGroup, id + "_append");
 		if (!append.empty())
@@ -243,7 +243,7 @@ void ConfiguredApplication::ReadCompilerConfig()
 		}
 		std::string type = m_config->GetString(defaultGroup, id + "_type", "gcc"); // "gcc" or "msvc"
 		if (type == "msvc" || unit.m_id.find("ms") == 0)
-			unit.m_type = CompilerConfig::ToolchainType::MSVC;
+			unit.m_type = InvocationRewriterConfig::ToolchainType::MSVC;
 		for (auto executable: m_config->GetStringList(defaultGroup, id))
 		{
 #ifdef _WIN32
@@ -252,7 +252,7 @@ void ConfiguredApplication::ReadCompilerConfig()
 			unit.m_names.push_back(executable);
 		}
 
-		m_compilerConfig.m_modules.push_back(unit);
+		m_invocationRewriterConfig.m_tools.push_back(unit);
 	}
 }
 
@@ -284,11 +284,11 @@ void ConfiguredApplication::ReadCoordinatorServerConfig()
 	m_coordinatorServerConfig.m_listenPort = m_config->GetInt(defaultGroup, "listenPort");
 }
 
-void ConfiguredApplication::ReadCompilerProxyServerConfig()
+void ConfiguredApplication::ReadToolProxyServerConfig()
 {
 	const std::string defaultGroup("proxy");
-	m_compilerProxyServerConfig.m_listenPort = m_config->GetInt(defaultGroup, "listenPort");
-	m_compilerProxyServerConfig.m_toolId = m_config->GetString(defaultGroup, "toolId");
+	m_toolProxyServerConfig.m_listenPort = m_config->GetInt(defaultGroup, "listenPort");
+	m_toolProxyServerConfig.m_toolId = m_config->GetString(defaultGroup, "toolId");
 }
 
 }

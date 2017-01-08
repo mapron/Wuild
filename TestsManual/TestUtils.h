@@ -26,22 +26,22 @@
 
 namespace Wuild
 {
-class CompilerModuleStub : public ICompilerModule
+class InvocationRewriterStub : public IInvocationRewriter
 {
 	Config m_config;
 public:
-	CompilerModuleStub(const Config& config) : m_config(config) {}
+	InvocationRewriterStub(const Config& config) : m_config(config) {}
 
 	void SetConfig(const Config& config) override { m_config = config; }
 	const Config& GetConfig() const override { return m_config; }
 
-	bool SplitInvocation(const CompilerInvocation & ,
-				 CompilerInvocation &,
-				 CompilerInvocation &) override { return false;}
+	bool SplitInvocation(const ToolInvocation & ,
+				 ToolInvocation &,
+				 ToolInvocation &) override { return false;}
 
-	CompilerInvocation CompleteInvocation(const CompilerInvocation & original) override { return original; }
+	ToolInvocation CompleteInvocation(const ToolInvocation & original) override { return original; }
 
-	CompilerInvocation FilterFlags(const CompilerInvocation & original) override { return original; }
+	ToolInvocation FilterFlags(const ToolInvocation & original) override { return original; }
 
 	std::string GetPreprocessedPath(const std::string &, const std::string & objectPath) const override { return objectPath + ".pp";}
 
@@ -54,26 +54,24 @@ class TestConfiguration
 
 public:
 
-	static bool GetTestToolConfig(ICompilerModule::Config & settings)
+	static bool GetTestToolConfig(IInvocationRewriter::Config & settings)
 	{
 		settings.m_toolIds.push_back("testTool");
-		settings.m_modules.resize(1);
-		settings.m_modules[0].m_id = "testTool";
-		settings.m_modules[0].m_names = StringVector(1, "test");
+		settings.m_tools.resize(1);
+		settings.m_tools[0].m_id = "testTool";
+		settings.m_tools[0].m_names = StringVector(1, "test");
 		return true;
 	}
 	static const std::string g_testProgram;
 
-	static ICompilerModule::Ptr g_compilerModule;
-
-	static bool g_compilerModuleRequired;
+	static IInvocationRewriter::Ptr s_invocationRewriter;
 
 	static void ExitHandler (int code){ std::cout << (code == 0 ? "OK" : "FAIL") << std::endl; }
 };
 
 StringVector CreateTestProgramInvocation();
 
-bool CreateCompiler(ConfiguredApplication & app, bool stub = false);
+bool CreateInvocationRewriter(ConfiguredApplication & app, bool stub = false);
 
 int HandleTestResult();
 

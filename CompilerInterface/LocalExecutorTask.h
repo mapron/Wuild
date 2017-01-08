@@ -47,7 +47,7 @@ struct LocalExecutorTask
 	using CallbackType = std::function<void(LocalExecutorResult::Ptr)>;
 
 	CallbackType m_callback;                //!< Called when process finished or on fail.
-	CompilerInvocation m_invocation;        //!< Commandline arguments
+	ToolInvocation m_invocation;        //!< Commandline arguments
 	ByteArrayHolder m_inputData;            //!< Some input file data
 
 	bool m_writeInput = true;
@@ -59,7 +59,7 @@ struct LocalExecutorTask
 
 	std::string GetShortErrorInfo() const
 	{
-		return m_invocation.m_id.m_compilerId + ": " + m_invocation.GetArgsString(false);
+		return m_invocation.m_id.m_toolId + ": " + m_invocation.GetArgsString(false);
 	}
 
 	void ErrorResult(const std::string & text) const

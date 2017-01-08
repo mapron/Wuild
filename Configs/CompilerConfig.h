@@ -16,18 +16,18 @@
 
 namespace Wuild
 {
-class CompilerConfig : public IConfig
+class InvocationRewriterConfig : public IConfig
 {
 public:
 	enum class ToolchainType { GCC, MSVC };
-	struct CompilerUnit
+	struct Tool
 	{
 		std::string m_id;
 		std::string m_appendOption;
 		ToolchainType m_type = ToolchainType::GCC;
 		std::vector<std::string> m_names;
 	};
-	std::vector<CompilerUnit> m_modules;
+	std::vector<Tool> m_tools;
 	StringVector m_toolIds;
 	std::string GetFirstToolId() const;
 	std::string GetFirstToolName() const;

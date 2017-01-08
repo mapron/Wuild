@@ -28,7 +28,7 @@ public:
 	static const uint8_t s_frameTypeId = s_minimalUserFrameId + 1;
 	using Ptr = std::shared_ptr<RemoteToolRequest>;
 
-	CompilerInvocation m_invocation;
+	ToolInvocation m_invocation;
 	ByteArrayHolder    m_fileData;
 
 	uint8_t             FrameTypeId() const override { return s_frameTypeId;}

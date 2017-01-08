@@ -22,12 +22,12 @@ int main(int argc, char** argv)
 	using namespace Wuild;
 	ConfiguredApplication app(argc, argv, "WuildProxyServer", "proxy");
 
-	auto compilerModule = CheckedCreateCompilerModule(app);
-	if (!compilerModule)
+	auto invocationRewriter = CheckedCreateInvocationRewriter(app);
+	if (!invocationRewriter)
 		return 1;
 
-	CompilerProxyServer::Config proxyConfig;
-	if (!app.GetCompilerProxyServerConfig(proxyConfig))
+	ToolProxyServer::Config proxyConfig;
+	if (!app.GetToolProxyServerConfig(proxyConfig))
 		return 1;
 
 	RemoteToolClient::Config config;
@@ -38,9 +38,9 @@ int main(int argc, char** argv)
 	if (!rcClient.SetConfig(config))
 		return 1;
 
-	auto localExecutor = LocalExecutor::Create(compilerModule, app.m_tempDir);
+	auto localExecutor = LocalExecutor::Create(invocationRewriter, app.m_tempDir);
 
-	CompilerProxyServer proxyServer(localExecutor, rcClient);
+	ToolProxyServer proxyServer(localExecutor, rcClient);
 	if (!proxyServer.SetConfig(proxyConfig))
 		return 1;
 

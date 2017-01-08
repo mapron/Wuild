@@ -25,14 +25,14 @@ namespace Wuild
 {
 class SocketFrameService;
 /// TODO:
-class CompilerProxyServer
+class ToolProxyServer
 {
 public:
-	using Config = CompilerProxyServerConfig;
+	using Config = ToolProxyServerConfig;
 
 public:
-	CompilerProxyServer(ILocalExecutor::Ptr executor, RemoteToolClient & rcClient);
-	~CompilerProxyServer();
+	ToolProxyServer(ILocalExecutor::Ptr executor, RemoteToolClient & rcClient);
+	~ToolProxyServer();
 
 	bool SetConfig(const Config & config);
 	void Start();

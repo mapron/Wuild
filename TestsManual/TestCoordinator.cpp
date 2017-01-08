@@ -48,7 +48,7 @@ const int g_coordinatorTestPort = 12346;
 int main(int argc, char** argv)
 {
 	ConfiguredApplication app(argc, argv, "TestCoordinator");
-	if (!CreateCompiler(app, true))
+	if (!CreateInvocationRewriter(app, true))
 	   return 1;
 
 	app.m_loggerConfig.m_outputTimeoffsets = true;
@@ -119,8 +119,8 @@ int main(int argc, char** argv)
 	rcClient.SetRemoteAvailableCallback([start](int ) {
 		 std::cout <<  "Init client taken: " << start.GetElapsedTime().GetUS() << " us." << std::endl << std::flush;
 	});
-	totalCount++; rcClient.InvokeTool(CompilerInvocation().SetId(g_testTool) , callback);
-	totalCount++; rcClient.InvokeTool(CompilerInvocation().SetId(g_testTool2), callbackFail);
+	totalCount++; rcClient.InvokeTool(ToolInvocation().SetId(g_testTool) , callback);
+	totalCount++; rcClient.InvokeTool(ToolInvocation().SetId(g_testTool2), callbackFail);
 
 	return ExecAppLoop(TestConfiguration::ExitHandler);
 }

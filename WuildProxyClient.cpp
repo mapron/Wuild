@@ -21,11 +21,11 @@ int main(int argc, char** argv)
 	using namespace Wuild;
 	ConfiguredApplication app(argc, argv, "WuildProxyClient", "proxy");
 
-	CompilerProxyClient::Config proxyConfig;
-	if (!app.GetCompilerProxyServerConfig(proxyConfig))
+	ToolProxyClient::Config proxyConfig;
+	if (!app.GetToolProxyServerConfig(proxyConfig))
 		return 1;
 
-	CompilerProxyClient proxyClient;
+	ToolProxyClient proxyClient;
 	if (!proxyClient.SetConfig(proxyConfig))
 		return 1;
 

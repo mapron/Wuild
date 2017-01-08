@@ -20,10 +20,7 @@ const std::string TestConfiguration::g_testProgram =
 		"int main() { std::cout << \"OK\\n\"; return 0; } \n"
 		;
 
-ICompilerModule::Ptr TestConfiguration::g_compilerModule;
-
-bool TestConfiguration::g_compilerModuleRequired = true;
-
+IInvocationRewriter::Ptr TestConfiguration::s_invocationRewriter;
 
 StringVector CreateTestProgramInvocation()
 {
@@ -52,21 +49,21 @@ int HandleTestResult()
 	return Application::GetExitCode();
 }
 
-bool CreateCompiler(ConfiguredApplication &app, bool stub)
+bool CreateInvocationRewriter(ConfiguredApplication &app, bool stub)
 {
 	if (!stub)
 	{
-		ICompilerModule::Config config;
-		if (!app.GetCompilerConfig( config ))
+		IInvocationRewriter::Config config;
+		if (!app.GetInvocationRewriterConfig( config ))
 			return false;
 
-		TestConfiguration::g_compilerModule = CompilerModule::Create(config);
+		TestConfiguration::s_invocationRewriter = InvocationRewriter::Create(config);
 	}
 	else
 	{
-		ICompilerModule::Config config;
+		IInvocationRewriter::Config config;
 		TestConfiguration::GetTestToolConfig( config );
-		TestConfiguration::g_compilerModule.reset( new CompilerModuleStub(config) );
+		TestConfiguration::s_invocationRewriter.reset( new InvocationRewriterStub(config) );
 	}
 	return true;
 }

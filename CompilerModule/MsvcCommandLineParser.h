@@ -25,7 +25,7 @@ class MsvcCommandLineParser: public AbstractCommandLineParser
 public:
 	void UpdateInfo() override;
 
-	void SetInvokeType(CompilerInvocation::InvokeType type) override;
+	void SetInvokeType(ToolInvocation::InvokeType type) override;
 
 	void RemovePDB() override;
 	void RemovePrepocessorFlags() override;

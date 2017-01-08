@@ -18,25 +18,25 @@
 namespace Wuild
 {
 
-std::string CompilerConfig::GetFirstToolId() const
+std::string InvocationRewriterConfig::GetFirstToolId() const
 {
-	return m_modules.empty() ? "" : m_modules[0].m_id;
+	return m_tools.empty() ? "" : m_tools[0].m_id;
 }
 
-std::string CompilerConfig::GetFirstToolName() const
+std::string InvocationRewriterConfig::GetFirstToolName() const
 {
-	return m_modules.empty() || m_modules[0].m_names.empty() ? "" : m_modules[0].m_names[0];
+	return m_tools.empty() || m_tools[0].m_names.empty() ? "" : m_tools[0].m_names[0];
 }
 
-bool CompilerConfig::Validate(std::ostream *errStream) const
+bool InvocationRewriterConfig::Validate(std::ostream *errStream) const
 {
-	if (m_modules.empty())
+	if (m_tools.empty())
 	{
 		if (errStream)
-			*errStream << "Compiler modules are empty.";
+			*errStream << "Toolchain modules are empty.";
 		return false;
 	}
-	for (const auto & unit : m_modules)
+	for (const auto & unit : m_tools)
 	{
 		if (unit.m_names.empty())
 		{

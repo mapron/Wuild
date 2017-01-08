@@ -102,7 +102,7 @@ public:
 			if (client.m_state)
 			{
 				const StringVector & toolIds = client.m_worker.m_toolIds;
-				const std::string & toolId = task.m_request->m_invocation.m_id.m_compilerId;
+				const std::string & toolId = task.m_request->m_invocation.m_id.m_toolId;
 				const bool toolExists = (std::find(toolIds.cbegin(), toolIds.cend(), toolId) != toolIds.cend());
 				if (!toolExists) continue;
 				int clientLoad = (client.m_busyMine + client.m_busyOthers) * client.m_eachTaskWeight / client.m_worker.m_totalThreads;
@@ -206,7 +206,7 @@ void RemoteToolClient::AddClient(const CoordinatorWorkerInfo &info, bool start)
 	   wrap.m_handler->Start();
 }
 
-void RemoteToolClient::InvokeTool(const CompilerInvocation & invocation, InvokeCallback callback)
+void RemoteToolClient::InvokeTool(const ToolInvocation & invocation, InvokeCallback callback)
 {
 	TimePoint start(true);
 	std::string inputFilename  = invocation.GetInput();

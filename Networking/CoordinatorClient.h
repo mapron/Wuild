@@ -26,7 +26,7 @@ namespace Wuild
 {
 class SocketFrameHandler;
 
-/// Retrives and send compiler worker information.
+/// Retrives and send tool server worker information.
 class CoordinatorClient
 {
 public:

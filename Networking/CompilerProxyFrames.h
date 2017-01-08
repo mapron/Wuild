@@ -21,13 +21,13 @@
 namespace Wuild
 {
 
-class ProxyRequest : public SocketFrameExt
+class ToolProxyRequest : public SocketFrameExt
 {
 public:
 	static const uint8_t s_frameTypeId = s_minimalUserFrameId + 1;
-	using Ptr = std::shared_ptr<ProxyRequest>;
+	using Ptr = std::shared_ptr<ToolProxyRequest>;
 
-	CompilerInvocation m_invocation;
+	ToolInvocation m_invocation;
 
 	uint8_t             FrameTypeId() const override { return s_frameTypeId;}
 
@@ -37,11 +37,11 @@ public:
 
 };
 
-class ProxyResponse : public SocketFrameExt
+class ToolProxyResponse : public SocketFrameExt
 {
 public:
 	static const uint8_t s_frameTypeId = s_minimalUserFrameId + 2;
-	using Ptr = std::shared_ptr<ProxyResponse>;
+	using Ptr = std::shared_ptr<ToolProxyResponse>;
 
 	bool    m_result = true;
 	std::string m_stdOut;

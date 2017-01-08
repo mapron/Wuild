@@ -24,40 +24,40 @@
 namespace Wuild
 {
 
-CompilerModule::CompilerModule()
+InvocationRewriter::InvocationRewriter()
 {
 }
 
-void CompilerModule::SetConfig(const ICompilerModule::Config &config)
+void InvocationRewriter::SetConfig(const IInvocationRewriter::Config &config)
 {
 	m_config = config;
 }
 
-const ICompilerModule::Config &CompilerModule::GetConfig() const
+const IInvocationRewriter::Config &InvocationRewriter::GetConfig() const
 {
 	return m_config;
 }
 
-bool CompilerModule::SplitInvocation(const CompilerInvocation & original, CompilerInvocation &preprocessor, CompilerInvocation &compilation)
+bool InvocationRewriter::SplitInvocation(const ToolInvocation & original, ToolInvocation &preprocessor, ToolInvocation &compilation)
 {
-	CompileInfo compiler = CompileInfoById(original.m_id);
-	if (!compiler.m_parser)
+	ToolInfo toolInfo = CompileInfoById(original.m_id);
+	if (!toolInfo.m_parser)
 		return false;
-	CompilerInvocation origComplete = CompleteInvocation(original);
+	ToolInvocation origComplete = CompleteInvocation(original);
 
-	if (origComplete.m_type != CompilerInvocation::InvokeType::Compile)
+	if (origComplete.m_type != ToolInvocation::InvokeType::Compile)
 		return false;
 
-	compiler.m_parser->SetCompilerInvocation(origComplete);
-	compiler.m_parser->SetInvokeType(CompilerInvocation::InvokeType::Preprocess);
-	compiler.m_parser->RemovePDB();
-	preprocessor = compiler.m_parser->GetCompilerInvocation();
+	toolInfo.m_parser->SetToolInvocation(origComplete);
+	toolInfo.m_parser->SetInvokeType(ToolInvocation::InvokeType::Preprocess);
+	toolInfo.m_parser->RemovePDB();
+	preprocessor = toolInfo.m_parser->GetToolInvocation();
 
-	compiler.m_parser->SetCompilerInvocation(origComplete);
-	compiler.m_parser->RemovePDB();
-	compiler.m_parser->RemovePrepocessorFlags();
-	compiler.m_parser->RemoveDependencyFiles();
-	compilation = compiler.m_parser->GetCompilerInvocation();
+	toolInfo.m_parser->SetToolInvocation(origComplete);
+	toolInfo.m_parser->RemovePDB();
+	toolInfo.m_parser->RemovePrepocessorFlags();
+	toolInfo.m_parser->RemoveDependencyFiles();
+	compilation = toolInfo.m_parser->GetToolInvocation();
 
 	const std::string srcFilename = origComplete.GetInput(); // we hope  .cpp is coming after -c flag. It's naive.
 	const std::string objFilename = origComplete.GetOutput();
@@ -70,15 +70,15 @@ bool CompilerModule::SplitInvocation(const CompilerInvocation & original, Compil
 		compilation.SetInput(preprocessedFilename);
 	}
 
-	if (!compiler.m_append.empty())
-		compilation.m_args.push_back(compiler.m_append);
+	if (!toolInfo.m_append.empty())
+		compilation.m_args.push_back(toolInfo.m_append);
 
 	return true;
 }
 
-CompilerInvocation CompilerModule::CompleteInvocation(const CompilerInvocation &original)
+ToolInvocation InvocationRewriter::CompleteInvocation(const ToolInvocation &original)
 {
-	CompilerInvocation inv;
+	ToolInvocation inv;
 	inv.m_args.clear();
 	inv.m_ignoredArgs = original.m_ignoredArgs;
 	for (auto arg : original.m_args)
@@ -88,41 +88,41 @@ CompilerInvocation CompilerModule::CompleteInvocation(const CompilerInvocation &
 		inv.m_args.insert(inv.m_args.end(), argSplit.begin(), argSplit.end());
 	}
 
-	CompileInfo info = CompileInfoById(original.m_id);
+	ToolInfo info = CompileInfoById(original.m_id);
 	if (info.m_valid)
 	{
 		inv.m_id = info.m_id;
 		inv.m_type = original.m_type;
-		inv = info.m_parser->ProcessCompilerInvocation(inv);
+		inv = info.m_parser->ProcessToolInvocation(inv);
 	}
 	return inv;
 }
 
-CompilerInvocation CompilerModule::FilterFlags(const CompilerInvocation &original)
+ToolInvocation InvocationRewriter::FilterFlags(const ToolInvocation &original)
 {
-	CompileInfo info = CompileInfoById(original.m_id);
+	ToolInfo info = CompileInfoById(original.m_id);
 	if (info.m_valid)
 	{
-		 CompilerInvocation flags = CompleteInvocation(original);
-		 if (flags.m_type == CompilerInvocation::InvokeType::Preprocess)
+		 ToolInvocation flags = CompleteInvocation(original);
+		 if (flags.m_type == ToolInvocation::InvokeType::Preprocess)
 		 {
-			info.m_parser->SetCompilerInvocation(flags);
+			info.m_parser->SetToolInvocation(flags);
 			info.m_parser->RemovePDB();
-			return info.m_parser->GetCompilerInvocation();
+			return info.m_parser->GetToolInvocation();
 		 }
-		 else if (flags.m_type == CompilerInvocation::InvokeType::Compile)
+		 else if (flags.m_type == ToolInvocation::InvokeType::Compile)
 		 {
-			info.m_parser->SetCompilerInvocation(flags);
+			info.m_parser->SetToolInvocation(flags);
 			info.m_parser->RemovePrepocessorFlags();
 			info.m_parser->RemoveDependencyFiles();
 			info.m_parser->RemovePDB();
-			return info.m_parser->GetCompilerInvocation();
+			return info.m_parser->GetToolInvocation();
 		 }
 	}
 	return original;
 }
 
-std::string CompilerModule::GetPreprocessedPath(const std::string & sourcePath,
+std::string InvocationRewriter::GetPreprocessedPath(const std::string & sourcePath,
 												const std::string & objectPath) const
 {
 	FileInfo sourceInfo(sourcePath);
@@ -132,23 +132,23 @@ std::string CompilerModule::GetPreprocessedPath(const std::string & sourcePath,
 	return preprocessed;
 }
 
-CompilerModule::CompileInfo CompilerModule::CompileInfoById(const CompilerInvocation::Id &id) const
+InvocationRewriter::ToolInfo InvocationRewriter::CompileInfoById(const ToolInvocation::Id &id) const
 {
-	if (id.m_compilerId.empty())
-		return CompileInfoByExecutable(id.m_compilerExecutable);
+	if (id.m_toolId.empty())
+		return CompileInfoByExecutable(id.m_toolExecutable);
 
-	return CompileInfoByCompilerId(id.m_compilerId);
+	return CompileInfoByToolId(id.m_toolId);
 }
 
-CompilerModule::CompileInfo CompilerModule::CompileInfoByExecutable(const std::string &executable) const
+InvocationRewriter::ToolInfo InvocationRewriter::CompileInfoByExecutable(const std::string &executable) const
 {
    std::string exec = executable;
 #ifdef _WIN32
    std::replace(exec.begin(), exec.end(), '\\', '/');
 #endif
 
-	CompilerModule::CompileInfo info;
-	for (const Config::CompilerUnit & unit : m_config.m_modules)
+	InvocationRewriter::ToolInfo info;
+	for (const Config::Tool & unit : m_config.m_tools)
 	{
 		if (std::find(unit.m_names.cbegin(), unit.m_names.cend(), exec) != unit.m_names.cend())
 		{
@@ -158,23 +158,23 @@ CompilerModule::CompileInfo CompilerModule::CompileInfoByExecutable(const std::s
 	return info;
 }
 
-CompilerModule::CompileInfo CompilerModule::CompileInfoByCompilerId(const std::string &compilerId) const
+InvocationRewriter::ToolInfo InvocationRewriter::CompileInfoByToolId(const std::string &toolId) const
 {
-	CompilerModule::CompileInfo info;
-	for (const Config::CompilerUnit & unit : m_config.m_modules)
+	InvocationRewriter::ToolInfo info;
+	for (const Config::Tool & unit : m_config.m_tools)
 	{
-		if (unit.m_id == compilerId)
+		if (unit.m_id == toolId)
 			return CompileInfoByUnit(unit);
 	}
 	return info;
 }
 
-CompilerModule::CompileInfo CompilerModule::CompileInfoByUnit(const ICompilerModule::Config::CompilerUnit &unit) const
+InvocationRewriter::ToolInfo InvocationRewriter::CompileInfoByUnit(const IInvocationRewriter::Config::Tool &unit) const
 {
-	CompileInfo info;
+	ToolInfo info;
 	info.m_append = unit.m_appendOption;
-	info.m_id.m_compilerId = unit.m_id;
-	info.m_id.m_compilerExecutable = unit.m_names[0];
+	info.m_id.m_toolId = unit.m_id;
+	info.m_id.m_toolExecutable = unit.m_names[0];
 	if (unit.m_type == Config::ToolchainType::GCC)
 		info.m_parser.reset(new GccCommandLineParser());
 	else if (unit.m_type == Config::ToolchainType::MSVC)

@@ -32,14 +32,14 @@ namespace Wuild
 /// Uses ninja's SubprocessSet.
 class LocalExecutor : public ILocalExecutor
 {
-	LocalExecutor(ICompilerModule::Ptr compiler, const std::string & tempPath);
+	LocalExecutor(IInvocationRewriter::Ptr invocationRewriter, const std::string & tempPath);
 public:
-	static Ptr Create(ICompilerModule::Ptr compiler, const std::string & tempPath)
-	{ return Ptr(new LocalExecutor(compiler, tempPath)); }
+	static Ptr Create(IInvocationRewriter::Ptr invocationRewriter, const std::string & tempPath)
+	{ return Ptr(new LocalExecutor(invocationRewriter, tempPath)); }
 
 public:
 	void AddTask(LocalExecutorTask::Ptr task) override;
-	TaskPair SplitTask(LocalExecutorTask::Ptr compiler, std::string & err) override;
+	TaskPair SplitTask(LocalExecutorTask::Ptr task, std::string & err) override;
 	StringVector GetToolIds() const override;
 	void SetWorkersCount(int workers) override;
 
@@ -57,7 +57,7 @@ private:
 	using Guard = std::lock_guard<std::mutex>;
 	std::queue<LocalExecutorTask::Ptr> m_taskQueue;
 
-	std::shared_ptr<ICompilerModule> m_compiler;
+	std::shared_ptr<IInvocationRewriter> m_invocationRewriter;
 	std::string m_tempPath;
 	std::unique_ptr<SubprocessSet> m_subprocs;
 	std::map<Subprocess*, LocalExecutorTask::Ptr> m_subprocToTask;

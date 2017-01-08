@@ -18,7 +18,7 @@
 namespace Wuild
 {
 
-bool CompilerProxyServerConfig::Validate(std::ostream *errStream) const
+bool ToolProxyServerConfig::Validate(std::ostream *errStream) const
 {
 	if (m_listenPort <= 0 || m_listenPort > 0xffff)
 	{

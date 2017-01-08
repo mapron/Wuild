@@ -23,16 +23,16 @@ bool AbstractCommandLineParser::IsIgnored(const std::string &arg) const
 	return std::find(m_invocation.m_ignoredArgs.cbegin(), m_invocation.m_ignoredArgs.cend(), arg) != m_invocation.m_ignoredArgs.cend();
 }
 
-CompilerInvocation AbstractCommandLineParser::GetCompilerInvocation() const
+ToolInvocation AbstractCommandLineParser::GetToolInvocation() const
 {
 	return m_invocation;
 }
 
-void AbstractCommandLineParser::SetCompilerInvocation(const CompilerInvocation &invocation)
+void AbstractCommandLineParser::SetToolInvocation(const ToolInvocation &invocation)
 {
 	m_invocation = invocation;
 	UpdateInfo();
-	if (invocation.m_type != CompilerInvocation::InvokeType::Unknown)
+	if (invocation.m_type != ToolInvocation::InvokeType::Unknown)
 		m_invocation.m_type = invocation.m_type;
 }
 

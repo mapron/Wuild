@@ -19,7 +19,7 @@
 
 namespace Wuild
 {
-/// Abstract command line parser for compiler toolchain.
+/// Abstract command line parser for tool invocation
 class ICommandLineParser
 {
 public:
@@ -28,16 +28,16 @@ public:
 public:
 	virtual ~ICommandLineParser() = default;
 
-	virtual CompilerInvocation GetCompilerInvocation() const = 0;
-	virtual void SetCompilerInvocation(const CompilerInvocation & invocation) = 0;
+	virtual ToolInvocation GetToolInvocation() const = 0;
+	virtual void SetToolInvocation(const ToolInvocation & invocation) = 0;
 
-	CompilerInvocation ProcessCompilerInvocation(const CompilerInvocation & invocation)
+	ToolInvocation ProcessToolInvocation(const ToolInvocation & invocation)
 	{
-		SetCompilerInvocation(invocation);
-		return GetCompilerInvocation();
+		SetToolInvocation(invocation);
+		return GetToolInvocation();
 	}
 
-	virtual void SetInvokeType(CompilerInvocation::InvokeType type) = 0;
+	virtual void SetInvokeType(ToolInvocation::InvokeType type) = 0;
 
 	virtual void RemovePDB() = 0;
 	virtual void RemoveDependencyFiles() = 0;

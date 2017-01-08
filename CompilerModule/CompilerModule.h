@@ -19,14 +19,14 @@
 namespace Wuild
 {
 
-class CompilerModule : public ICompilerModule
+class InvocationRewriter : public IInvocationRewriter
 {
-	CompilerModule();
+	InvocationRewriter();
 public:
 
-	static ICompilerModule::Ptr Create(const ICompilerModule::Config & config)
+	static IInvocationRewriter::Ptr Create(const IInvocationRewriter::Config & config)
 	{
-		auto res = ICompilerModule::Ptr(new CompilerModule());
+		auto res = IInvocationRewriter::Ptr(new InvocationRewriter());
 		res->SetConfig(config);
 		return res;
 	}
@@ -34,29 +34,29 @@ public:
 	void SetConfig(const Config & config) override;
 	const Config& GetConfig() const override;
 
-	bool SplitInvocation(const CompilerInvocation & original,
-						 CompilerInvocation & preprocessor,
-						 CompilerInvocation & compilation) override;
+	bool SplitInvocation(const ToolInvocation & original,
+						 ToolInvocation & preprocessor,
+						 ToolInvocation & compilation) override;
 
-   CompilerInvocation CompleteInvocation(const CompilerInvocation & original) override;
+   ToolInvocation CompleteInvocation(const ToolInvocation & original) override;
 
-   CompilerInvocation FilterFlags(const CompilerInvocation & original) override;
+   ToolInvocation FilterFlags(const ToolInvocation & original) override;
 
    std::string GetPreprocessedPath(const std::string & sourcePath, const std::string & objectPath) const override;
 
 
 private:
-	struct CompileInfo
+	struct ToolInfo
 	{
 		ICommandLineParser::Ptr m_parser;
-		CompilerInvocation::Id m_id;
+		ToolInvocation::Id m_id;
 		std::string m_append;
 		bool m_valid = false;
 	};
-	CompileInfo CompileInfoById(const CompilerInvocation::Id & id) const;
-	CompileInfo CompileInfoByExecutable(const std::string & executable) const;
-	CompileInfo CompileInfoByCompilerId(const std::string & compilerId) const;
-	CompileInfo CompileInfoByUnit(const Config::CompilerUnit & unit) const;
+	ToolInfo CompileInfoById(const ToolInvocation::Id & id) const;
+	ToolInfo CompileInfoByExecutable(const std::string & executable) const;
+	ToolInfo CompileInfoByToolId(const std::string & toolId) const;
+	ToolInfo CompileInfoByUnit(const Config::Tool & unit) const;
 
 	Config m_config;
 };

@@ -33,11 +33,11 @@ class ConfiguredApplication
 {
 public:
 	LoggerConfig m_loggerConfig;
-	CompilerConfig m_compilerConfig;
+	InvocationRewriterConfig m_invocationRewriterConfig;
 	RemoteToolClientConfig m_remoteToolClientConfig;
 	RemoteToolServerConfig m_remoteToolServerConfig;
 	CoordinatorServerConfig m_coordinatorServerConfig;
-	CompilerProxyServerConfig m_compilerProxyServerConfig;
+	ToolProxyServerConfig m_toolProxyServerConfig;
 
 	std::string m_tempDir;
 
@@ -51,9 +51,9 @@ public:
 
 	bool InitLogging(const LoggerConfig & loggerConfig);
 
-	bool GetCompilerConfig(CompilerConfig & config, bool silent = false) const;
+	bool GetInvocationRewriterConfig(InvocationRewriterConfig & config, bool silent = false) const;
 	bool GetCoordinatorServerConfig(CoordinatorServerConfig & config) const;
-	bool GetCompilerProxyServerConfig(CompilerProxyServerConfig & config) const;
+	bool GetToolProxyServerConfig(ToolProxyServerConfig & config) const;
 
 	bool GetRemoteToolClientConfig(RemoteToolClientConfig & config, bool silent = false) const;
 	bool GetRemoteToolServerConfig(RemoteToolServerConfig & config, bool silent = false) const;
@@ -66,11 +66,11 @@ private:
 	ConfiguredApplication(const ConfiguredApplication& ) = delete;
 
 	void ReadLoggingConfig();
-	void ReadCompilerConfig();
+	void ReadInvocationRewriterConfig();
 	void ReadRemoteToolClientConfig();
 	void ReadRemoteToolServerConfig();
 	void ReadCoordinatorClientConfig(CoordinatorClientConfig & config, const std::string & groupName);
 	void ReadCoordinatorServerConfig();
-	void ReadCompilerProxyServerConfig();
+	void ReadToolProxyServerConfig();
 };
 }

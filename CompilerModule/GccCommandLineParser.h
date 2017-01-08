@@ -24,7 +24,7 @@ class GccCommandLineParser: public AbstractCommandLineParser
 public:
 	void UpdateInfo() override;
 
-	void SetInvokeType(CompilerInvocation::InvokeType type) override;
+	void SetInvokeType(ToolInvocation::InvokeType type) override;
 
 	void RemoveDependencyFiles() override;
 	void RemovePrepocessorFlags() override;

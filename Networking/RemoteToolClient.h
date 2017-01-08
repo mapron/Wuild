@@ -68,7 +68,7 @@ public:
 	void SetRemoteAvailableCallback(RemoteAvailableCallback callback);
 
 	/// Starts new remote task.
-	void InvokeTool(const CompilerInvocation & invocation, InvokeCallback callback);
+	void InvokeTool(const ToolInvocation & invocation, InvokeCallback callback);
 
 protected:
 	void AddClientInternal(CoordinatorWorkerInfoWrap &info, bool start = false);

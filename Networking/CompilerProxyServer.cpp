@@ -18,18 +18,18 @@
 namespace Wuild
 {
 
-CompilerProxyServer::CompilerProxyServer(ILocalExecutor::Ptr executor, RemoteToolClient &rcClient)
+ToolProxyServer::ToolProxyServer(ILocalExecutor::Ptr executor, RemoteToolClient &rcClient)
 	: m_executor(executor), m_rcClient(rcClient)
 {
 
 }
 
-CompilerProxyServer::~CompilerProxyServer()
+ToolProxyServer::~ToolProxyServer()
 {
 	m_server.reset();
 }
 
-bool CompilerProxyServer::SetConfig(const CompilerProxyServer::Config &config)
+bool ToolProxyServer::SetConfig(const ToolProxyServer::Config &config)
 {
 	std::ostringstream os;
 	if (!config.Validate(&os))
@@ -42,12 +42,12 @@ bool CompilerProxyServer::SetConfig(const CompilerProxyServer::Config &config)
 }
 
 
-void CompilerProxyServer::Start()
+void ToolProxyServer::Start()
 {
 	m_server.reset(new SocketFrameService( m_config.m_listenPort ));
-	m_server->RegisterFrameReader(SocketFrameReaderTemplate<ProxyRequest>::Create([this](const ProxyRequest& inputMessage, SocketFrameHandler::OutputCallback outputCallback){
+	m_server->RegisterFrameReader(SocketFrameReaderTemplate<ToolProxyRequest>::Create([this](const ToolProxyRequest& inputMessage, SocketFrameHandler::OutputCallback outputCallback){
 
-		ProxyResponse::Ptr response(new ProxyResponse());
+		ToolProxyResponse::Ptr response(new ToolProxyResponse());
 		response->m_result = false;
 		response->m_stdOut = "FFFOOOO!";
 		outputCallback(response);

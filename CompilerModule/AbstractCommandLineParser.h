@@ -20,13 +20,13 @@ namespace Wuild
 class AbstractCommandLineParser : public ICommandLineParser
 {
 protected:
-	CompilerInvocation m_invocation;
+	ToolInvocation m_invocation;
 
 	bool IsIgnored(const std::string & arg) const;
 
 public:
-	CompilerInvocation GetCompilerInvocation() const override;
-	void SetCompilerInvocation(const CompilerInvocation & invocation) override;
+	ToolInvocation GetToolInvocation() const override;
+	void SetToolInvocation(const ToolInvocation & invocation) override;
 
 	virtual void UpdateInfo() = 0;
 

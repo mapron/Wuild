@@ -25,11 +25,11 @@ int main(int argc, char** argv)
 	if (!app.GetRemoteToolServerConfig(workerConfig))
 		return 1;
 
-	auto compilerModule = CheckedCreateCompilerModule(app);
-	if (!compilerModule)
+	auto invocationRewriter = CheckedCreateInvocationRewriter(app);
+	if (!invocationRewriter)
 		return 1;
 
-	auto localExecutor = LocalExecutor::Create(compilerModule, app.m_tempDir);
+	auto localExecutor = LocalExecutor::Create(invocationRewriter, app.m_tempDir);
 
 	RemoteToolServer rcService(localExecutor);
 	if (!rcService.SetConfig(workerConfig))

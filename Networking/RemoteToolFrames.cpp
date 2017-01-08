@@ -53,7 +53,7 @@ inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator << (const 
 void RemoteToolRequest::LogTo(std::ostream &os) const
 {
 	SocketFrame::LogTo(os);
-	os << " " << m_invocation.m_id.m_compilerId << " args:" << m_invocation.GetArgsString(false);
+	os << " " << m_invocation.m_id.m_toolId << " args:" << m_invocation.GetArgsString(false);
 	os << " file: [" << m_fileData.size() << "]"
 		;
 }
@@ -62,7 +62,7 @@ SocketFrame::State RemoteToolRequest::ReadInternal(ByteOrderDataStreamReader &st
 {
 	stream >> m_fileData;
 	stream >> m_invocation.m_args;
-	stream >> m_invocation.m_id.m_compilerId;
+	stream >> m_invocation.m_id.m_toolId;
 	return stOk;
 }
 
@@ -70,7 +70,7 @@ SocketFrame::State RemoteToolRequest::WriteInternal(ByteOrderDataStreamWriter &s
 {
 	stream << m_fileData;
 	stream << m_invocation.m_args;
-	stream << m_invocation.m_id.m_compilerId;
+	stream << m_invocation.m_id.m_toolId;
 	return stOk;
 }
 

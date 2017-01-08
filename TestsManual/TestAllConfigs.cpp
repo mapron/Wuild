@@ -21,7 +21,7 @@ int main(int argc, char** argv)
 {
 	using namespace Wuild;
 	ConfiguredApplication app(argc, argv, "TestAllConfigs");
-	if (!CreateCompiler(app))
+	if (!CreateInvocationRewriter(app))
 	   return 1;
 
 	//app.m_loggerConfig.m_maxLogLevel = LOG_DEBUG;
@@ -29,12 +29,12 @@ int main(int argc, char** argv)
 
 	const auto args = app.GetRemainArgs();
 
-	auto localExecutor = LocalExecutor::Create(TestConfiguration::g_compilerModule, app.m_tempDir);
+	auto localExecutor = LocalExecutor::Create(TestConfiguration::s_invocationRewriter, app.m_tempDir);
 
 	std::string err;
 	LocalExecutorTask::Ptr original(new LocalExecutorTask());
 	original->m_readOutput = original->m_writeInput = false;
-	original->m_invocation = CompilerInvocation( args ).SetExecutable(TestConfiguration::g_compilerModule->GetConfig().GetFirstToolName());
+	original->m_invocation = ToolInvocation( args ).SetExecutable(TestConfiguration::s_invocationRewriter->GetConfig().GetFirstToolName());
 	auto tasks = localExecutor->SplitTask(original, err);
 	if (!tasks.first)
 	{

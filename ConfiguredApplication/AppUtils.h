@@ -21,12 +21,12 @@
 
 namespace Wuild
 {
-inline ICompilerModule::Ptr CheckedCreateCompilerModule(ConfiguredApplication & application)
+inline IInvocationRewriter::Ptr CheckedCreateInvocationRewriter(ConfiguredApplication & application)
 {
-	ICompilerModule::Config config;
-	if (!application.GetCompilerConfig(config, false))
+	IInvocationRewriter::Config config;
+	if (!application.GetInvocationRewriterConfig(config, false))
 		return nullptr;
-	return CompilerModule::Create(config);
+	return InvocationRewriter::Create(config);
 }
 
 inline int ExecAppLoop(std::function<void(int)> exitCodeHandler = std::function<void(int)> ())

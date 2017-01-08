@@ -23,7 +23,7 @@ void GccCommandLineParser::UpdateInfo()
 	int argIndex = -1;
 	m_invocation.m_inputNameIndex  = -1;
 	m_invocation.m_outputNameIndex = -1;
-	m_invocation.m_type = CompilerInvocation::InvokeType::Unknown;
+	m_invocation.m_type = ToolInvocation::InvokeType::Unknown;
 	for (const auto & arg : m_invocation.m_args)
 	{
 		argIndex ++;
@@ -37,12 +37,12 @@ void GccCommandLineParser::UpdateInfo()
 			if (arg[1] == 'c')
 			{
 				m_invokeTypeIndex = argIndex;
-				m_invocation.m_type = CompilerInvocation::InvokeType::Compile;
+				m_invocation.m_type = ToolInvocation::InvokeType::Compile;
 			}
 			if (arg[1] == 'E')
 			{
 				m_invokeTypeIndex = argIndex;
-				m_invocation.m_type = CompilerInvocation::InvokeType::Preprocess;
+				m_invocation.m_type = ToolInvocation::InvokeType::Preprocess;
 			}
 			if (arg[1] == 'o')
 			{
@@ -58,7 +58,7 @@ void GccCommandLineParser::UpdateInfo()
 		{
 			if (m_invocation.m_inputNameIndex != -1)
 			{
-				m_invocation.m_type = CompilerInvocation::InvokeType::Unknown;
+				m_invocation.m_type = ToolInvocation::InvokeType::Unknown;
 				return;
 			}
 		   m_invocation.m_inputNameIndex = argIndex;
@@ -68,18 +68,18 @@ void GccCommandLineParser::UpdateInfo()
 	{
 		m_invocation.m_inputNameIndex = -1;
 		m_invocation.m_outputNameIndex = -1;
-		m_invocation.m_type = CompilerInvocation::InvokeType::Unknown;
+		m_invocation.m_type = ToolInvocation::InvokeType::Unknown;
 	}
 
 }
 
-void GccCommandLineParser::SetInvokeType(CompilerInvocation::InvokeType type)
+void GccCommandLineParser::SetInvokeType(ToolInvocation::InvokeType type)
 {
-	if (m_invocation.m_type == CompilerInvocation::InvokeType::Unknown)
+	if (m_invocation.m_type == ToolInvocation::InvokeType::Unknown)
 		return;
 
 	m_invocation.m_type = type;
-	m_invocation.m_args[m_invokeTypeIndex] = type == CompilerInvocation::InvokeType::Preprocess ? "-E" : "-c";
+	m_invocation.m_args[m_invokeTypeIndex] = type == ToolInvocation::InvokeType::Preprocess ? "-E" : "-c";
 }
 
 void GccCommandLineParser::RemoveDependencyFiles()

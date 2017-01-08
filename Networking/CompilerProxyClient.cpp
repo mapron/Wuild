@@ -24,17 +24,17 @@
 namespace Wuild
 {
 
-CompilerProxyClient::CompilerProxyClient()
+ToolProxyClient::ToolProxyClient()
 {
 }
 
-CompilerProxyClient::~CompilerProxyClient()
+ToolProxyClient::~ToolProxyClient()
 {
 	if (m_client)
 		m_client->Stop();
 }
 
-bool CompilerProxyClient::SetConfig(const CompilerProxyClient::Config &config)
+bool ToolProxyClient::SetConfig(const ToolProxyClient::Config &config)
 {
 	std::ostringstream os;
 	if (!config.Validate(&os))
@@ -46,10 +46,10 @@ bool CompilerProxyClient::SetConfig(const CompilerProxyClient::Config &config)
 	return true;
 }
 
-void CompilerProxyClient::Start()
+void ToolProxyClient::Start()
 {
 	m_client.reset(new SocketFrameHandler( ));
-	m_client->RegisterFrameReader(SocketFrameReaderTemplate<ProxyResponse>::Create());
+	m_client->RegisterFrameReader(SocketFrameReaderTemplate<ToolProxyResponse>::Create());
 
 	m_client->SetTcpChannel("localhost", m_config.m_listenPort);
 
@@ -57,7 +57,7 @@ void CompilerProxyClient::Start()
 
 }
 
-void CompilerProxyClient::RunTask(const StringVector &args)
+void ToolProxyClient::RunTask(const StringVector &args)
 {
 	auto frameCallback = [](SocketFrame::Ptr responseFrame, SocketFrameHandler::TReplyState state)
 	{
@@ -73,7 +73,7 @@ void CompilerProxyClient::RunTask(const StringVector &args)
 		}
 		else
 		{
-			ProxyResponse::Ptr responseFrameProxy = std::dynamic_pointer_cast<ProxyResponse>(responseFrame);
+			ToolProxyResponse::Ptr responseFrameProxy = std::dynamic_pointer_cast<ToolProxyResponse>(responseFrame);
 			result = responseFrameProxy->m_result;
 			stdOut = responseFrameProxy->m_stdOut;
 		}
@@ -81,8 +81,8 @@ void CompilerProxyClient::RunTask(const StringVector &args)
 			std::cerr << stdOut << std::endl;
 		Application::Interrupt(1 - result);
 	};
-	ProxyRequest::Ptr req(new ProxyRequest());
-	req->m_invocation.m_id.m_compilerId = m_config.m_toolId;
+	ToolProxyRequest::Ptr req(new ToolProxyRequest());
+	req->m_invocation.m_id.m_toolId = m_config.m_toolId;
 	req->m_invocation.m_args = args;
 	m_client->QueueFrame(req, frameCallback);
 }

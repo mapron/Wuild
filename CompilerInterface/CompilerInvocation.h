@@ -17,20 +17,20 @@
 
 namespace Wuild
 {
-/// Represents compiler invocation line (executable with argumnents). Allows changing input/output filenames in arguments.
-class CompilerInvocation
+/// Represents tool invocation line (executable with argumnents). Allows changing input/output filenames in arguments.
+class ToolInvocation
 {
 public:
 	/// Type of invocation.
 	enum class InvokeType { Unknown, Preprocess, Compile };
 	struct Id
 	{
-		std::string m_compilerId;           //!< abstract toolchain id (configurable)
-		std::string m_compilerExecutable;   //!< compiler executable path
+		std::string m_toolId;           //!< abstract toolchain id (configurable)
+		std::string m_toolExecutable;   //!< full tool executable path
 	};
 public:
-	CompilerInvocation(const StringVector & args = StringVector(), InvokeType  type = InvokeType::Unknown);
-	CompilerInvocation(const std::string & args, InvokeType  type = InvokeType::Unknown);
+	ToolInvocation(const StringVector & args = StringVector(), InvokeType  type = InvokeType::Unknown);
+	ToolInvocation(const std::string & args, InvokeType  type = InvokeType::Unknown);
 
 	void SetArgsString(const std::string & args);
 	std::string GetArgsString(bool prependExecutable = true) const;
@@ -41,8 +41,8 @@ public:
 	bool SetOutput(const std::string & filename);
 	std::string GetOutput() const;
 
-	CompilerInvocation & SetId(const std::string & compilerId);
-	CompilerInvocation & SetExecutable(const std::string & compilerExecutable);
+	ToolInvocation & SetId(const std::string & toolId);
+	ToolInvocation & SetExecutable(const std::string & toolExecutable);
 
 public:
 	Id           m_id;

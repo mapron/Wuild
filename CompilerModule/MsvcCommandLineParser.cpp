@@ -24,7 +24,7 @@ void MsvcCommandLineParser::UpdateInfo()
 
 	m_invocation.m_inputNameIndex  = -1;
 	m_invocation.m_outputNameIndex = -1;
-	m_invocation.m_type = CompilerInvocation::InvokeType::Unknown;
+	m_invocation.m_type = ToolInvocation::InvokeType::Unknown;
 	for (const auto & arg : m_invocation.m_args)
 	{
 	   // argIndex++;
@@ -37,12 +37,12 @@ void MsvcCommandLineParser::UpdateInfo()
 		{
 			if (arg[1] == 'c' )
 			{
-				m_invocation.m_type = CompilerInvocation::InvokeType::Compile;
+				m_invocation.m_type = ToolInvocation::InvokeType::Compile;
 				m_invokeTypeIndex = realArgs.size();
 			}
 			if (arg[1] == 'P' )
 			{
-				m_invocation.m_type = CompilerInvocation::InvokeType::Preprocess;
+				m_invocation.m_type = ToolInvocation::InvokeType::Preprocess;
 				m_invokeTypeIndex = realArgs.size();
 			}
 
@@ -83,7 +83,7 @@ void MsvcCommandLineParser::UpdateInfo()
 		{
 			if (m_invocation.m_inputNameIndex != -1)
 			{
-				m_invocation.m_type = CompilerInvocation::InvokeType::Unknown;
+				m_invocation.m_type = ToolInvocation::InvokeType::Unknown;
 				return;
 			}
 			m_invocation.m_inputNameIndex = realArgs.size();
@@ -96,15 +96,15 @@ void MsvcCommandLineParser::UpdateInfo()
 	{
 		m_invocation.m_inputNameIndex = -1;
 		m_invocation.m_outputNameIndex = -1;
-		m_invocation.m_type = CompilerInvocation::InvokeType::Unknown;
+		m_invocation.m_type = ToolInvocation::InvokeType::Unknown;
 	}
 }
 
-void MsvcCommandLineParser::SetInvokeType(CompilerInvocation::InvokeType type)
+void MsvcCommandLineParser::SetInvokeType(ToolInvocation::InvokeType type)
 {
-	if (m_invocation.m_type == CompilerInvocation::InvokeType::Unknown)
+	if (m_invocation.m_type == ToolInvocation::InvokeType::Unknown)
 		return;
-	bool pp = type == CompilerInvocation::InvokeType::Preprocess;
+	bool pp = type == ToolInvocation::InvokeType::Preprocess;
 	m_invocation.m_type = type;
 	m_invocation.m_args[m_invokeTypeIndex] = pp ? "/P" : "/C";
 	m_invocation.m_args[m_invocation.m_outputNameIndex - 1] = pp ? "/Fi:" : "/Fo:";

@@ -30,7 +30,7 @@ public:
 	virtual void AddTask(LocalExecutorTask::Ptr task) = 0;
 
 	/// Try to split task to preprocessing and compilation tasks. Returns empty TaskPair on fail.
-	virtual TaskPair SplitTask(LocalExecutorTask::Ptr compiler, std::string & err) = 0;
+	virtual TaskPair SplitTask(LocalExecutorTask::Ptr task, std::string & err) = 0;
 
 	/// Returns tools ids available for execution.
 	virtual StringVector GetToolIds() const = 0;

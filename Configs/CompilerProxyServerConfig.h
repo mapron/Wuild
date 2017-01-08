@@ -16,7 +16,7 @@
 
 namespace Wuild
 {
-class CompilerProxyServerConfig : public IConfig
+class ToolProxyServerConfig : public IConfig
 {
 public:
 	int m_listenPort = 0;

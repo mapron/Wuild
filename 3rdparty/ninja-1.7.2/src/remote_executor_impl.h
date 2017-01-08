@@ -34,7 +34,7 @@
 class RemoteExecutor: public IRemoteExecutor
 {
 	Wuild::ConfiguredApplication & m_app;
-	Wuild::ICompilerModule::Ptr m_compiler;
+	Wuild::IInvocationRewriter::Ptr m_compiler;
 	Wuild::RemoteToolClient m_remoteService;
 
 #ifdef TEST_CLIENT
@@ -63,8 +63,8 @@ public:
 
 		bool silent =  !Wuild::Syslogger::IsLogLevelEnabled(LOG_DEBUG);
 
-		ICompilerModule::Config compilerConfig;
-		if (!m_app.GetCompilerConfig(compilerConfig, silent))
+		IInvocationRewriter::Config compilerConfig;
+		if (!m_app.GetInvocationRewriterConfig(compilerConfig, silent))
 			return;
 
 
@@ -74,7 +74,7 @@ public:
 
 		m_minimalRemoteTasks = remoteToolConfig.m_minimalRemoteTasks;
 
-		m_compiler = CompilerModule::Create(compilerConfig);
+		m_compiler = InvocationRewriter::Create(compilerConfig);
 
 		if (!m_remoteService.SetConfig(remoteToolConfig))
 			return;
@@ -135,14 +135,14 @@ public:
 			args.insert(args.begin(), srcExecutable.substr(space + 1));
 			srcExecutable = srcExecutable.substr(0, space);
 		}
-		Wuild::CompilerInvocation original, pp, cc;
-		original.m_id.m_compilerExecutable = srcExecutable;
+		Wuild::ToolInvocation original, pp, cc;
+		original.m_id.m_toolExecutable = srcExecutable;
 		original.m_args = args;
 		original.m_ignoredArgs = ignoredArgs;
 		if (!m_compiler->SplitInvocation(original, pp, cc))
 			return false;
 
-		compilerId = pp.m_id.m_compilerId;
+		compilerId = pp.m_id.m_toolId;
 
 		preprocessRule.push_back(srcExecutable + "  ");
 		preprocessRule.insert(preprocessRule.end(), pp.m_args.begin(), pp.m_args.end());
@@ -164,7 +164,7 @@ public:
 		if (!m_remoteEnabled)
 			return flags;
 
-		return m_compiler->FilterFlags(Wuild::CompilerInvocation(flags, Wuild::CompilerInvocation::InvokeType::Preprocess).SetId(compilerId)).GetArgsString(false);
+		return m_compiler->FilterFlags(Wuild::ToolInvocation(flags, Wuild::ToolInvocation::InvokeType::Preprocess).SetId(compilerId)).GetArgsString(false);
 	}
 
 	std::string FilterCompilerFlags(const std::string & compilerId, const std::string & flags) const override
@@ -172,7 +172,7 @@ public:
 		if (!m_remoteEnabled)
 			return flags;
 
-		return m_compiler->FilterFlags(Wuild::CompilerInvocation(flags, Wuild::CompilerInvocation::InvokeType::Compile).SetId(compilerId)).GetArgsString(false);
+		return m_compiler->FilterFlags(Wuild::ToolInvocation(flags, Wuild::ToolInvocation::InvokeType::Compile).SetId(compilerId)).GetArgsString(false);
 	}
 	void RunIfNeeded() override
 	{
@@ -211,7 +211,7 @@ public:
 			return false;
 
 		 const auto space = command.find(' ');
-		 Wuild::CompilerInvocation invocation(command.substr(space + 1));
+		 Wuild::ToolInvocation invocation(command.substr(space + 1));
 		 invocation.SetExecutable(command.substr(0, space));
 
 		 invocation = m_compiler->CompleteInvocation(invocation);

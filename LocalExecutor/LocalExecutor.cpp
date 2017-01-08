@@ -22,8 +22,8 @@
 namespace Wuild
 {
 
-LocalExecutor::LocalExecutor(ICompilerModule::Ptr compiler, const std::string &tempPath)
-	: m_compiler(compiler)
+LocalExecutor::LocalExecutor(IInvocationRewriter::Ptr invocationRewriter, const std::string &tempPath)
+	: m_invocationRewriter(invocationRewriter)
 	, m_tempPath(tempPath)
 {
 }
@@ -42,19 +42,19 @@ void LocalExecutor::AddTask(LocalExecutorTask::Ptr task)
 	m_taskQueue.push(task);
 }
 
-ILocalExecutor::TaskPair LocalExecutor::SplitTask(LocalExecutorTask::Ptr compiler, string &err)
+ILocalExecutor::TaskPair LocalExecutor::SplitTask(LocalExecutorTask::Ptr task, string &err)
 {
 	TaskPair result;
-	CompilerInvocation pp, cc;
-	if (!m_compiler->SplitInvocation(compiler->m_invocation, pp, cc))
+	ToolInvocation pp, cc;
+	if (!m_invocationRewriter->SplitInvocation(task->m_invocation, pp, cc))
 	{
 		err= "Failed to detect CC command.";
 		return result;
 	}
 	LocalExecutorTask::Ptr taskPP(new LocalExecutorTask());
 	LocalExecutorTask::Ptr taskCC(new LocalExecutorTask());
-	taskPP->m_writeInput = taskCC->m_writeInput = compiler->m_writeInput;
-	taskPP->m_readOutput = taskCC->m_readOutput = compiler->m_readOutput;
+	taskPP->m_writeInput = taskCC->m_writeInput = task->m_writeInput;
+	taskPP->m_readOutput = taskCC->m_readOutput = task->m_readOutput;
 	taskPP->m_invocation = pp;
 	taskCC->m_invocation = cc;
 
@@ -63,7 +63,7 @@ ILocalExecutor::TaskPair LocalExecutor::SplitTask(LocalExecutorTask::Ptr compile
 
 StringVector LocalExecutor::GetToolIds() const
 {
-	return m_compiler->GetConfig().m_toolIds;
+	return m_invocationRewriter->GetConfig().m_toolIds;
 }
 
 void LocalExecutor::SetWorkersCount(int workers)
@@ -142,8 +142,8 @@ void LocalExecutor::Quant()
 		{
 			do
 			{
-				CompilerInvocation inv = task->m_invocation;
-				inv = m_compiler->CompleteInvocation(inv);
+				ToolInvocation inv = task->m_invocation;
+				inv = m_invocationRewriter->CompleteInvocation(inv);
 
 				if (task->m_writeInput)
 				{

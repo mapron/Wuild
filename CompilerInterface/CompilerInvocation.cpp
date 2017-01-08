@@ -17,33 +17,33 @@
 
 namespace Wuild
 {
-CompilerInvocation::CompilerInvocation(const StringVector &args, InvokeType type)
+ToolInvocation::ToolInvocation(const StringVector &args, InvokeType type)
 	: m_args(args)
 	, m_type(type)
 {
 
 }
 
-CompilerInvocation::CompilerInvocation(const std::string &args, CompilerInvocation::InvokeType type)
+ToolInvocation::ToolInvocation(const std::string &args, ToolInvocation::InvokeType type)
 	: m_type(type)
 {
 	SetArgsString(args);
 }
-void CompilerInvocation::SetArgsString(const std::string &args)
+void ToolInvocation::SetArgsString(const std::string &args)
 {
 	m_args.resize(1);
 	m_args[0] = args;
 }
 
-std::string CompilerInvocation::GetArgsString(bool prependExecutable) const
+std::string ToolInvocation::GetArgsString(bool prependExecutable) const
 {
 	std::string ret;
 	if (prependExecutable)
-		ret += m_id.m_compilerExecutable + " ";
+		ret += m_id.m_toolExecutable + " ";
 	return ret + StringUtils::JoinString( m_args, ' ');
 }
 
-bool CompilerInvocation::SetInput(const std::string &filename)
+bool ToolInvocation::SetInput(const std::string &filename)
 {
 	if (m_inputNameIndex < 0)
 		return false;
@@ -52,7 +52,7 @@ bool CompilerInvocation::SetInput(const std::string &filename)
 	return true;
 }
 
-std::string CompilerInvocation::GetInput() const
+std::string ToolInvocation::GetInput() const
 {
 	if (m_inputNameIndex < 0)
 		return std::string();
@@ -60,7 +60,7 @@ std::string CompilerInvocation::GetInput() const
 	return m_args[m_inputNameIndex];
 }
 
-bool CompilerInvocation::SetOutput(const std::string &filename)
+bool ToolInvocation::SetOutput(const std::string &filename)
 {
 	if (m_outputNameIndex < 0)
 		return false;
@@ -69,7 +69,7 @@ bool CompilerInvocation::SetOutput(const std::string &filename)
 	return true;
 }
 
-std::string CompilerInvocation::GetOutput() const
+std::string ToolInvocation::GetOutput() const
 {
 	if (m_outputNameIndex < 0)
 		return std::string();
@@ -79,15 +79,15 @@ std::string CompilerInvocation::GetOutput() const
 
 
 
-CompilerInvocation &CompilerInvocation::SetId(const std::string &compilerId)
+ToolInvocation &ToolInvocation::SetId(const std::string &toolId)
 {
-	m_id.m_compilerId = compilerId;
+	m_id.m_toolId = toolId;
 	return *this;
 }
 
-CompilerInvocation &CompilerInvocation::SetExecutable(const std::string &compilerExecutable)
+ToolInvocation &ToolInvocation::SetExecutable(const std::string &toolExecutable)
 {
-	m_id.m_compilerExecutable = compilerExecutable;
+	m_id.m_toolExecutable = toolExecutable;
 	return *this;
 }
 

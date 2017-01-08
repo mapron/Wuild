@@ -24,30 +24,30 @@ namespace Wuild
 {
 /// Abstract toolchain invocation manager.
 ///
-/// Can determine compiler info from invocataion; moreover, split invocation to preprocess and compilation.
-class ICompilerModule
+/// Can determine tool info from invocataion; moreover, split invocation to preprocess and compilation.
+class IInvocationRewriter
 {
 public:
-	using Config = CompilerConfig;
+	using Config = InvocationRewriterConfig;
 	using StringPair = std::pair<std::string, std::string>;
-	using Ptr = std::shared_ptr<ICompilerModule>;
+	using Ptr = std::shared_ptr<IInvocationRewriter>;
 
 public:
-	virtual ~ICompilerModule() = default;
+	virtual ~IInvocationRewriter() = default;
 
 	virtual void SetConfig(const Config & config)  = 0;
 	virtual const Config& GetConfig() const = 0;
 
 	/// Split invocation on two steps. If succeeded, returns true.
-	virtual bool SplitInvocation(const CompilerInvocation & original,
-								 CompilerInvocation & preprocessor,
-								 CompilerInvocation & compilation) = 0;
+	virtual bool SplitInvocation(const ToolInvocation & original,
+								 ToolInvocation & preprocessor,
+								 ToolInvocation & compilation) = 0;
 
 	/// Normalizes invocation struct, making possible to replace input/output files. Substitute toolId if possible.
-	virtual CompilerInvocation CompleteInvocation(const CompilerInvocation & original) = 0;
+	virtual ToolInvocation CompleteInvocation(const ToolInvocation & original) = 0;
 
 	/// Remove preprocessor flags from splitted compilation phase; also remove extra preprocessor flags which not supported for distributed build.
-	virtual CompilerInvocation FilterFlags(const CompilerInvocation & original) = 0;
+	virtual ToolInvocation FilterFlags(const ToolInvocation & original) = 0;
 
 	/// Get preprocessed filename path.
 	virtual std::string GetPreprocessedPath(const std::string & sourcePath, const std::string & objectPath) const = 0;
