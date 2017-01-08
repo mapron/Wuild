@@ -155,7 +155,7 @@ AddTarget(NAME InvocationRewriter SUBDIR Modules/ CSRC *.cpp *.h
 	)
 
 AddTarget(NAME LocalExecutor SUBDIR Modules/  CSRC *.cpp *.h
-	DEPS ninja_subprocess Configs Platform Networking InvocationRewriter ToolExecutionInterface
+	DEPS ninja_subprocess Configs Platform InvocationRewriter ToolExecutionInterface
 	)
 
 AddTarget(NAME ConfiguredApplication CSRC *.cpp *.h

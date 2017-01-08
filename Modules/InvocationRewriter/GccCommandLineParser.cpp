@@ -49,6 +49,10 @@ void GccCommandLineParser::UpdateInfo()
 				m_invocation.m_outputNameIndex = argIndex + 1;
 				skipNext = true;
 			}
+			if (arg[1] == 'x')
+			{
+				skipNext = true;
+			}
 			if (arg == "-MF" || arg == "-MT" || arg == "-isysroot")
 				skipNext = true;
 
