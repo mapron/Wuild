@@ -31,7 +31,7 @@ std::string ToolServerInfo::ToString(bool outputTools, bool outputClients) const
 	{
 		os << " Connected: " << m_connectedClients.size();
 		for (const ConnectedClientInfo & c : m_connectedClients)
-			 os << c.m_clientHost << " (" <<  c.m_clientId << "): use=" << c.m_usedThreads  << ", ";
+			 os << "sid=" << c.m_sessionId << " (" <<  c.m_clientId << "): use=" << c.m_usedThreads  << ", ";
 	}
 	return os.str();
 }
@@ -49,8 +49,7 @@ bool ToolServerInfo::ConnectedClientInfo::operator ==(const ToolServerInfo::Conn
 {
 	return true
 			&& m_usedThreads == rh.m_usedThreads
-			&& m_clientHost == rh.m_clientHost
-			&& m_clientId == rh.m_clientHost
+			&& m_clientId == rh.m_clientId
 			&& m_sessionId == rh.m_sessionId
 			;
 }
@@ -116,15 +115,40 @@ bool CoordinatorInfo::operator ==(const CoordinatorInfo &rh) const
 	return m_toolServers == rh.m_toolServers;
 }
 
-std::string ToolServerSessionInfo::ToString(bool full) const
+std::string ToolServerSessionInfo::ToString(bool asCurrent, bool full) const
 {
 	std::ostringstream os;
-	os  << "sid=" << m_sessionId
-		<< ", client=" << m_clientId
-		<< ", tasks=" << m_tasksCount
+	os  << "sid:" << m_sessionId;
+	if (!m_clientId.empty())
+		os << ", client:" << m_clientId ;
+
+	if (asCurrent)
+		os << ", tasks:" << m_tasksCount
 		   ;
 	if (full)
-		os << " (err:" << m_failuresCount << "), total execution time:" << m_totalExecutionTime.ToString();
+		os << "(err:" << m_failuresCount << ")";
+
+	if (asCurrent)
+	{
+		os << ", usedThreads:" << m_currentUsedThreads;
+	}
+
+	if (!asCurrent)
+	{
+		os << ", maxThreads:" << m_maxUsedThreads;
+		auto cus = m_totalExecutionTime.GetUS();
+		auto nus = m_totalNetworkTime.GetUS();
+		const std::string execstr = m_totalExecutionTime > TimePoint(2.0) ?  m_totalExecutionTime.ToString(false) : std::to_string(cus) + " us.";
+		const std::string netstr  = m_totalNetworkTime   > TimePoint(2.0) ?  m_totalNetworkTime.ToString(false)   : std::to_string(nus) + " us.";
+		auto overheadPercent = ((nus - cus) * 100) / (cus ? cus : 1);
+		os << " Total remote tasks:" << m_tasksCount << ", done in " << m_elapsedTime.ToString(false)
+							  <<  " total compilationTime: " << execstr << ", "
+							   << " total networkTime: "  << netstr<< ", "
+							   << " total overhead: " << overheadPercent << "%"
+								  ;
+
+
+	}
 	return os.str();
 }
 

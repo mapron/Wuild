@@ -14,17 +14,20 @@
 #include "state_rewrite.h"
 #include "graph.h"
 
+#include <Syslogger.h>
+
 struct RuleReplace
 {
 	const Rule* pp;
 	const Rule* cc;
-	std::string compilerId;
+	std::string toolId;
 	RuleReplace() = default;
-	RuleReplace(const Rule* pp_, const Rule* cc_, std::string id) : pp(pp_), cc(cc_), compilerId(id) {}
+	RuleReplace(const Rule* pp_, const Rule* cc_, std::string id) : pp(pp_), cc(cc_), toolId(id) {}
 };
 
 void RewriteStateRules(State *state, IRemoteExecutor * const remoteExecutor)
 {
+	Wuild::Syslogger() << "RewriteStateRules";
 	auto stringVectorToBindings = [](const std::vector<std::string> & rule, EvalString::TokenList & tokens)
 	{
 		 for (const auto & str : rule)
@@ -62,14 +65,16 @@ void RewriteStateRules(State *state, IRemoteExecutor * const remoteExecutor)
 			originalRule.push_back(str);
 		}
 		std::vector<std::string> preprocessRule, compileRule;
-		std::string compilerId;
-		if (remoteExecutor->PreprocessCode(originalRule, s_ignoredArgs, compilerId, preprocessRule, compileRule))
+		std::string toolId;
+		if (remoteExecutor->PreprocessCode(originalRule, s_ignoredArgs, toolId, preprocessRule, compileRule))
 		{
 			Rule* rulePP = rule->Clone(ruleName + "_PP");
 			state->bindings_.AddRule(rulePP);
 			Rule* ruleCC = rule->Clone(ruleName + "_CC");
 			state->bindings_.AddRule(ruleCC);
-			ruleReplacement[rule] = RuleReplace(rulePP, ruleCC, compilerId);
+			rulePP->toolId_ = toolId;
+			ruleCC->toolId_ = toolId;
+			ruleReplacement[rule] = RuleReplace(rulePP, ruleCC, toolId);
 
 			auto & PPtokens = rulePP->GetBinding("command")->parsed_;
 			auto & CCtokens = ruleCC->GetBinding("command")->parsed_;
@@ -84,6 +89,7 @@ void RewriteStateRules(State *state, IRemoteExecutor * const remoteExecutor)
 			descTokens[0].first = "Preprocessing ";
 		}
 	}
+	Wuild::Syslogger() << "RewriteStateRules...";
 	const auto paths = state->paths_;
 	std::set<Edge*> erasedEdges;
 	for (const auto & iter : paths)
@@ -139,11 +145,11 @@ void RewriteStateRules(State *state, IRemoteExecutor * const remoteExecutor)
 
 			if (bindings.find("FLAGS") != bindings.end())
 			{
-				edge_pp->env_->AddBinding("FLAGS", remoteExecutor->FilterPreprocessorFlags(replacement.compilerId, bindings["FLAGS"]));
-				edge_cc->env_->AddBinding("FLAGS", remoteExecutor->FilterCompilerFlags(replacement.compilerId, bindings["FLAGS"]));
+				edge_pp->env_->AddBinding("FLAGS", remoteExecutor->FilterPreprocessorFlags(replacement.toolId, bindings["FLAGS"]));
+				edge_cc->env_->AddBinding("FLAGS", remoteExecutor->FilterCompilerFlags(replacement.toolId, bindings["FLAGS"]));
 			}
 			if (bindings.find("INCLUDES") != bindings.end())
-				edge_cc->env_->AddBinding("INCLUDES", remoteExecutor->FilterCompilerFlags(replacement.compilerId, bindings["INCLUDES"]));
+				edge_cc->env_->AddBinding("INCLUDES", remoteExecutor->FilterCompilerFlags(replacement.toolId, bindings["INCLUDES"]));
 
 			in_egde->outputs_.clear();
 			in_egde->inputs_.clear();
@@ -159,4 +165,6 @@ void RewriteStateRules(State *state, IRemoteExecutor * const remoteExecutor)
 			newEdges.push_back(edge);
 	}
 	state->edges_ = newEdges;
+
+	Wuild::Syslogger() << "/RewriteStateRules";
 }

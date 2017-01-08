@@ -124,6 +124,7 @@ void SocketFrameHandler::SetTcpChannel(const std::string& host, int port, TimePo
 	params.m_connectTimeout = connectionTimeout;
 	params.m_readTimeout = m_settings.m_tcpReadTimeout;
 	params.m_recommendedRecieveBufferSize = m_settings.m_recommendedRecieveBufferSize;
+	params.m_recommendedSendBufferSize    = m_settings.m_recommendedSendBufferSize;
 	TcpSocket::Create(params).swap(m_channel);
 	UpdateLogContext();
 }

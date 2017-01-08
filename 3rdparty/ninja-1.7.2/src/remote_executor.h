@@ -22,16 +22,16 @@ public:
 
 	virtual bool PreprocessCode(const std::vector<std::string> & originalRule,
 								const std::vector<std::string> & ignoredArgs,
-								std::string & compilerId,
+								std::string & toolId,
 								std::vector<std::string> & preprocessRule,
 								std::vector<std::string> & compileRule) const = 0;
 
 	virtual std::string GetPreprocessedPath(const std::string & sourcePath, const std::string & objectPath) const = 0;
 
-	virtual std::string FilterPreprocessorFlags(const std::string & compilerId, const std::string & flags) const = 0;
-	virtual std::string FilterCompilerFlags(const std::string & compilerId, const std::string & flags) const = 0;
+	virtual std::string FilterPreprocessorFlags(const std::string & toolId, const std::string & flags) const = 0;
+	virtual std::string FilterCompilerFlags(const std::string & toolId, const std::string & flags) const = 0;
 
-	virtual void RunIfNeeded() = 0;
+	virtual void RunIfNeeded(const std::vector<std::string> & toolIds) = 0;
 	virtual int GetMinimalRemoteTasks() const = 0;
 	virtual void SleepSome() const = 0;
 
@@ -49,6 +49,4 @@ public:
 	};
 	/// Wait for a command to complete, or return false if interrupted.
 	virtual bool WaitForCommand(Result* result) = 0;
-
-	virtual void Abort() = 0;
 };

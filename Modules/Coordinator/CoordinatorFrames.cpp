@@ -36,7 +36,6 @@ inline ByteOrderDataStreamReader& ByteOrderDataStreamReader::operator >> (ToolSe
 {
 	*this
 		>> client.m_usedThreads
-		>> client.m_clientHost
 		>> client.m_clientId
 		>> client.m_sessionId
 	   ;
@@ -47,7 +46,6 @@ inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator << (const 
 {
 	*this
 		<< client.m_usedThreads
-		<< client.m_clientHost
 		<< client.m_clientId
 		<< client.m_sessionId
 			;
@@ -89,6 +87,7 @@ inline ByteOrderDataStreamReader& ByteOrderDataStreamReader::operator >> (ToolSe
 		>> session.m_totalExecutionTime
 		>> session.m_tasksCount
 		>> session.m_failuresCount
+		>> session.m_maxUsedThreads
 		   ;
 	return *this;
 }
@@ -101,6 +100,7 @@ inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator << (const 
 		<< session.m_totalExecutionTime
 		<< session.m_tasksCount
 		<< session.m_failuresCount
+		<< session.m_maxUsedThreads
 		   ;
 	return *this;
 }
@@ -108,14 +108,14 @@ inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator << (const 
 
 SocketFrame::State CoordinatorListResponse::ReadInternal(ByteOrderDataStreamReader &stream)
 {
-	stream  >> m_info.m_toolServers >> m_latestSessions;
+	stream  >> m_info.m_toolServers >> m_info.m_latestSessions >> m_info.m_activeSessions;
 
 	return stOk;
 }
 
 SocketFrame::State CoordinatorListResponse::WriteInternal(ByteOrderDataStreamWriter &stream) const
 {
-	stream << m_info.m_toolServers <<  m_latestSessions;
+	stream << m_info.m_toolServers <<  m_info.m_latestSessions << m_info.m_activeSessions;
 	return stOk;
 }
 
@@ -133,13 +133,13 @@ SocketFrame::State CoordinatorToolServerStatus::WriteInternal(ByteOrderDataStrea
 
 SocketFrame::State CoordinatorToolServerSession::ReadInternal(ByteOrderDataStreamReader &stream)
 {
-	stream >> m_session;
+	stream >> m_isFinished >> m_session;
 	return stOk;
 }
 
 SocketFrame::State CoordinatorToolServerSession::WriteInternal(ByteOrderDataStreamWriter &stream) const
 {
-	stream << m_session;
+	stream << m_isFinished << m_session;
 	return stOk;
 }
 

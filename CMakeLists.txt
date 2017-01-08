@@ -196,6 +196,6 @@ foreach (appname Coordinator CoordinatorStatus ToolServer Proxy ProxyClient)
 endforeach()
 
 AddTarget(APP NAME WuildNinja ROOT ${NINJA_ROOT}/
-	CSRC ninja.cc remote_executor_impl.h state_rewrite.*
+	CSRC ninja.cc remote_executor_impl.* state_rewrite.*
 	DEPS ${main_deps} ninja_subprocess ${sys_deps}
 	)

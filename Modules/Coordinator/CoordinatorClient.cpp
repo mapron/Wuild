@@ -78,7 +78,7 @@ void CoordinatorClient::Start()
 
 		 }
 		 if (m_infoArrivedCallback)
-			 m_infoArrivedCallback(m_coord, inputMessage.m_latestSessions);
+			 m_infoArrivedCallback(m_coord);
 	}));
 	m_client->SetChannelNotifier([this](bool state){
 		m_clientState = state;
@@ -102,13 +102,15 @@ void CoordinatorClient::SetToolServerInfo(const ToolServerInfo &info)
 	m_toolServerInfo = info;
 }
 
-void CoordinatorClient::SendToolServerSessionInfo(const ToolServerSessionInfo &sessionInfo)
+void CoordinatorClient::SendToolServerSessionInfo(const ToolServerSessionInfo &sessionInfo, bool isFinished)
 {
 	if (!m_client)
 		return;
+
 	Syslogger(this->m_config.m_logContext) << " sending session " <<  sessionInfo.m_clientId;
 
 	CoordinatorToolServerSession::Ptr message(new CoordinatorToolServerSession());
+	message->m_isFinished = isFinished;
 	message->m_session = sessionInfo;
 	m_client->QueueFrame(message);
 }

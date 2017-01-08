@@ -44,8 +44,8 @@ protected:
 	std::unique_ptr<SocketFrameService> m_server;
 	CoordinatorInfo m_info;
 	std::mutex m_infoMutex;
-	ToolServerSessionInfo::List m_latestSessions;
-	std::mutex m_latestSessionsMutex;
+	//ToolServerSessionInfo::List m_latestSessions;
+	//std::mutex m_latestSessionsMutex;
 };
 
 }

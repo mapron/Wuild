@@ -31,7 +31,7 @@ class CoordinatorClient
 {
 public:
 	using ToolServerChangeCallback = std::function<void(const ToolServerInfo&)>;
-	using InfoArrivedCallback = std::function<void(const CoordinatorInfo&, const ToolServerSessionInfo::List &)>;
+	using InfoArrivedCallback = std::function<void(const CoordinatorInfo&)>;
 	using Config = CoordinatorClientConfig;
 
 public:
@@ -45,7 +45,7 @@ public:
 	void Start();
 
 	void SetToolServerInfo(const ToolServerInfo & info);
-	void SendToolServerSessionInfo( const ToolServerSessionInfo & sessionInfo );
+	void SendToolServerSessionInfo(const ToolServerSessionInfo & sessionInfo, bool isFinished);
 
 protected:
 	void Quant();

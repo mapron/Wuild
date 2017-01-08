@@ -24,7 +24,6 @@
 namespace Wuild
 {
 class RemoteToolServerImpl;
-
 /// Listening port for incoming tool execution tasks and transforms it to LocalExecutor.
 class RemoteToolServer
 {
@@ -40,6 +39,8 @@ public:
 	void Start();
 
 protected:
+	void StartTask(const std::string & clientId, int64_t sessionId);
+	void FinishTask(int64_t sessionId, bool remove);
 	Config m_config;
 	std::unique_ptr<RemoteToolServerImpl> m_impl;
 

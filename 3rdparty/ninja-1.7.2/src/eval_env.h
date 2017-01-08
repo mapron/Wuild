@@ -68,6 +68,8 @@ struct Rule {
 
   Rule * Clone(const std::string & newName) const;
 
+  std::string toolId_;
+
  private:
   // Allow the parsers to reach into this object and fill out its fields.
   friend struct ManifestParser;
@@ -103,7 +105,7 @@ struct BindingEnv : public Env {
   /// 3) value set on enclosing scope of edge (edge_->env_->parent_)
   /// This function takes as parameters the necessary info to do (2).
   string LookupWithFallback(const string& var, const EvalString* eval,
-                            Env* env);
+							Env* env);
 
 private:
   map<string, string> bindings_;

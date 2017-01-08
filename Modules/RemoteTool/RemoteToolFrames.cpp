@@ -60,6 +60,8 @@ void RemoteToolRequest::LogTo(std::ostream &os) const
 
 SocketFrame::State RemoteToolRequest::ReadInternal(ByteOrderDataStreamReader &stream)
 {
+	stream >> m_clientId;
+	stream >> m_sessionId;
 	stream >> m_fileData;
 	stream >> m_invocation.m_args;
 	stream >> m_invocation.m_id.m_toolId;
@@ -68,6 +70,8 @@ SocketFrame::State RemoteToolRequest::ReadInternal(ByteOrderDataStreamReader &st
 
 SocketFrame::State RemoteToolRequest::WriteInternal(ByteOrderDataStreamWriter &stream) const
 {
+	stream << m_clientId;
+	stream << m_sessionId;
 	stream << m_fileData;
 	stream << m_invocation.m_args;
 	stream << m_invocation.m_id.m_toolId;

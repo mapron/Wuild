@@ -67,7 +67,7 @@ int main(int argc, char** argv)
 			return;
 		}
 
-		auto callback = []( const Wuild::RemoteToolClient::ExecutionInfo& info){
+		auto callback = []( const Wuild::RemoteToolClient::TaskExecutionInfo& info){
 			if (info.m_stdOutput.size())
 				std::cerr << info.m_stdOutput << std::endl << std::flush;
 			std::cout << info.GetProfilingStr() << " \n";

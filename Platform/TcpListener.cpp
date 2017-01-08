@@ -148,6 +148,7 @@ bool TcpListener::DoAccept(TcpSocket *client)
 
 	setsockopt( Socket, SOL_SOCKET, SO_KEEPALIVE, SOCK_OPT_ARG &value, sizeof(value) );
 
+	// TODO: inet_ntop?
 	const std::string peerIp = (incoming_length == sizeof(sockaddr_in) ? inet_ntoa( incoming_address.sin_addr ) : std::string());
 
 	client->m_logContext = peerIp + "->:" + std::to_string(m_params.GetPort());

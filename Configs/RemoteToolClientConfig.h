@@ -24,6 +24,7 @@ public:
 	TimePoint m_queueTimeout = 10.0;
 	int m_invocationAttempts = 1;
 	int m_minimalRemoteTasks = 10;
+	std::string m_clientId;
 	CoordinatorClientConfig m_coordinator;
 	bool Validate(std::ostream * errStream = nullptr) const override;
 };

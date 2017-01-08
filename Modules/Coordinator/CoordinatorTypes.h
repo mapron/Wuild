@@ -32,7 +32,6 @@ struct ToolServerInfo
 	struct ConnectedClientInfo
 	{
 		uint16_t m_usedThreads = 0;
-		std::string m_clientHost;
 		std::string m_clientId;
 		int64_t m_sessionId = 0;
 
@@ -49,10 +48,31 @@ struct ToolServerInfo
 	bool operator !=(const ToolServerInfo& rh) const { return !(*this == rh);}
 };
 
-/// Tool server info list
+/// Information about finished compilation session (sequence of tool executions)
+struct ToolServerSessionInfo
+{
+	using List = std::deque<ToolServerSessionInfo>;
+	std::string m_clientId;
+	int64_t m_sessionId;
+	TimePoint m_totalNetworkTime;
+	TimePoint m_totalExecutionTime;
+	TimePoint m_elapsedTime;
+	uint32_t m_tasksCount = 0;
+	uint32_t m_failuresCount = 0;
+	uint32_t m_currentUsedThreads = 0;
+	uint32_t m_maxUsedThreads = 0;
+
+	void *m_opaqueFrameHandler = nullptr;
+
+	std::string ToString(bool asCurrent, bool full = false) const;
+};
+
+/// Full coordinator data
 struct CoordinatorInfo
 {
-	std::deque<ToolServerInfo> m_toolServers;
+	std::deque<ToolServerInfo>   m_toolServers;
+	ToolServerSessionInfo::List  m_latestSessions;
+	ToolServerSessionInfo::List  m_activeSessions;
 
 	/// returns list of changed items pointers.
 	std::vector<ToolServerInfo*> Update(const ToolServerInfo & newToolServer);
@@ -65,17 +85,5 @@ struct CoordinatorInfo
 	bool operator !=(const CoordinatorInfo& rh) const { return !(*this == rh);}
 };
 
-/// Information about finished compilation session (sequence of tool executions)
-struct ToolServerSessionInfo
-{
-	using List = std::deque<ToolServerSessionInfo>;
-	std::string m_clientId;
-	uint64_t m_sessionId;
-	TimePoint m_totalExecutionTime;
-	uint32_t m_tasksCount = 0;
-	uint32_t m_failuresCount = 0;
-
-	std::string ToString(bool full = false) const;
-};
 
 }

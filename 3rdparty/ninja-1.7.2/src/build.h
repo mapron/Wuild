@@ -58,8 +58,8 @@ struct Plan {
   void Dump();
 
   enum EdgeResult {
-    kEdgeFailed,
-    kEdgeSucceeded
+	kEdgeFailed,
+	kEdgeSucceeded
   };
 
   /// Mark an edge as done building (whether it succeeded or failed).
@@ -72,11 +72,12 @@ struct Plan {
   /// Number of edges with commands to run.
   int command_edge_count() const { return command_edges_; }
   int remote_edges_count() const { return remote_edges_; }
+  std::set<const Rule*> remote_rules() const { return remote_rules_; }
 
 private:
   bool AddSubTarget(Node* node, vector<Node*>* stack, string* err);
   bool CheckDependencyCycle(Node* node, const vector<Node*>& stack,
-                            string* err);
+							string* err);
   void NodeFinished(Node* node);
 
   /// Submits a ready edge as a candidate for execution.
@@ -98,6 +99,7 @@ private:
 
   /// Total number of edges with is_remote flag.
   int remote_edges_;
+  std::set<const Rule*> remote_rules_;
 
   /// Total remaining number of wanted edges.
   int wanted_edges_;
@@ -113,11 +115,11 @@ struct CommandRunner {
 
   /// The result of waiting for a command.
   struct Result {
-    Result() : edge(NULL) {}
-    Edge* edge;
-    ExitStatus status;
-    string output;
-    bool success() const { return status == ExitSuccess; }
+	Result() : edge(NULL) {}
+	Edge* edge;
+	ExitStatus status;
+	string output;
+	bool success() const { return status == ExitSuccess; }
   };
   /// Wait for a command to complete, or return false if interrupted.
   virtual bool WaitForCommand(Result* result) = 0;
@@ -129,12 +131,12 @@ struct CommandRunner {
 /// Options (e.g. verbosity, parallelism) passed to a build.
 struct BuildConfig {
   BuildConfig() : verbosity(NORMAL), dry_run(false), parallelism(1),
-                  failures_allowed(1), max_load_average(-0.0f) {}
+				  failures_allowed(1), max_load_average(-0.0f) {}
 
   enum Verbosity {
-    NORMAL,
-    QUIET,  // No output -- used when testing.
-    VERBOSE
+	NORMAL,
+	QUIET,  // No output -- used when testing.
+	VERBOSE
   };
   Verbosity verbosity;
   bool dry_run;
@@ -149,8 +151,8 @@ class IRemoteExecutor;
 /// Builder wraps the build process: starting commands, updating status.
 struct Builder {
   Builder(IRemoteExecutor * const remoteExecutor, State* state, const BuildConfig& config,
-          BuildLog* build_log, DepsLog* deps_log,
-          DiskInterface* disk_interface);
+		  BuildLog* build_log, DepsLog* deps_log,
+		  DiskInterface* disk_interface);
   ~Builder();
 
   /// Clean up after interrupted commands by deleting output files.
@@ -177,7 +179,7 @@ struct Builder {
 
   /// Used for tests.
   void SetBuildLog(BuildLog* log) {
-    scan_.set_build_log(log);
+	scan_.set_build_log(log);
   }
 
   State* state_;
@@ -189,8 +191,8 @@ struct Builder {
 
  private:
    bool ExtractDeps(CommandRunner::Result* result, const string& deps_type,
-                    const string& deps_prefix, vector<Node*>* deps_nodes,
-                    string* err);
+					const string& deps_prefix, vector<Node*>* deps_nodes,
+					string* err);
 
   DiskInterface* disk_interface_;
   DependencyScan scan_;
@@ -205,13 +207,13 @@ struct BuildStatus {
   void PlanHasTotalEdges(int total);
   void BuildEdgeStarted(Edge* edge, const string& prefix = "");
   void BuildEdgeFinished(Edge* edge, bool success, const string& output,
-                         int* start_time, int* end_time, const std::string & prefix);
+						 int* start_time, int* end_time, const std::string & prefix);
   void BuildStarted();
   void BuildFinished();
 
   enum EdgeStatus {
-    kEdgeStarted,
-    kEdgeFinished,
+	kEdgeStarted,
+	kEdgeFinished,
   };
 
   /// Format the progress status string by replacing the placeholders.
@@ -220,7 +222,7 @@ struct BuildStatus {
   /// @param progress_status_format The format of the progress status.
   /// @param status The status of the edge.
   string FormatProgressStatus(const char* progress_status_format,
-                              EdgeStatus status) const;
+							  EdgeStatus status) const;
 
  private:
   void PrintStatus(Edge* edge, EdgeStatus status, const string& prefix = "");
@@ -244,53 +246,53 @@ struct BuildStatus {
 
   template<size_t S>
   void SnprintfRate(double rate, char(&buf)[S], const char* format) const {
-    if (rate == -1)
-      snprintf(buf, S, "?");
-    else
-      snprintf(buf, S, format, rate);
+	if (rate == -1)
+	  snprintf(buf, S, "?");
+	else
+	  snprintf(buf, S, format, rate);
   }
 
   struct RateInfo {
-    RateInfo() : rate_(-1) {}
+	RateInfo() : rate_(-1) {}
 
-    void Restart() { stopwatch_.Restart(); }
-    double Elapsed() const { return stopwatch_.Elapsed(); }
-    double rate() { return rate_; }
+	void Restart() { stopwatch_.Restart(); }
+	double Elapsed() const { return stopwatch_.Elapsed(); }
+	double rate() { return rate_; }
 
-    void UpdateRate(int edges) {
-      if (edges && stopwatch_.Elapsed())
-        rate_ = edges / stopwatch_.Elapsed();
-    }
+	void UpdateRate(int edges) {
+	  if (edges && stopwatch_.Elapsed())
+		rate_ = edges / stopwatch_.Elapsed();
+	}
 
   private:
-    double rate_;
-    Stopwatch stopwatch_;
+	double rate_;
+	Stopwatch stopwatch_;
   };
 
   struct SlidingRateInfo {
-    SlidingRateInfo(int n) : rate_(-1), N(n), last_update_(-1) {}
+	SlidingRateInfo(int n) : rate_(-1), N(n), last_update_(-1) {}
 
-    void Restart() { stopwatch_.Restart(); }
-    double rate() { return rate_; }
+	void Restart() { stopwatch_.Restart(); }
+	double rate() { return rate_; }
 
-    void UpdateRate(int update_hint) {
-      if (update_hint == last_update_)
-        return;
-      last_update_ = update_hint;
+	void UpdateRate(int update_hint) {
+	  if (update_hint == last_update_)
+		return;
+	  last_update_ = update_hint;
 
-      if (times_.size() == N)
-        times_.pop();
-      times_.push(stopwatch_.Elapsed());
-      if (times_.back() != times_.front())
-        rate_ = times_.size() / (times_.back() - times_.front());
-    }
+	  if (times_.size() == N)
+		times_.pop();
+	  times_.push(stopwatch_.Elapsed());
+	  if (times_.back() != times_.front())
+		rate_ = times_.size() / (times_.back() - times_.front());
+	}
 
   private:
-    double rate_;
-    Stopwatch stopwatch_;
-    const size_t N;
-    queue<double> times_;
-    int last_update_;
+	double rate_;
+	Stopwatch stopwatch_;
+	const size_t N;
+	queue<double> times_;
+	int last_update_;
   };
 
   mutable RateInfo overall_rate_;

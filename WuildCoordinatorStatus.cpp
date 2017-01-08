@@ -32,17 +32,23 @@ int main(int argc, char** argv)
 		return 1;
 
 
-	client.SetInfoArrivedCallback([](const CoordinatorInfo& info, const ToolServerSessionInfo::List & sessions){
+	client.SetInfoArrivedCallback([](const CoordinatorInfo& info){
 		std::cout << "Coordinator connected tool servers: \n";
 		for (const ToolServerInfo & toolServer : info.m_toolServers)
 		{
 			std::cout <<  toolServer.ToString(true, true) << "\n";
 		}
 
-		std::cout << "\n Coordinator latest sessions: \n";
-		for (const ToolServerSessionInfo & session : sessions)
+		std::cout << "\n Coordinator current sessions: \n";
+		for (const ToolServerSessionInfo & session : info.m_activeSessions)
 		{
-			std::cout <<  session.ToString(true) << "\n";
+			std::cout <<  session.ToString(true, true) << "\n";
+		}
+
+		std::cout << "\n Coordinator latest finished sessions: \n";
+		for (const ToolServerSessionInfo & session : info.m_latestSessions)
+		{
+			std::cout <<  session.ToString(false, true) << "\n";
 		}
 
 		Application::Interrupt(0);

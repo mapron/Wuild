@@ -97,7 +97,7 @@ int main(int argc, char** argv)
 	coordServer.Start();
 
 	std::atomic_int totalFinished {0}, totalCount {0};
-	auto callback = [&totalFinished, &totalCount]( const RemoteToolClient::ExecutionInfo& info){
+	auto callback = [&totalFinished, &totalCount]( const RemoteToolClient::TaskExecutionInfo& info){
 		if (info.m_stdOutput.size())
 			std::cout << info.m_stdOutput << std::endl << std::flush;
 
@@ -106,7 +106,7 @@ int main(int argc, char** argv)
 		if (totalFinished == totalCount)
 		   Application::Interrupt(1 - info.m_result);
 	};
-	auto callbackFail = [&totalFinished, &totalCount]( const RemoteToolClient::ExecutionInfo& info){
+	auto callbackFail = [&totalFinished, &totalCount]( const RemoteToolClient::TaskExecutionInfo& info){
 		if (info.m_stdOutput.size())
 			std::cout << info.m_stdOutput << std::endl << std::flush;
 

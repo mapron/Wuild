@@ -27,8 +27,10 @@ public:
 	static const uint8_t s_frameTypeId = s_minimalUserFrameId + 1;
 	using Ptr = std::shared_ptr<RemoteToolRequest>;
 
-	ToolInvocation m_invocation;
-	ByteArrayHolder    m_fileData;
+	std::string         m_clientId;
+	uint64_t            m_sessionId;
+	ToolInvocation      m_invocation;
+	ByteArrayHolder     m_fileData;
 
 	uint8_t             FrameTypeId() const override { return s_frameTypeId;}
 
@@ -44,10 +46,10 @@ public:
 	static const uint8_t s_frameTypeId = s_minimalUserFrameId + 2;
 	using Ptr = std::shared_ptr<RemoteToolResponse>;
 
-	bool             m_result = true;
-	ByteArrayHolder  m_fileData;
-	std::string      m_stdOut;
-	TimePoint        m_executionTime;
+	bool                m_result = true;
+	ByteArrayHolder     m_fileData;
+	std::string         m_stdOut;
+	TimePoint           m_executionTime;
 
 	void                LogTo(std::ostream& os) const override;
 	uint8_t             FrameTypeId() const override { return s_frameTypeId;}

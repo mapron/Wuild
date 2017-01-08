@@ -27,7 +27,8 @@ public:
 	static const uint8_t s_frameTypeId = s_minimalUserFrameId + 1;
 	using Ptr = std::shared_ptr<ToolProxyRequest>;
 
-	ToolInvocation m_invocation;
+public:
+	ToolInvocation      m_invocation;
 
 	uint8_t             FrameTypeId() const override { return s_frameTypeId;}
 
@@ -43,8 +44,9 @@ public:
 	static const uint8_t s_frameTypeId = s_minimalUserFrameId + 2;
 	using Ptr = std::shared_ptr<ToolProxyResponse>;
 
-	bool    m_result = true;
-	std::string m_stdOut;
+public:
+	bool                m_result = true;
+	std::string         m_stdOut;
 
 	void                LogTo(std::ostream& os) const override;
 	uint8_t             FrameTypeId() const override { return s_frameTypeId;}

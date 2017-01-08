@@ -13,8 +13,7 @@
 
 #pragma once
 
-#include "CoordinatorClient.h"
-
+#include <CoordinatorClient.h>
 #include <ThreadLoop.h>
 #include <TimePoint.h>
 #include <CommonTypes.h>
@@ -39,7 +38,7 @@ class RemoteToolClient
 {
 public:
 	/// Remote tool execution result.
-	struct ExecutionInfo
+	struct TaskExecutionInfo
 	{
 		TimePoint m_toolExecutionTime;
 		TimePoint m_networkRequestTime;
@@ -50,7 +49,7 @@ public:
 	};
 	using Config = RemoteToolClientConfig;
 	using RemoteAvailableCallback = std::function<void(int)>;
-	using InvokeCallback = std::function<void(const ExecutionInfo& )>;
+	using InvokeCallback = std::function<void(const TaskExecutionInfo& )>;
 
 public:
 	RemoteToolClient();
@@ -63,16 +62,20 @@ public:
 
 	int GetFreeRemoteThreads() const;
 
-	void Start();
+	void Start(const StringVector & requiredToolIds = StringVector());
+	void FinishSession();
 
 	void SetRemoteAvailableCallback(RemoteAvailableCallback callback);
 
 	/// Starts new remote task.
 	void InvokeTool(const ToolInvocation & invocation, InvokeCallback callback);
 
+	std::string GetSessionInformation() const { return m_sessionInfo.ToString(false, true); }
+
 protected:
 	void AddClientInternal(ToolServerInfoWrap &info, bool start = false);
 	void RecalcAvailable();
+	void UpdateSessionInfo(const TaskExecutionInfo& executionResult);
 
 	ThreadLoop m_thread;
 
@@ -80,8 +83,15 @@ protected:
 	std::atomic_int m_availableRemoteThreads {0};
 	std::atomic_int m_queuedTasks {0};
 
+	bool m_started = false;
+	TimePoint m_start;
+	int64_t m_sessionId  = 0;
+	ToolServerSessionInfo m_sessionInfo;
+	std::mutex m_sessionInfoMutex;
+
 	RemoteAvailableCallback m_remoteAvailableCallback;
 	Config m_config;
+	StringVector m_requiredToolIds;
 };
 
 }

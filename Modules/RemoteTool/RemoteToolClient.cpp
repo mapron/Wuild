@@ -35,6 +35,8 @@ class ToolServerInfoWrap
 public:
 	SocketFrameHandler::Ptr m_handler;
 	ToolServerInfo m_toolServerInfo;
+
+	void UpdateBusy(int64_t mySessionId);
 	bool m_state = false;
 	int m_busyMine {0};
 	int m_busyOthers {0};
@@ -127,22 +129,27 @@ RemoteToolClient::RemoteToolClient()
 	: m_impl(new RemoteToolClientImpl())
 {
 	m_impl->m_coordinator.SetToolServerChangeCallback([this](const ToolServerInfo& info){
+		std::lock_guard<std::mutex> lock(m_impl->m_clientsInfoMutex);
 		bool found = false;
 		for (ToolServerInfoWrap & clientsInfo : m_impl->m_clientsInfo)
 		{
 			if (clientsInfo.m_toolServerInfo.EqualIdTo(info))
 			{
 				clientsInfo.m_toolServerInfo = info;
+				clientsInfo.UpdateBusy(m_sessionId);
 				found = true;
 			}
 		}
 		if (!found)
+		{
 			AddClient(info, true);
+		}
 	});
 }
 
 RemoteToolClient::~RemoteToolClient()
 {
+	FinishSession();
 	m_thread.Stop();
 
 	for (auto & client : m_impl->m_clientsInfo)
@@ -166,8 +173,14 @@ int RemoteToolClient::GetFreeRemoteThreads() const
 	return m_availableRemoteThreads - m_queuedTasks;
 }
 
-void RemoteToolClient::Start()
+void RemoteToolClient::Start(const StringVector & requiredToolIds)
 {
+	m_started = true;
+	m_start = TimePoint(true);
+	m_sessionInfo = ToolServerSessionInfo();
+	m_sessionInfo.m_sessionId = m_sessionId = m_start.GetUS();
+	m_sessionInfo.m_clientId = m_config.m_clientId;
+	m_requiredToolIds = requiredToolIds;
 	for (auto & c : m_impl->m_clientsInfo)
 		c.m_handler->Start();
 
@@ -178,6 +191,15 @@ void RemoteToolClient::Start()
 	m_thread.Exec(std::bind(&RemoteToolClientImpl::ProcessTasks, m_impl.get()));
 }
 
+void RemoteToolClient::FinishSession()
+{
+	if (!m_started)
+		return;
+	m_started = false;
+	m_sessionInfo.m_elapsedTime = m_start.GetElapsedTime();
+	m_impl->m_coordinator.SendToolServerSessionInfo(m_sessionInfo, true);
+}
+
 void RemoteToolClient::SetRemoteAvailableCallback(RemoteToolClient::RemoteAvailableCallback callback)
 {
 	m_remoteAvailableCallback = callback;
@@ -185,14 +207,32 @@ void RemoteToolClient::SetRemoteAvailableCallback(RemoteToolClient::RemoteAvaila
 
 void RemoteToolClient::AddClient(const ToolServerInfo &info, bool start)
 {
-// TODO: check for requred tool ids!
+	if (!m_requiredToolIds.empty())
+	{
+		bool hasAtLeastOneTool = false;
+		for (const auto & toolId : m_requiredToolIds)
+		{
+			if (std::find(info.m_toolIds.begin(), info.m_toolIds.end(), toolId) != info.m_toolIds.end())
+			{
+				hasAtLeastOneTool = true;
+				break;
+			}
+		}
+		if (!hasAtLeastOneTool)
+		{
+			Syslogger() << "Skipping client "<< info.m_connectionHost;
+			return;
+		}
+	}
 	Syslogger() << "RemoteToolClient::AddClient " << info.m_connectionHost  << ":" <<  info.m_connectionPort;
 	ToolServerInfoWrap wrapNew;
 	wrapNew.m_toolServerInfo = info;
+	wrapNew.UpdateBusy(m_sessionId);
 	m_impl->m_clientsInfo.push_back(std::move(wrapNew));
 	ToolServerInfoWrap & wrap = *(m_impl->m_clientsInfo.rbegin());
 	SocketFrameHandlerSettings settings;
 	settings.m_recommendedRecieveBufferSize = g_recommendedBufferSize;
+	settings.m_recommendedSendBufferSize    = g_recommendedBufferSize;
 	wrap.m_handler.reset(new SocketFrameHandler( settings));
 	wrap.m_handler->RegisterFrameReader(SocketFrameReaderTemplate<RemoteToolResponse>::Create());
 	wrap.m_handler->SetTcpChannel(wrap.m_toolServerInfo.m_connectionHost, wrap.m_toolServerInfo.m_connectionPort);
@@ -214,7 +254,7 @@ void RemoteToolClient::InvokeTool(const ToolInvocation & invocation, InvokeCallb
 	auto frameCallback = [this, callback, start, outputFilename](SocketFrame::Ptr responseFrame, SocketFrameHandler::TReplyState state)
 	{
 		m_queuedTasks--;
-		ExecutionInfo info;
+		TaskExecutionInfo info;
 		if (state == SocketFrameHandler::rsTimeout)
 		{
 			info.m_stdOutput = "Timeout expired.";
@@ -239,10 +279,11 @@ void RemoteToolClient::InvokeTool(const ToolInvocation & invocation, InvokeCallb
 					 Syslogger(LOG_ERR) << "Failed to write response data to " << outputFilename;
 			}
 		}
+		UpdateSessionInfo(info);
 		callback(info);
 	};
 
-	ExecutionInfo errInfo;
+	TaskExecutionInfo errInfo;
 	errInfo.m_result = false;
 
 	ByteArrayHolder inputData;
@@ -262,6 +303,11 @@ void RemoteToolClient::InvokeTool(const ToolInvocation & invocation, InvokeCallb
 	wrap.m_expirationMoment = TimePoint(true) + m_config.m_queueTimeout;
 	wrap.m_attemptsRemain = m_config.m_invocationAttempts;
 
+	{
+		std::lock_guard<std::mutex> lock(m_sessionInfoMutex);
+		m_sessionInfo.m_currentUsedThreads ++;
+	}
+
 	m_queuedTasks++;
 	m_impl->QueueTask(wrap);
 }
@@ -273,11 +319,11 @@ void RemoteToolClient::RecalcAvailable()
 	{
 		if (client.m_state)
 		{
-			available += client.m_toolServerInfo.m_totalThreads - client.m_busyMine - client.m_busyOthers;
-		}
-		else
-		{
-			client.m_busyMine = 0;
+			auto busyOthers=  client.m_busyOthers;
+			if (busyOthers)
+				busyOthers--;
+
+			available += client.m_toolServerInfo.m_totalThreads - client.m_busyMine - busyOthers;
 		}
 	}
 	bool wasUnactive = m_availableRemoteThreads == 0;
@@ -286,7 +332,21 @@ void RemoteToolClient::RecalcAvailable()
 		m_remoteAvailableCallback(available);
 }
 
-std::string RemoteToolClient::ExecutionInfo::GetProfilingStr() const
+void RemoteToolClient::UpdateSessionInfo(const RemoteToolClient::TaskExecutionInfo &executionResult)
+{
+	std::lock_guard<std::mutex> lock(m_sessionInfoMutex);
+	m_sessionInfo.m_tasksCount ++;
+	if (!executionResult.m_result)
+		m_sessionInfo.m_failuresCount++;
+	 m_sessionInfo.m_totalNetworkTime += executionResult.m_networkRequestTime;
+	 m_sessionInfo.m_totalExecutionTime += executionResult.m_toolExecutionTime;
+	 m_sessionInfo.m_maxUsedThreads = std::max(m_sessionInfo.m_maxUsedThreads, m_sessionInfo.m_currentUsedThreads);
+	 m_sessionInfo.m_currentUsedThreads--;
+
+	m_impl->m_coordinator.SendToolServerSessionInfo(m_sessionInfo, false);
+}
+
+std::string RemoteToolClient::TaskExecutionInfo::GetProfilingStr() const
 {
 	std::ostringstream os;
 	auto cus = m_toolExecutionTime.GetUS();
@@ -296,6 +356,19 @@ std::string RemoteToolClient::ExecutionInfo::GetProfilingStr() const
 	   << "networkTime: "  << nus << " us., "
 	   << "overhead: " << overheadPercent << "%";
 	return os.str();
+}
+
+void ToolServerInfoWrap::UpdateBusy(int64_t mySessionId)
+{
+	m_busyMine = 0;
+	m_busyOthers = 0;
+	for (const ToolServerInfo::ConnectedClientInfo & client : this->m_toolServerInfo.m_connectedClients)
+	{
+		if (client.m_sessionId == mySessionId)
+			m_busyMine += client.m_usedThreads;
+		else
+			m_busyOthers += client.m_usedThreads;
+	}
 }
 
 }

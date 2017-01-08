@@ -72,6 +72,7 @@ void SocketFrameService::AddTcpListener(int port, std::string ip)
 
 	params.m_connectTimeout = TimePoint(0.001);
 	params.m_recommendedRecieveBufferSize = m_settings.m_recommendedRecieveBufferSize;
+	params.m_recommendedSendBufferSize    = m_settings.m_recommendedSendBufferSize;
 	auto listener = TcpListener::Create(params);
 	if (!m_logContext.empty())
 		m_logContext += ", ";

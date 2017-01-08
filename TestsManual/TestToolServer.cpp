@@ -75,10 +75,12 @@ int main(int argc, char** argv)
 			return;
 		}
 
-		auto callback = []( const Wuild::RemoteToolClient::ExecutionInfo& info){
+		auto callback = [&rcClient]( const Wuild::RemoteToolClient::TaskExecutionInfo& info){
 			if (info.m_stdOutput.size())
 				std::cerr << info.m_stdOutput << std::endl << std::flush;
-			std::cout << info.GetProfilingStr() << " \n";
+			rcClient.FinishSession();
+			std::cout << rcClient.GetSessionInformation()  << " \n";
+			//std::cout << info.GetProfilingStr() << " \n";
 			Application::Interrupt(1 - info.m_result);
 		};
 		rcClient.InvokeTool(taskCC->m_invocation, callback);

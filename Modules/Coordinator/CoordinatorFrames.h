@@ -26,6 +26,7 @@ public:
 	static const uint8_t s_frameTypeId = s_minimalUserFrameId + 1;
 	using Ptr = std::shared_ptr<CoordinatorListRequest>;
 
+public:
 	uint8_t             FrameTypeId() const override { return s_frameTypeId;}
 	void                LogTo(std::ostream& os) const override { os << " REQUEST"; }
 	State               ReadInternal(ByteOrderDataStreamReader &) override { return stOk;}
@@ -38,14 +39,14 @@ public:
 	static const uint8_t s_frameTypeId = s_minimalUserFrameId + 2;
 	using Ptr = std::shared_ptr<CoordinatorListResponse>;
 
-	CoordinatorInfo m_info;
-	ToolServerSessionInfo::List m_latestSessions;
+public:
+	CoordinatorInfo              m_info;
 
-	void                LogTo(std::ostream& os) const override { os << m_info.ToString(); }
-	uint8_t             FrameTypeId() const override { return s_frameTypeId;}
+	void                         LogTo(std::ostream& os) const override { os <<  m_info.ToString(); }
+	uint8_t                      FrameTypeId() const override { return s_frameTypeId;}
 
-	State               ReadInternal(ByteOrderDataStreamReader &stream) override;
-	State               WriteInternal(ByteOrderDataStreamWriter &stream) const override;
+	State                        ReadInternal(ByteOrderDataStreamReader &stream) override;
+	State                        WriteInternal(ByteOrderDataStreamWriter &stream) const override;
 };
 
 class CoordinatorToolServerStatus : public SocketFrameExt
@@ -54,7 +55,8 @@ public:
 	static const uint8_t s_frameTypeId = s_minimalUserFrameId + 3;
 	using Ptr = std::shared_ptr<CoordinatorToolServerStatus>;
 
-	ToolServerInfo m_info;
+public:
+	ToolServerInfo      m_info;
 
 	void                LogTo(std::ostream& os) const override { os << " STATUS:" << m_info.ToString(); }
 	uint8_t             FrameTypeId() const override { return s_frameTypeId;}
@@ -69,9 +71,11 @@ public:
 	static const uint8_t s_frameTypeId = s_minimalUserFrameId + 4;
 	using Ptr = std::shared_ptr<CoordinatorToolServerSession>;
 
+public:
+	bool                  m_isFinished = false;
 	ToolServerSessionInfo m_session;
 
-	void                LogTo(std::ostream& os) const override { os << " SESSION:" << m_session.ToString(); }
+	void                LogTo(std::ostream& os) const override { os << " SESSION:" << m_session.ToString(true); }
 	uint8_t             FrameTypeId() const override { return s_frameTypeId;}
 
 	State               ReadInternal(ByteOrderDataStreamReader &stream) override;

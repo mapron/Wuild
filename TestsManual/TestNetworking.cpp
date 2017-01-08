@@ -129,6 +129,7 @@ void TestService::setServer(int port)
 
 	SocketFrameHandlerSettings settings;
 	settings.m_recommendedRecieveBufferSize = bufferSize;
+	settings.m_recommendedSendBufferSize    = bufferSize;
 	settings.m_segmentSize = segmentSize;
 
 	m_server.reset(new SocketFrameService( settings ));
@@ -150,6 +151,7 @@ void TestService::addClient(std::string ip, int port)
 {
 	Syslogger() << "setClient " << ip  << ":" <<  port;
 	SocketFrameHandlerSettings settings;
+	settings.m_recommendedSendBufferSize = bufferSize;
 	settings.m_recommendedRecieveBufferSize = bufferSize;
 	settings.m_segmentSize = segmentSize;
 	SocketFrameHandler::Ptr h(new SocketFrameHandler(settings));

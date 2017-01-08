@@ -62,6 +62,7 @@ struct SocketFrameHandlerSettings
 
 	TimePoint      m_tcpReadTimeout          = TimePoint(0.0);    //!< Read timeout for underlying physical channel.
 	size_t         m_recommendedRecieveBufferSize = 4 * 1024;     //!< Recommended TCP-buffer size.
+	size_t         m_recommendedSendBufferSize = 4 * 1024;        //!< Recommended TCP-buffer size.
 	size_t         m_segmentSize             = 240;               //!< Maximal length of channel layer frame.
 																  // Network features used by FrameHandler
 	bool           m_hasAcknowledges = true;                      //!< Acknowledges
