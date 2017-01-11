@@ -243,10 +243,15 @@ void ConfiguredApplication::ReadInvocationRewriterConfig()
 	{
 		InvocationRewriterConfig::Tool unit;
 		unit.m_id = id;
-		std::string append = m_config->GetString(defaultGroup, id + "_append");
+		std::string append = m_config->GetString(defaultGroup, id + "_appendRemote");
 		if (!append.empty())
 		{
-			unit.m_appendOption = " " + append + " ";
+			unit.m_appendRemote = " " + append + " ";
+		}
+		std::string remove = m_config->GetString(defaultGroup, id + "_removeRemote");
+		if (!remove.empty())
+		{
+			unit.m_removeRemote = remove;
 		}
 		std::string type = m_config->GetString(defaultGroup, id + "_type", "gcc"); // "gcc" or "msvc"
 		if (type == "msvc" || unit.m_id.find("ms") == 0)

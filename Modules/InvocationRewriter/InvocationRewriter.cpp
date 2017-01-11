@@ -70,9 +70,6 @@ bool InvocationRewriter::SplitInvocation(const ToolInvocation & original, ToolIn
 		compilation.SetInput(preprocessedFilename);
 	}
 
-	if (!toolInfo.m_append.empty())
-		compilation.m_args.push_back(toolInfo.m_append);
-
 	return true;
 }
 
@@ -132,6 +129,32 @@ std::string InvocationRewriter::GetPreprocessedPath(const std::string & sourcePa
 	return preprocessed;
 }
 
+ToolInvocation InvocationRewriter::PrepareRemote(const ToolInvocation &original)
+{
+	ToolInvocation inv = CompleteInvocation(original);
+	ToolInfo info = CompileInfoById(original.m_id);
+	if (info.m_valid)
+	{
+		inv.m_id = info.m_id;
+		inv.m_type = original.m_type;
+		inv = info.m_parser->ProcessToolInvocation(inv);
+		if (!info.m_tool.m_appendRemote.empty())
+			inv.m_args.push_back(info.m_tool.m_appendRemote);
+
+		if (!info.m_tool.m_removeRemote.empty())
+		{
+			StringVector newArgs;
+			for (const auto & arg : inv.m_args)
+				if (arg != info.m_tool.m_removeRemote)
+					newArgs.push_back(arg);
+			newArgs.swap(inv.m_args);
+		}
+	}
+	inv.SetInput (FileInfo(inv.GetInput() ).GetFullname());
+	inv.SetOutput(FileInfo(inv.GetOutput()).GetFullname());
+	return inv;
+}
+
 InvocationRewriter::ToolInfo InvocationRewriter::CompileInfoById(const ToolInvocation::Id &id) const
 {
 	if (id.m_toolId.empty())
@@ -172,7 +195,7 @@ InvocationRewriter::ToolInfo InvocationRewriter::CompileInfoByToolId(const std::
 InvocationRewriter::ToolInfo InvocationRewriter::CompileInfoByUnit(const IInvocationRewriter::Config::Tool &unit) const
 {
 	ToolInfo info;
-	info.m_append = unit.m_appendOption;
+	info.m_tool = unit;
 	info.m_id.m_toolId = unit.m_id;
 	info.m_id.m_toolExecutable = unit.m_names[0];
 	if (unit.m_type == Config::ToolchainType::GCC)

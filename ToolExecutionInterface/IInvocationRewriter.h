@@ -52,6 +52,9 @@ public:
 	/// Get preprocessed filename path.
 	virtual std::string GetPreprocessedPath(const std::string & sourcePath, const std::string & objectPath) const = 0;
 
+	/// Prepare invocation for remote execution
+	virtual ToolInvocation PrepareRemote(const ToolInvocation & original) = 0;
+
 };
 
 }

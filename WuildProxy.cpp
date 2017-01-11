@@ -34,7 +34,7 @@ int main(int argc, char** argv)
 	if (!app.GetRemoteToolClientConfig(config))
 		return 1;
 
-	RemoteToolClient rcClient;
+	RemoteToolClient rcClient(invocationRewriter);
 	if (!rcClient.SetConfig(config))
 		return 1;
 

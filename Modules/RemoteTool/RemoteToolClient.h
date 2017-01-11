@@ -19,6 +19,7 @@
 #include <CommonTypes.h>
 #include <RemoteToolClientConfig.h>
 #include <ToolInvocation.h>
+#include <IInvocationRewriter.h>
 
 #include <functional>
 #include <atomic>
@@ -52,7 +53,7 @@ public:
 	using InvokeCallback = std::function<void(const TaskExecutionInfo& )>;
 
 public:
-	RemoteToolClient();
+	RemoteToolClient(IInvocationRewriter::Ptr invocationRewriter);
 	~RemoteToolClient();
 
 	bool SetConfig(const Config & config);
@@ -92,6 +93,7 @@ protected:
 	RemoteAvailableCallback m_remoteAvailableCallback;
 	Config m_config;
 	StringVector m_requiredToolIds;
+	IInvocationRewriter::Ptr m_invocationRewriter;
 };
 
 }

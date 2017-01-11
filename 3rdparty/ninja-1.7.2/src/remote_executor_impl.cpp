@@ -17,8 +17,8 @@ RemoteExecutor::RemoteExecutor(ConfiguredApplication &app) : m_app(app)
 	m_minimalRemoteTasks = remoteToolConfig.m_minimalRemoteTasks;
 
 	m_invocationRewruiter = InvocationRewriter::Create(compilerConfig);
-
-	if (!m_remoteService.SetConfig(remoteToolConfig))
+	m_remoteService.reset(new RemoteToolClient(m_invocationRewruiter));
+	if (!m_remoteService->SetConfig(remoteToolConfig))
 		return;
 
 #ifdef  TEST_CLIENT
@@ -37,10 +37,10 @@ RemoteExecutor::RemoteExecutor(ConfiguredApplication &app) : m_app(app)
 	toolServerInfo.m_connectionPort = 12345;
 	toolServerInfo.m_toolIds = m_compiler->GetConfig().m_toolIds;
 	toolServerInfo.m_totalThreads = 2;
-	m_remoteService.AddClient(toolServerInfo);
+	m_remoteService->AddClient(toolServerInfo);
 
 	remoteToolConfig.m_coordinator.m_enabled = false;
-	m_remoteService.SetConfig(remoteToolConfig);
+	m_remoteService->SetConfig(remoteToolConfig);
 #endif
 
 	m_remoteEnabled = true;
@@ -118,7 +118,7 @@ void RemoteExecutor::RunIfNeeded(const std::vector<std::string> &toolIds)
 		return;
 
 	m_hasStart = true;
-	m_remoteService.Start(toolIds);
+	m_remoteService->Start(toolIds);
 #ifdef  TEST_CLIENT
 	m_toolServer->Start();
 #endif
@@ -142,7 +142,7 @@ bool RemoteExecutor::CanRunMore()
 	if (!m_remoteEnabled)
 		return false;
 
-	return m_remoteService.GetFreeRemoteThreads() > 0;
+	return m_remoteService->GetFreeRemoteThreads() > 0;
 }
 
 bool RemoteExecutor::StartCommand(void *userData, const std::string &command)
@@ -164,7 +164,7 @@ bool RemoteExecutor::StartCommand(void *userData, const std::string &command)
 		std::lock_guard<std::mutex> lock(m_resultsMutex);
 		m_results.emplace_back(userData, result, info.m_stdOutput);
 	};
-	m_remoteService.InvokeTool(invocation, callback);
+	m_remoteService->InvokeTool(invocation, callback);
 
 	return true;
 }
@@ -189,7 +189,7 @@ RemoteExecutor::~RemoteExecutor()
 	if (!m_remoteEnabled)
 		return;
 
-	m_remoteService.FinishSession();
-	Syslogger(LOG_NOTICE) <<  m_remoteService.GetSessionInformation();
+	m_remoteService->FinishSession();
+	Syslogger(LOG_NOTICE) <<  m_remoteService->GetSessionInformation();
 
 }

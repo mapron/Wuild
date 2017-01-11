@@ -44,13 +44,15 @@ public:
 
    std::string GetPreprocessedPath(const std::string & sourcePath, const std::string & objectPath) const override;
 
+   ToolInvocation PrepareRemote(const ToolInvocation & original) override;
+
 
 private:
 	struct ToolInfo
 	{
 		ICommandLineParser::Ptr m_parser;
 		ToolInvocation::Id m_id;
-		std::string m_append;
+		Config::Tool m_tool;
 		bool m_valid = false;
 	};
 	ToolInfo CompileInfoById(const ToolInvocation::Id & id) const;

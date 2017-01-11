@@ -84,7 +84,7 @@ int main(int argc, char** argv)
 	if (!rcServer.SetConfig(toolServerConfig))
 		return 1;
 
-	RemoteToolClient rcClient;
+	RemoteToolClient rcClient(TestConfiguration::s_invocationRewriter);
 	if (!rcClient.SetConfig(clientConfig))
 		return 1;
 

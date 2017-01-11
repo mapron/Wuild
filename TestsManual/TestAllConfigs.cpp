@@ -50,7 +50,7 @@ int main(int argc, char** argv)
 	if (!app.GetRemoteToolClientConfig(config))
 		return 1;
 
-	RemoteToolClient rcClient;
+	RemoteToolClient rcClient(TestConfiguration::s_invocationRewriter);
 	config.m_queueTimeout = TimePoint(3.0);
 
 	if (!rcClient.SetConfig(config))

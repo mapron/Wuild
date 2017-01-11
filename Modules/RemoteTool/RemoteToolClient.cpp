@@ -125,8 +125,8 @@ public:
 };
 
 
-RemoteToolClient::RemoteToolClient()
-	: m_impl(new RemoteToolClientImpl())
+RemoteToolClient::RemoteToolClient(IInvocationRewriter::Ptr invocationRewriter)
+	: m_impl(new RemoteToolClientImpl()), m_invocationRewriter(invocationRewriter)
 {
 	m_impl->m_coordinator.SetToolServerChangeCallback([this](const ToolServerInfo& info){
 		std::lock_guard<std::mutex> lock(m_impl->m_clientsInfoMutex);
@@ -295,9 +295,7 @@ void RemoteToolClient::InvokeTool(const ToolInvocation & invocation, InvokeCallb
 	}
 
 	RemoteToolRequest::Ptr toolRequest(new RemoteToolRequest());
-	toolRequest->m_invocation = invocation;
-	toolRequest->m_invocation.SetInput (FileInfo(inputFilename ).GetFullname());
-	toolRequest->m_invocation.SetOutput(FileInfo(outputFilename).GetFullname());
+	toolRequest->m_invocation = m_invocationRewriter->PrepareRemote(invocation);
 	toolRequest->m_fileData = inputData;
 	RemoteToolRequestWrap wrap;
 	wrap.m_request = toolRequest;

@@ -33,7 +33,7 @@ class RemoteExecutor: public IRemoteExecutor
 {
 	Wuild::ConfiguredApplication & m_app;
 	Wuild::IInvocationRewriter::Ptr m_invocationRewruiter;
-	Wuild::RemoteToolClient m_remoteService;
+	std::shared_ptr<Wuild::RemoteToolClient> m_remoteService;
 
 #ifdef TEST_CLIENT
 	Wuild::ILocalExecutor::Ptr m_localExecutor;

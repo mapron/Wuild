@@ -53,7 +53,7 @@ int main(int argc, char** argv)
 
 	rcServer.Start();
 
-	RemoteToolClient rcClient;
+	RemoteToolClient rcClient(TestConfiguration::s_invocationRewriter);
 	ToolServerInfo toolServerInfo;
 	toolServerInfo.m_connectionHost = "localhost";
 	toolServerInfo.m_connectionPort = g_toolsServerTestPort;
@@ -70,7 +70,8 @@ int main(int argc, char** argv)
 
 		if (!localResult->m_result)
 		{
-			Syslogger(LOG_ERR) << "Preprocess failed";
+
+			Syslogger(LOG_ERR) << "Preprocess failed\n" << localResult->m_stdOut;
 			Application::Interrupt(1);
 			return;
 		}

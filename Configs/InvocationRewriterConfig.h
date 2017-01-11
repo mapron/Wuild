@@ -23,7 +23,8 @@ public:
 	struct Tool
 	{
 		std::string m_id;
-		std::string m_appendOption;
+		std::string m_removeRemote;
+		std::string m_appendRemote;
 		ToolchainType m_type = ToolchainType::GCC;
 		std::vector<std::string> m_names;
 	};
