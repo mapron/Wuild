@@ -197,31 +197,28 @@ bool SocketFrameHandler::ReadFrames()
 	m_lastTestActivity = m_lastSucceessfulRead = TimePoint(true);
 
 	const size_t newSize = m_readBuffer.GetHolder().size();
+	if (!newSize)
+		return true;
+
 	m_readBuffer.SetSize(newSize);
 	ByteOrderDataStreamReader inputStream(&m_readBuffer, m_settings.m_byteOrder);
 
 	m_doTestActivity = true;
 	m_readBuffer.ResetRead();
 
-	//auto readSize = m_readBuffer.GetSize();
-	//if (readSize > 50) readSize = 50;
-	//Syslogger(m_logContext) << "m_readBuffer=" << Syslogger::Binary(m_readBuffer.begin(), readSize);
-	//Syslogger(m_logContext) << "m_readBuffer=" << m_readBuffer.ToHex(true, true);
-
-	//Syslogger(m_logContext) << "m_frameDataBuffer=" << m_frameDataBuffer.ToHex(true, true);
-
 	m_outputAcknowledgesSize += newSize - currentSize;
 	bool validInput = true;
+	ServiceMessageType mtype = ServiceMessageType::User;
+
 	do
 	{
-		ServiceMessageType mtype = ServiceMessageType::User;
-
 		if (m_settings.m_hasChannelTypes)
 		{
 			mtype = SocketFrameHandler::ServiceMessageType(inputStream.ReadScalar<uint8_t>());
 		}
 
-		SocketFrame::State state;
+
+
 		if (m_settings.m_hasAcknowledges && mtype == ServiceMessageType::Ack)
 		{
 			uint32_t size = 0;
@@ -229,10 +226,7 @@ bool SocketFrameHandler::ReadFrames()
 			m_acknowledgeTimer = TimePoint(true);
 			m_bytesWaitingAcknowledge -= std::min(m_bytesWaitingAcknowledge, static_cast<size_t>(size));
 		}
-		else if (m_settings.m_hasLineTest && mtype == ServiceMessageType::LineTest)
-		{
-			// do nothing
-		}
+		else if (m_settings.m_hasLineTest && mtype == ServiceMessageType::LineTest) { } // do nothing
 		else if (m_settings.m_hasConnOptions && mtype == ServiceMessageType::ConnOptions)
 		{
 			uint32_t bufferSize, version;
@@ -257,6 +251,18 @@ bool SocketFrameHandler::ReadFrames()
 		}
 		else
 		{
+			if (m_pendingReadType != ServiceMessageType::None && m_pendingReadType != mtype)
+				break;
+
+			if (m_frameReaders.find(int(mtype)) == m_frameReaders.end())
+			{
+				validInput = false;
+				Syslogger(m_logContext, LOG_ERR) << "MessageHandler: invalid type of SocketFrame = " << int(mtype) ;
+				break;
+			}
+
+			m_pendingReadType = mtype;
+
 			size_t frameLength = m_readBuffer.GetRemainRead();
 			if (!frameLength) break;
 			if (m_settings.m_hasChannelTypes)
@@ -274,68 +280,73 @@ bool SocketFrameHandler::ReadFrames()
 
 				frameLength = size;
 			}
-			m_frameDataBuffer.ResetRead();
+
 			auto * framePos = m_frameDataBuffer.PosWrite(frameLength);
 			assert(framePos);
 			inputStream.ReadBlock(framePos, frameLength);
 			m_readBuffer.RemoveFromStart(m_readBuffer.GetOffsetRead());
 			m_frameDataBuffer.MarkWrite(frameLength);
-
-			//auto fdSize = m_frameDataBuffer.GetSize();
-			//if (fdSize > 50) fdSize = 50;
-			//Syslogger(m_logContext) << "m_frameDataBuffer=" << Syslogger::Binary(m_frameDataBuffer.begin(), readSize);
-
-			//Syslogger(m_logContext) << "m_frameDataBuffer=" << m_frameDataBuffer.ToHex(true, true);
-			//Syslogger(m_logContext) << "m_readBuffer=" << m_readBuffer.ToHex(true, true);
-
-			uint8_t mtypei = static_cast<uint8_t>(mtype);
-			if (m_frameReaders.find(mtypei) == m_frameReaders.end())
-			{
-				validInput = false;
-				Syslogger(m_logContext, LOG_ERR) << "MessageHandler: invalid type of SocketFrame. " << int(mtype) << " m_okFrames=" << m_okFrames;
-				break;
-			}
-			SocketFrame::Ptr incoming(m_frameReaders[mtypei]->FrameFactory());
-			try
-			{
-				ByteOrderDataStreamReader frameStream(&m_frameDataBuffer, m_settings.m_byteOrder);
-				state = incoming->Read(frameStream);
-			}
-			catch(std::exception & ex)
-			{
-				validInput = false;
-				Syslogger(m_logContext, LOG_ERR) << "MessageHandler Read() exception: " << ex.what();
-				break;
-			}
-			if (state == SocketFrame::stIncomplete || m_frameDataBuffer.EofRead())
-			{
-				m_frameDataBuffer.ResetRead();
-				continue;
-			}
-			else if (state == SocketFrame::stBroken)
-			{
-				validInput = false;
-				Syslogger(m_logContext, LOG_ERR) << "MessageHandler: broken message recieved. ";
-				break;
-			}
-			else if (state == SocketFrame::stOk)
-			{
-				m_okFrames++;
-				PreprocessFrame(incoming);
-			}
 		}
 
+		if (m_readBuffer.EofRead())
+			break;
 
 		m_readBuffer.RemoveFromStart(m_readBuffer.GetOffsetRead());
-		m_frameDataBuffer.RemoveFromStart(m_frameDataBuffer.GetOffsetRead());
+
 	} while (m_readBuffer.GetSize());
+
+	m_frameDataBuffer.ResetRead();
+
+	do
+	{
+		if (!validInput || m_pendingReadType == ServiceMessageType::None)
+			break;
+
+		uint8_t mtypei = static_cast<uint8_t>(m_pendingReadType);
+		SocketFrame::Ptr incoming(m_frameReaders[mtypei]->FrameFactory());
+		SocketFrame::State state;
+		try
+		{
+			ByteOrderDataStreamReader frameStream(&m_frameDataBuffer, m_settings.m_byteOrder);
+			state = incoming->Read(frameStream);
+		}
+		catch(std::exception & ex)
+		{
+			validInput = false;
+			Syslogger(m_logContext, LOG_ERR) << "MessageHandler Read() exception: " << ex.what();
+			break;
+		}
+		if (state == SocketFrame::stIncomplete || m_frameDataBuffer.EofRead())
+		{
+			break;
+		}
+		else if (state == SocketFrame::stBroken)
+		{
+			validInput = false;
+			Syslogger(m_logContext, LOG_ERR) << "MessageHandler: broken message recieved. ";
+			break;
+		}
+		else if (state == SocketFrame::stOk)
+		{
+			PreprocessFrame(incoming);
+		}
+
+		m_frameDataBuffer.RemoveFromStart(m_frameDataBuffer.GetOffsetRead());
+	}while(m_frameDataBuffer.GetSize());
+
+	if (!m_frameDataBuffer.GetSize())
+	{
+		m_pendingReadType = ServiceMessageType::None;
+	}
 
 	if (!validInput)
 	{
 		// removing all read data.
 		m_readBuffer.Clear();
 		m_frameDataBuffer.Clear();
+		m_pendingReadType = ServiceMessageType::None;
 	}
+
 	return true;
 }
 
@@ -426,9 +437,12 @@ bool SocketFrameHandler::WriteFrames()
 		if (m_settings.m_hasAcknowledges && sizeForWrite > maxSize)
 			break;
 
-		m_outputSegments.pop_front();
+		auto writeResult = m_channel->Write(frontSegment, sizeForWrite);
+		if (writeResult == IDataSocket::WriteState::TryAgain)
+			break;
 
-		if (!m_channel->Write(frontSegment, sizeForWrite))
+		m_outputSegments.pop_front();
+		if (writeResult == IDataSocket::WriteState::Fail)
 		{
 			Syslogger(m_logContext, LOG_ERR) << "Write failed: sizeForWrite=" <<  sizeForWrite
 											 << ", maxSize=" << maxSize

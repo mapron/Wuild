@@ -32,7 +32,7 @@ class TcpSocket : public IDataSocket
 {
 	friend class TcpListener;
 public:
-	enum ConnectionState { csNone , csPending , csSuccess, csFail };
+	enum class ConnectionState { None , Pending , Success, Fail };
 	static std::atomic_bool s_applicationInterruption;
 
 public:
@@ -48,7 +48,7 @@ public:
 	bool IsPending() const override;
 
 	bool Read(ByteArrayHolder & buffer) override;
-	bool Write(const ByteArrayHolder & buffer, size_t maxBytes) override;
+	WriteState Write(const ByteArrayHolder & buffer, size_t maxBytes) override;
 
 	/// Socker buffer size available for reading.
 	uint32_t GetRecieveBufferSize() const override { return m_recieveBufferSize; }
@@ -64,7 +64,7 @@ protected:
 	void SetBufferSize();
 
 	TcpListener*         m_pendingListener = nullptr;
-	ConnectionState      m_state = csNone;
+	ConnectionState      m_state = ConnectionState::None;
 	bool                 m_acceptedByListener = false;
 	TcpConnectionParams  m_params;
 	uint32_t             m_recieveBufferSize = 0;

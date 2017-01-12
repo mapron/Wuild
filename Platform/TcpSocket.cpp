@@ -85,24 +85,24 @@ bool TcpSocket::Connect ()
 	if (s_applicationInterruption)
 		return false;
 
-	if (m_state == csSuccess)
+	if (m_state == ConnectionState::Success)
 		return true;
 
 	if (m_acceptedByListener)
 	{
-		if (m_state == csFail)
+		if (m_state == ConnectionState::Fail)
 			return false;
 
-		if (m_state == csPending && m_pendingListener->DoAccept(this))
+		if (m_state == ConnectionState::Pending && m_pendingListener->DoAccept(this))
 		{
 			SetBufferSize();
 			if (m_impl->SetBlocking(false))
 			{
-				m_state = csSuccess;
+				m_state = ConnectionState::Success;
 				return true;
 			}
 		}
-		m_state = csFail;
+		m_state = ConnectionState::Fail;
 		return false;
 	}
 	Syslogger(m_logContext) << "Trying to connect..." ;
@@ -127,13 +127,9 @@ bool TcpSocket::Connect ()
 	int cres = connect(m_impl->m_socket, m_params.m_impl->ai->ai_addr, m_params.m_impl->ai->ai_addrlen);
 	if (cres < 0)
 	{
-#ifdef _WIN32
-		const auto err = GetLastError();
-		const bool inProgress = err == WSAEWOULDBLOCK;
-#else
-		const auto err = errno ;
-		const bool inProgress = err == EINPROGRESS;
-#endif
+
+		const auto err = SocketGetLastError();
+		const bool inProgress = SocketCheckConnectionPending(err);
 		if (inProgress)
 		{
 			struct timeval timeout;
@@ -161,14 +157,14 @@ bool TcpSocket::Connect ()
 		}
 	}
 
-	m_state = csSuccess;
+	m_state = ConnectionState::Success;
 	Syslogger(m_logContext) << "Connected.";
 	return true;
 }
 
 void TcpSocket::Disconnect()
 {
-	m_state = csFail;
+	m_state = ConnectionState::Fail;
 	if (m_impl->m_socket != INVALID_SOCKET)
 	{
 		Syslogger(m_logContext) << "TcpSocket::Disconnect() ";
@@ -179,12 +175,12 @@ void TcpSocket::Disconnect()
 
 bool TcpSocket::IsConnected() const
 {
-	return m_state == csSuccess;
+	return m_state == ConnectionState::Success;
 }
 
 bool TcpSocket::IsPending() const
 {
-	return m_state == csPending;
+	return m_state == ConnectionState::Pending;
 }
 
 bool TcpSocket::Read(ByteArrayHolder & buffer)
@@ -211,16 +207,10 @@ bool TcpSocket::Read(ByteArrayHolder & buffer)
 
 	  if (recieved <= 0)
 	  {
-#ifdef _WIN32
-		  const auto err = GetLastError();
-		 // if (err == WSAEWOULDBLOCK)
-		//	  break;
-#else
-		  const auto err = errno ;
-		  if (err == EAGAIN)
+		  const auto err = SocketGetLastError();
+		  if (SocketRWPending(err) )
 			  break;
-#endif
-		  Syslogger(m_logContext) << "Disconnecting while Reading:" << err ;
+		  Syslogger(m_logContext, LOG_ERR) << "Disconnecting while Reading ("<< recieved << ") err=" << err;
 		  Disconnect();
 		  return false;
 	  }
@@ -236,30 +226,29 @@ bool TcpSocket::Read(ByteArrayHolder & buffer)
 	return true;
 }
 
-bool TcpSocket::Write(const ByteArrayHolder & buffer, size_t maxBytes)
+TcpSocket::WriteState TcpSocket::Write(const ByteArrayHolder & buffer, size_t maxBytes)
 {
 	if (m_impl->m_socket == INVALID_SOCKET)
-		return false;
+		return WriteState::Fail;
 
 	maxBytes = std::min(maxBytes, buffer.size());
 
 	auto written = send( m_impl->m_socket, (const char*)(buffer.data()), maxBytes, MSG_NOSIGNAL);
 	if (written < 0)
 	{
-#ifdef _WIN32
-		const auto err = GetLastError();
-#else
-		const auto err = errno ;
-#endif
-		Syslogger(m_logContext) << "Disconnecting while Writing, err=" << err ;
+		const auto err = SocketGetLastError();
+		if (SocketRWPending(err))
+			return WriteState::TryAgain;
+
+		Syslogger(m_logContext, LOG_ERR) << "Disconnecting while Writing, ("<< written << ") err=" << err;
 		Disconnect();
-		return false;
+		return WriteState::Fail;
 	}
 
 #ifdef SOCKET_DEBUG
 	Syslogger(m_logContext) << "AbstractChannel::Write: " << Syslogger::Binary(buffer.data(), written);
 #endif
-	return maxBytes == written;
+	return maxBytes == written ? WriteState::Success : WriteState::Fail;
 }
 
 void TcpSocket::SetListener(TcpListener* pendingListener)
@@ -267,7 +256,7 @@ void TcpSocket::SetListener(TcpListener* pendingListener)
 	if (!pendingListener)
 		return;
 
-	m_state = csPending;
+	m_state = ConnectionState::Pending;
 	m_pendingListener = pendingListener;
 	m_acceptedByListener = true;
 }
