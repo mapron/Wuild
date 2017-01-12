@@ -30,6 +30,9 @@
 	typedef int SOCKET;
 	inline void SocketEngineCheck() {}
 	#define SOCK_OPT_ARG (void*)
+	#define SocketGetLastError() errno
+	#define SocketCheckConnectionPending(err) ((err) == EINPROGRESS)
+	#define SocketRWPending(err) ((err) == EAGAIN)
 #else // Pure win: ws2_32
 	#include <winsock2.h>
 	#include <ws2tcpip.h>
@@ -40,6 +43,9 @@
 	#define SOCK_OPT_ARG (char*)
 	void SocketEngineCheck();
 	#define close closesocket
+	#define SocketGetLastError() GetLastError()
+	#define SocketCheckConnectionPending(err) ((err) == WSAEWOULDBLOCK)
+	#define SocketRWPending(err) ((err) == WSAEWOULDBLOCK)
 #endif
 
 #define SET_TIMEVAL_US(timeout, timePoint) \

@@ -23,7 +23,9 @@ class IDataSocket
 {
 public:
 	using Ptr = std::shared_ptr<IDataSocket>;
+	enum class WriteState { Success, TryAgain, Fail };
 
+public:
 	virtual ~IDataSocket() = default;
 
 	/// Connect to target. If fails, returns false. Returns true on success or connection already exists. Synchronous call.
@@ -42,7 +44,7 @@ public:
 	virtual bool Read(ByteArrayHolder & buffer) = 0;
 
 	/// Write data to socket. Returns false on error.
-	virtual bool Write(const ByteArrayHolder & buffer, size_t maxBytes = size_t(-1)) = 0;
+	virtual WriteState Write(const ByteArrayHolder & buffer, size_t maxBytes = size_t(-1)) = 0;
 
 	/// Buffer available for reading
 	virtual uint32_t GetRecieveBufferSize() const = 0;

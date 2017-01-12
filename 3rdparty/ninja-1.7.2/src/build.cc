@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <functional>
+#include <iostream>
 
 #if defined(__SVR4) && defined(__sun)
 #include <sys/termios.h>
@@ -694,8 +695,8 @@ bool Builder::Build(string* err) {
   // Second, we attempt to wait for / reap the next finished command.
   IRemoteExecutor::Result remoteResult;
   while (plan_.more_to_do()) {
-
-	if (failures_allowed && plan_.top_edge_remote() && remote_runner_->CanRunMore() ) {
+	bool canRunRemote = plan_.top_edge_remote();
+	if (failures_allowed && canRunRemote && remote_runner_->CanRunMore() ) {
 		if (Edge* edge = plan_.FindWork()) {
 
 			if (!StartEdge(edge, err, true)) {
@@ -708,6 +709,8 @@ bool Builder::Build(string* err) {
 			  plan_.EdgeFinished(edge, Plan::kEdgeSucceeded);
 			else
 				pending_remote++;
+
+			std::cout << "pending_remote=" << pending_remote << std::endl;
 			// We made some progress; go back to the main loop.
 			continue;
 		}
@@ -716,6 +719,7 @@ bool Builder::Build(string* err) {
 	if (remote_runner_->WaitForCommand(&remoteResult))
 	{
 		pending_remote--;
+		std::cout << "Finish, pending_remote=" << pending_remote << std::endl;
 		CommandRunner::Result result;
 		result.output = std::move(remoteResult.output);
 		result.edge = static_cast<Edge*>(remoteResult.userData);
@@ -737,6 +741,10 @@ bool Builder::Build(string* err) {
 	// See if we can start any more commands.
 	if (failures_allowed && command_runner_->CanRunMore()) {
 	  if (Edge* edge = plan_.FindWork()) {
+		if (edge->is_remote_)
+		{
+			status_->GetLinePrinter().Print("Task could run on remote, but it still run locally.", LinePrinter::FULL);
+		}
 		if (!StartEdge(edge, err, false)) {
 		  Cleanup();
 		  status_->BuildFinished();
@@ -1001,6 +1009,7 @@ bool Builder::ExtractDeps(CommandRunner::Result* result,
 	for (vector<StringPiece>::iterator i = deps.ins_.begin();
 		 i != deps.ins_.end(); ++i) {
 	  unsigned int slash_bits;
+
 	  if (!CanonicalizePath(const_cast<char*>(i->str_), &i->len_, &slash_bits,
 							err))
 		return false;

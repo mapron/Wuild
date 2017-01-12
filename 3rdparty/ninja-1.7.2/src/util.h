@@ -45,7 +45,7 @@ void Error(const char* msg, ...);
 /// normalized to a forward slash. (only used on Windows)
 bool CanonicalizePath(string* path, unsigned int* slash_bits, string* err);
 bool CanonicalizePath(char* path, size_t* len, unsigned int* slash_bits,
-                      string* err);
+					  string* err);
 
 /// Appends |input| to |*result|, escaping according to the whims of either
 /// Bash, or Win32's CommandLineToArgvW().
@@ -65,7 +65,7 @@ void SetCloseOnExec(int fd);
 /// Given a misspelled string and a list of correct spellings, returns
 /// the closest match or NULL if there is no close enough match.
 const char* SpellcheckStringV(const string& text,
-                              const vector<const char*>& words);
+							  const vector<const char*>& words);
 
 /// Like SpellcheckStringV, but takes a NULL-terminated list.
 const char* SpellcheckString(const char* text, ...);

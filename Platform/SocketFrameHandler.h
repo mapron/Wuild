@@ -182,13 +182,13 @@ protected:
 	ByteOrderBuffer                   m_readBuffer;
 	ByteOrderBuffer                   m_frameDataBuffer;
 	std::deque<ByteArrayHolder>       m_outputSegments;
+	ServiceMessageType                m_pendingReadType = ServiceMessageType::None;
 
 	ThreadSafeQueue<SocketFrame::Ptr>    m_framesQueueOutput;
 	size_t                               m_outputAcknowledgesSize {0};
 	std::map<uint64_t, ReplyNotifier>    m_replyNotifiers;
 	std::map<uint8_t, IFrameReader::Ptr> m_frameReaders;
 
-	size_t                      m_okFrames {0};
 	size_t                      m_maxUnAcknowledgedSize {0};
 
 	size_t                      m_bytesWaitingAcknowledge {0};

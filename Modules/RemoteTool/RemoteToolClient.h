@@ -87,6 +87,7 @@ protected:
 	bool m_started = false;
 	TimePoint m_start;
 	int64_t m_sessionId  = 0;
+	int64_t m_taskIndex  = 0;
 	ToolServerSessionInfo m_sessionInfo;
 	std::mutex m_sessionInfoMutex;
 
