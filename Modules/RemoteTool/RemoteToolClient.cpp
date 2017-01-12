@@ -231,6 +231,7 @@ void RemoteToolClient::AddClient(const ToolServerInfo &info, bool start)
 	m_impl->m_clientsInfo.push_back(std::move(wrapNew));
 	ToolServerInfoWrap & wrap = *(m_impl->m_clientsInfo.rbegin());
 	SocketFrameHandlerSettings settings;
+	settings.m_channelProtocolVersion       = RemoteToolRequest::s_version + RemoteToolResponse::s_version;
 	settings.m_recommendedRecieveBufferSize = g_recommendedBufferSize;
 	settings.m_recommendedSendBufferSize    = g_recommendedBufferSize;
 	wrap.m_handler.reset(new SocketFrameHandler( settings));

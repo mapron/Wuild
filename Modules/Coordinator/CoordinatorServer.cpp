@@ -45,7 +45,13 @@ bool CoordinatorServer::SetConfig(const CoordinatorServer::Config &config)
 
 void CoordinatorServer::Start()
 {
-	m_server.reset(new SocketFrameService( m_config.m_listenPort ));
+	SocketFrameHandlerSettings settings;
+	settings.m_channelProtocolVersion   = CoordinatorListRequest::s_version
+										+ CoordinatorListResponse::s_version
+										+ CoordinatorToolServerStatus::s_version
+										+ CoordinatorToolServerSession::s_version
+										;
+	m_server.reset(new SocketFrameService( settings,  m_config.m_listenPort ));
 	//m_server->RegisterFrameReader();
 
 	m_server->RegisterFrameReader(SocketFrameReaderTemplate<CoordinatorListRequest>::Create([this](const CoordinatorListRequest& inputMessage, SocketFrameHandler::OutputCallback outputCallback){

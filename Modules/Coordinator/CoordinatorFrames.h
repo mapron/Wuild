@@ -23,6 +23,7 @@ namespace Wuild
 class CoordinatorListRequest : public SocketFrameExt
 {
 public:
+	static const uint32_t s_version = 1;
 	static const uint8_t s_frameTypeId = s_minimalUserFrameId + 1;
 	using Ptr = std::shared_ptr<CoordinatorListRequest>;
 
@@ -36,6 +37,7 @@ public:
 class CoordinatorListResponse : public SocketFrameExt
 {
 public:
+	static const uint32_t s_version = 1;
 	static const uint8_t s_frameTypeId = s_minimalUserFrameId + 2;
 	using Ptr = std::shared_ptr<CoordinatorListResponse>;
 
@@ -52,6 +54,7 @@ public:
 class CoordinatorToolServerStatus : public SocketFrameExt
 {
 public:
+	static const uint32_t s_version = 1;
 	static const uint8_t s_frameTypeId = s_minimalUserFrameId + 3;
 	using Ptr = std::shared_ptr<CoordinatorToolServerStatus>;
 
@@ -68,6 +71,7 @@ public:
 class CoordinatorToolServerSession : public SocketFrameExt
 {
 public:
+	static const uint32_t s_version = 1;
 	static const uint8_t s_frameTypeId = s_minimalUserFrameId + 4;
 	using Ptr = std::shared_ptr<CoordinatorToolServerSession>;
 

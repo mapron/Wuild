@@ -65,7 +65,14 @@ void CoordinatorClient::Start()
 	if (!m_config.m_enabled || m_config.m_coordinatorPort <= 0)
 		return;
 
-	m_client.reset(new SocketFrameHandler( ));
+	SocketFrameHandlerSettings settings;
+	settings.m_channelProtocolVersion   = CoordinatorListRequest::s_version
+										+ CoordinatorListResponse::s_version
+										+ CoordinatorToolServerStatus::s_version
+										+ CoordinatorToolServerSession::s_version
+										;
+
+	m_client.reset(new SocketFrameHandler( settings ));
 	m_client->RegisterFrameReader(SocketFrameReaderTemplate<CoordinatorListResponse>::Create([this](const CoordinatorListResponse& inputMessage, SocketFrameHandler::OutputCallback){
 		 std::lock_guard<std::mutex> lock(m_coordMutex);
 
