@@ -110,9 +110,12 @@ bool CanonicalizePath(string* path, unsigned int* slash_bits, string* err) {
 	  *err = "empty path";
 	  return false;
   }
+  fs::path fspath(*path) ;
+  if (!fs::exists(fspath))
+	  return true;
   slash_bits = 0;
   std::error_code errc;
-  *path = fs::canonical(fs::path(*path) CODE_ARG(errc)).u8string();
+  *path = fs::canonical(fspath CODE_ARG(errc)).u8string();
   std::replace( path->begin(), path->end(), '\\', '/');
   return true;
 }

@@ -66,14 +66,14 @@ Application::Application()
 
 	char *envPath;
 	char *envDrive;
-	if (envPath = getenv("USERPROFILE")) {
+	if ((envPath = getenv("USERPROFILE"))) {
 		m_homeDir = envPath;
 	}
 	else if ((envDrive = getenv("HOMEDRIVE")) && (envPath = getenv("HOMEPATH")) ) {
 		m_homeDir= std::string(envDrive) + envPath;
 
 	}
-	if (envPath = getenv("HOME")) {
+	if ((envPath = getenv("HOME"))) {
 		m_homeDir = envPath;
 	}
 

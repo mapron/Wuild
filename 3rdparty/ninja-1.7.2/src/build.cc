@@ -741,7 +741,7 @@ bool Builder::Build(string* err) {
 	// See if we can start any more commands.
 	if (failures_allowed && command_runner_->CanRunMore()) {
 	  if (Edge* edge = plan_.FindWork()) {
-		if (edge->is_remote_)
+		if (edge->is_remote_ && config_.verbosity == BuildConfig::VERBOSE )
 		{
 			status_->GetLinePrinter().Print("Task could run on remote, but it still run locally.", LinePrinter::FULL);
 		}
