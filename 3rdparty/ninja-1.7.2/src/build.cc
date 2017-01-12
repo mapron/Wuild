@@ -710,7 +710,7 @@ bool Builder::Build(string* err) {
 			else
 				pending_remote++;
 
-			std::cout << "pending_remote=" << pending_remote << std::endl;
+			//std::cout << "pending_remote=" << pending_remote << std::endl;
 			// We made some progress; go back to the main loop.
 			continue;
 		}
@@ -719,7 +719,7 @@ bool Builder::Build(string* err) {
 	if (remote_runner_->WaitForCommand(&remoteResult))
 	{
 		pending_remote--;
-		std::cout << "Finish, pending_remote=" << pending_remote << std::endl;
+		//std::cout << "Finish, pending_remote=" << pending_remote << std::endl;
 		CommandRunner::Result result;
 		result.output = std::move(remoteResult.output);
 		result.edge = static_cast<Edge*>(remoteResult.userData);

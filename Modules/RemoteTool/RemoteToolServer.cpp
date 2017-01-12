@@ -92,10 +92,12 @@ void RemoteToolServer::Start()
 			LocalExecutorTask::Ptr taskCC(new LocalExecutorTask());
 			taskCC->m_invocation = inputMessage.m_invocation;
 			taskCC->m_inputData = std::move(inputMessage.m_fileData);
-			taskCC->m_callback = [outputCallback, this, sessionId](LocalExecutorResult::Ptr result)
+			taskCC->m_callback = [outputCallback, this, sessionId, handler](LocalExecutorResult::Ptr result)
 			{
+				if (!handler->IsActive())
+					return;
+
 				FinishTask(sessionId, false);
-				Syslogger() << "CC result = " << result->m_result ;
 				RemoteToolResponse::Ptr response(new RemoteToolResponse());
 				response->m_result = result->m_result;
 				response->m_stdOut = result->m_stdOut;
@@ -103,7 +105,8 @@ void RemoteToolServer::Start()
 				response->m_executionTime = result->m_executionTime;
 				outputCallback(response);
 			};
-			m_impl->m_executor->AddTask(taskCC);
+			const size_t queueSize = m_impl->m_executor->AddTask(taskCC);
+			m_queuedTasks = static_cast<uint16_t>(queueSize);
 		}));
 	});
 
@@ -142,7 +145,8 @@ void RemoteToolServer::StartTask(const std::string &clientId, int64_t sessionId)
 	auto  &client = GetClientInfo(m_impl->m_info, sessionId);
 	client.m_clientId = clientId;
 	client.m_usedThreads ++;
-	m_impl->m_coordinator.SetToolServerInfo(m_impl->m_info);
+	m_runningTasks++;
+	UpdateInfo();
 }
 
 void RemoteToolServer::FinishTask(int64_t sessionId, bool remove)
@@ -161,7 +165,16 @@ void RemoteToolServer::FinishTask(int64_t sessionId, bool remove)
 	{
 		auto  &client = GetClientInfo(m_impl->m_info, sessionId);
 		client.m_usedThreads --;
+		m_runningTasks--;
 	}
+	UpdateInfo();
+}
+
+void RemoteToolServer::UpdateInfo()
+{
+	ToolServerInfo & info = m_impl->m_info;
+	info.m_runningTasks = m_runningTasks;
+	info.m_queuedTasks = m_queuedTasks;
 	m_impl->m_coordinator.SetToolServerInfo(info);
 }
 

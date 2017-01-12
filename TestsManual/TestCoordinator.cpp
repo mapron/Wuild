@@ -23,13 +23,14 @@ using namespace Wuild;
 class LocalExecutorTest : public ILocalExecutor
 {
 public:
-	void AddTask(LocalExecutorTask::Ptr task) override
+	size_t AddTask(LocalExecutorTask::Ptr task) override
 	{
 		using namespace Wuild;
 		LocalExecutorResult::Ptr res(new LocalExecutorResult("Stub output OK", true));
 		res->m_executionTime.SetUS(1000);
 		Syslogger(LOG_INFO) << "AddTask ";
 		task->m_callback(res);
+		return 0;
 	}
 	TaskPair SplitTask(LocalExecutorTask::Ptr , std::string & ) override
 	{
@@ -78,7 +79,7 @@ int main(int argc, char** argv)
 	clientConfig.m_coordinator = coordClientConfig;
 	clientConfig.m_invocationAttempts = 1;
 	clientConfig.m_minimalRemoteTasks = 1;
-	clientConfig.m_queueTimeout = TimePoint(1.0);
+	clientConfig.m_queueTimeout = TimePoint(2.0);
 
 	RemoteToolServer rcServer(executor);
 	if (!rcServer.SetConfig(toolServerConfig))

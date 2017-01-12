@@ -129,21 +129,24 @@ RemoteToolClient::RemoteToolClient(IInvocationRewriter::Ptr invocationRewriter)
 	: m_impl(new RemoteToolClientImpl()), m_invocationRewriter(invocationRewriter)
 {
 	m_impl->m_coordinator.SetToolServerChangeCallback([this](const ToolServerInfo& info){
-		std::lock_guard<std::mutex> lock(m_impl->m_clientsInfoMutex);
-		bool found = false;
-		for (ToolServerInfoWrap & clientsInfo : m_impl->m_clientsInfo)
 		{
-			if (clientsInfo.m_toolServerInfo.EqualIdTo(info))
+			std::lock_guard<std::mutex> lock(m_impl->m_clientsInfoMutex);
+			bool found = false;
+			for (ToolServerInfoWrap & clientsInfo : m_impl->m_clientsInfo)
 			{
-				clientsInfo.m_toolServerInfo = info;
-				clientsInfo.UpdateBusy(m_sessionId);
-				found = true;
+				if (clientsInfo.m_toolServerInfo.EqualIdTo(info))
+				{
+					clientsInfo.m_toolServerInfo = info;
+					clientsInfo.UpdateBusy(m_sessionId);
+					found = true;
+				}
+			}
+			if (!found)
+			{
+				AddClient(info, true);
 			}
 		}
-		if (!found)
-		{
-			AddClient(info, true);
-		}
+		this->RecalcAvailable();
 	});
 }
 
@@ -239,7 +242,7 @@ void RemoteToolClient::AddClient(const ToolServerInfo &info, bool start)
 	wrap.m_handler->SetTcpChannel(wrap.m_toolServerInfo.m_connectionHost, wrap.m_toolServerInfo.m_connectionPort);
 
 	wrap.m_handler->SetChannelNotifier([this, &wrap](bool state){
-		std::lock_guard<std::mutex> lock(m_impl->m_clientsInfoMutex);
+
 		wrap.m_state = state;
 		this->RecalcAvailable();
 	});
@@ -300,6 +303,7 @@ void RemoteToolClient::InvokeTool(const ToolInvocation & invocation, InvokeCallb
 	RemoteToolRequest::Ptr toolRequest(new RemoteToolRequest());
 	toolRequest->m_invocation = m_invocationRewriter->PrepareRemote(invocation);
 	toolRequest->m_fileData = inputData;
+	toolRequest->m_sessionId = m_sessionId;
 	RemoteToolRequestWrap wrap;
 	wrap.m_request = toolRequest;
 	wrap.m_callback = frameCallback;
@@ -317,6 +321,7 @@ void RemoteToolClient::InvokeTool(const ToolInvocation & invocation, InvokeCallb
 
 void RemoteToolClient::RecalcAvailable()
 {
+	std::lock_guard<std::mutex> lock(m_impl->m_clientsInfoMutex);
 	int available = 0;
 	for (ToolServerInfoWrap & client : m_impl->m_clientsInfo)
 	{
@@ -325,10 +330,10 @@ void RemoteToolClient::RecalcAvailable()
 			auto busyOthers=  client.m_busyOthers;
 			if (busyOthers)
 				busyOthers--;
-
 			available += client.m_toolServerInfo.m_totalThreads - client.m_busyMine - busyOthers;
 		}
 	}
+	Syslogger() << "RecalcAvailable:" << available;
 	bool wasUnactive = m_availableRemoteThreads == 0;
 	m_availableRemoteThreads = available;
 	if (wasUnactive && m_remoteAvailableCallback)
@@ -367,6 +372,9 @@ void ToolServerInfoWrap::UpdateBusy(int64_t mySessionId)
 	m_busyOthers = 0;
 	for (const ToolServerInfo::ConnectedClientInfo & client : this->m_toolServerInfo.m_connectedClients)
 	{
+		if (!client.m_sessionId)
+			continue;
+
 		if (client.m_sessionId == mySessionId)
 			m_busyMine += client.m_usedThreads;
 		else

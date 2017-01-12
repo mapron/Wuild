@@ -38,7 +38,7 @@ public:
 	{ return Ptr(new LocalExecutor(invocationRewriter, tempPath)); }
 
 public:
-	void AddTask(LocalExecutorTask::Ptr task) override;
+	size_t AddTask(LocalExecutorTask::Ptr task) override;
 	TaskPair SplitTask(LocalExecutorTask::Ptr task, std::string & err) override;
 	StringVector GetToolIds() const override;
 	void SetThreadCount(int threads) override;

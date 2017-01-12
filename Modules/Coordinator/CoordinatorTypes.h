@@ -28,6 +28,8 @@ struct ToolServerInfo
 	int16_t m_connectionPort = 0;
 	StringVector m_toolIds;
 	uint16_t m_totalThreads = 0;
+	uint16_t m_queuedTasks = 0;
+	uint16_t m_runningTasks = 0;
 
 	struct ConnectedClientInfo
 	{

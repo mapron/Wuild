@@ -33,13 +33,14 @@ void LocalExecutor::Start()
 	m_thread.Exec(std::bind(&LocalExecutor::Quant, this));
 }
 
-void LocalExecutor::AddTask(LocalExecutorTask::Ptr task)
+size_t LocalExecutor::AddTask(LocalExecutorTask::Ptr task)
 {
 	Guard guard(m_queueMutex);
 
 	if (!m_thread.IsRunning())
 		Start();
 	m_taskQueue.push(task);
+	return m_taskQueue.size();
 }
 
 ILocalExecutor::TaskPair LocalExecutor::SplitTask(LocalExecutorTask::Ptr task, string &err)

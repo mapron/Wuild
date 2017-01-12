@@ -99,10 +99,12 @@ void SocketFrameService::Quant()
 	{
 		if (!(*workerIt)->IsActive())
 		{
+
+			(*workerIt)->Stop(true);
+
 			if (m_handlerDestroyCallback)
 				m_handlerDestroyCallback((*workerIt).get());
 
-			(*workerIt)->Stop(false);
 			m_workersUnactive.push_back(DeadClient(*workerIt, TimePoint(true)));
 			Syslogger(m_logContext) << "SocketFrameService::quant() erasing unactive worker ";
 			workerIt = m_workers.erase(workerIt);

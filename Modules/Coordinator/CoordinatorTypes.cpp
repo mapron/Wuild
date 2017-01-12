@@ -20,7 +20,11 @@ namespace Wuild
 std::string ToolServerInfo::ToString(bool outputTools, bool outputClients) const
 {
 	std::ostringstream os;
-	os <<  m_connectionHost << ":" << m_connectionPort << " (" << m_toolServerId << "), threads: " << m_totalThreads;
+	os <<  m_connectionHost << ":" << m_connectionPort << " (" << m_toolServerId << "),"
+		<< " threads: " << m_totalThreads
+		<< " queue: " << m_queuedTasks
+		<< " running: " << m_runningTasks
+		   ;
 	if (outputTools)
 	{
 		os << " Tools: ";

@@ -187,14 +187,11 @@ const std::string *AbstractConfig::Find(const std::string &group, const std::str
 {
 	auto groupIt = m_data.find(group);
 	if (groupIt == m_data.end())
-		groupIt = m_data.find(""); // try to find default group
-
-	if (groupIt == m_data.end())
-		return nullptr;
+		return group == "" ? nullptr : Find("", key);
 
 	auto valueIt =  groupIt->second.find(key);
 	if (valueIt == groupIt->second.end())
-		return nullptr;
+		return group == "" ? nullptr : Find("", key);
 
 	return &(valueIt->second);
 }

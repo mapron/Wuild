@@ -61,6 +61,8 @@ inline ByteOrderDataStreamReader& ByteOrderDataStreamReader::operator >> (ToolSe
 		>> info.m_connectionPort
 		>> info.m_toolIds
 		>> info.m_totalThreads
+		>> info.m_queuedTasks
+		>> info.m_runningTasks
 		>> info.m_connectedClients
 			;
 	return *this;
@@ -74,6 +76,8 @@ inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator << (const 
 		<< info.m_connectionPort
 		<< info.m_toolIds
 		<< info.m_totalThreads
+		<< info.m_queuedTasks
+		<< info.m_runningTasks
 		<< info.m_connectedClients
 	   ;
 	return *this;

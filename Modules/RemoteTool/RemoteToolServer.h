@@ -41,6 +41,9 @@ public:
 protected:
 	void StartTask(const std::string & clientId, int64_t sessionId);
 	void FinishTask(int64_t sessionId, bool remove);
+	void UpdateInfo();
+	std::atomic<uint16_t> m_runningTasks {0};
+	std::atomic<uint16_t> m_queuedTasks {0};
 	Config m_config;
 	std::unique_ptr<RemoteToolServerImpl> m_impl;
 
