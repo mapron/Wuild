@@ -125,7 +125,10 @@ bool CanonicalizePath(char *path, size_t *len, unsigned int *slash_bits, string 
 	bool ret = CanonicalizePath(&copy, slash_bits, err);
 	if (ret)
 	{
-		strcpy(path, copy.c_str());
+		//assert(*len >= copy.size());
+		// TODO:!!!
+		if (*len >= copy.size())
+		  strcpy(path, copy.c_str());
 	}
 	return ret;
 }
