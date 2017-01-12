@@ -211,6 +211,8 @@ struct BuildStatus {
   void BuildStarted();
   void BuildFinished();
 
+  LinePrinter & GetLinePrinter() { return printer_; }
+
   enum EdgeStatus {
 	kEdgeStarted,
 	kEdgeFinished,

@@ -695,8 +695,8 @@ bool Builder::Build(string* err) {
   // Second, we attempt to wait for / reap the next finished command.
   IRemoteExecutor::Result remoteResult;
   while (plan_.more_to_do()) {
-
-	if (failures_allowed && plan_.top_edge_remote() && remote_runner_->CanRunMore() ) {
+	bool canRunRemote = plan_.top_edge_remote();
+	if (failures_allowed && canRunRemote && remote_runner_->CanRunMore() ) {
 		if (Edge* edge = plan_.FindWork()) {
 
 			if (!StartEdge(edge, err, true)) {
@@ -741,6 +741,10 @@ bool Builder::Build(string* err) {
 	// See if we can start any more commands.
 	if (failures_allowed && command_runner_->CanRunMore()) {
 	  if (Edge* edge = plan_.FindWork()) {
+		if (edge->is_remote_)
+		{
+			status_->GetLinePrinter().Print("Task could run on remote, but it still run locally.", LinePrinter::FULL);
+		}
 		if (!StartEdge(edge, err, false)) {
 		  Cleanup();
 		  status_->BuildFinished();
