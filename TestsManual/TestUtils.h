@@ -22,7 +22,7 @@
 #include <iostream>
 #include <assert.h>
 
-#define TEST_ASSERT(cond) if (!(cond)) { assert(0); std::cout << "FAIL\n"; return 1;}
+#define TEST_ASSERT(cond) if (!(cond)) { assert(0); std::cout << "assertion failed: " << #cond << "\n"; return 1;}
 
 namespace Wuild
 {

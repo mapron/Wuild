@@ -696,6 +696,11 @@ bool Builder::Build(string* err) {
   IRemoteExecutor::Result remoteResult;
   while (plan_.more_to_do()) {
 	bool canRunRemote = plan_.top_edge_remote();
+	/*status_->GetLinePrinter().Print("canRunRemote=" + std::to_string( canRunRemote)
+									+ ", CanRunMore=" + std::to_string(remote_runner_->CanRunMore())
+									+ ", ready_to_run=" + std::to_string(plan_.get_ready_count())
+									, LinePrinter::FULL);*/
+
 	if (failures_allowed && canRunRemote && remote_runner_->CanRunMore() ) {
 		if (Edge* edge = plan_.FindWork()) {
 
@@ -710,7 +715,7 @@ bool Builder::Build(string* err) {
 			else
 				pending_remote++;
 
-			//std::cout << "pending_remote=" << pending_remote << std::endl;
+			status_->GetLinePrinter().Print("Start, pending_remote=" + std::to_string( pending_remote) + ", ready_to_run=" + std::to_string(plan_.get_ready_count()), LinePrinter::FULL);
 			// We made some progress; go back to the main loop.
 			continue;
 		}
@@ -719,7 +724,7 @@ bool Builder::Build(string* err) {
 	if (remote_runner_->WaitForCommand(&remoteResult))
 	{
 		pending_remote--;
-		//std::cout << "Finish, pending_remote=" << pending_remote << std::endl;
+		status_->GetLinePrinter().Print("Finish, pending_remote=" + std::to_string( pending_remote) + ", ready_to_run=" + std::to_string(plan_.get_ready_count()), LinePrinter::FULL);
 		CommandRunner::Result result;
 		result.output = std::move(remoteResult.output);
 		result.edge = static_cast<Edge*>(remoteResult.userData);

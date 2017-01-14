@@ -42,6 +42,9 @@ public:
 	uint16_t GetFreeThreads() const { return m_freeRemoteThreads; }
 	uint16_t GetUsedThreads() const { return m_usedThreads; }
 
+	/// Used for tests.
+	std::vector<uint16_t> TestGetBusy() const;
+
 protected:
 	struct ClientInfo
 	{
@@ -58,7 +61,7 @@ protected:
 
 	std::atomic_uint16_t m_freeRemoteThreads {0};
 	std::atomic_uint16_t m_usedThreads {0};
-//	std::atomic_int m_queuedTasks {0};
+
 	int64_t m_sessionId = 0;
 
 	std::deque<ClientInfo> m_clients;

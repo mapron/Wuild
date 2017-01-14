@@ -16,13 +16,71 @@
 #include <ToolBalancer.h>
 #include <Application.h>
 
+namespace {
+	const std::string g_tool = "gcc";
+	const size_t g_noIndex = std::numeric_limits<size_t>::max();
+}
+
 int main(int argc, char ** argv)
 {
 	using namespace Wuild;
 	ConfiguredApplication app(argc, argv, "TestBalancer");
+	using LoadVector = std::vector<uint16_t>;
 
 	ToolBalancer balancer;
+	balancer.SetSessionId(1);
+	balancer.SetRequiredTools(StringVector(1, g_tool));
+	TEST_ASSERT(balancer.GetFreeThreads() == 0);
+	TEST_ASSERT(balancer.FindFreeClient(g_tool) == g_noIndex);
 
+	ToolServerInfo info1, info2;
+	info1.m_toolIds = StringVector(1, g_tool);
+	info1.m_totalThreads = 8;
+	info1.m_toolServerId = "test1";
+	info2 = info1;
+	info2.m_toolServerId = "test2";
+
+	size_t index = 0;
+	balancer.UpdateClient(info1, index);
+	TEST_ASSERT(index == 0);
+	balancer.UpdateClient(info1, index);
+	TEST_ASSERT(index == 0);
+	balancer.UpdateClient(info2, index);
+	TEST_ASSERT(index == 1);
+
+	TEST_ASSERT(balancer.GetFreeThreads() == 0);
+	TEST_ASSERT((balancer.TestGetBusy() == LoadVector{0, 0}));
+
+	balancer.SetClientActive(0, true);
+	TEST_ASSERT(balancer.GetFreeThreads() == 8);
+	balancer.SetClientActive(0, false);
+	TEST_ASSERT(balancer.GetFreeThreads() == 0);
+	balancer.SetClientActive(0, true);
+	balancer.SetClientActive(1, true);
+	TEST_ASSERT(balancer.GetFreeThreads() == 16);
+
+	info2.m_connectedClients.resize(1);
+	info2.m_connectedClients[0].m_usedThreads = 2;
+	info2.m_connectedClients[0].m_sessionId  = 2;
+	balancer.UpdateClient(info2, index);
+	TEST_ASSERT((balancer.TestGetBusy() == LoadVector{0, 2}));
+
+	index = balancer.FindFreeClient(g_tool);
+	TEST_ASSERT(index == 0);
+	balancer.StartTask(index);
+	TEST_ASSERT((balancer.TestGetBusy() == LoadVector{1, 2}));
+
+	index = balancer.FindFreeClient(g_tool);
+	TEST_ASSERT(index == 0);
+	balancer.StartTask(index);
+	TEST_ASSERT((balancer.TestGetBusy() == LoadVector{2, 2}));
+
+	balancer.StartTask( balancer.FindFreeClient(g_tool) );
+
+	index = balancer.FindFreeClient(g_tool);
+	TEST_ASSERT(index == 1);
+	balancer.StartTask(index);
+	TEST_ASSERT((balancer.TestGetBusy() == LoadVector{3, 3}));
 
 	std::cout << "OK\n";
 	return 0;

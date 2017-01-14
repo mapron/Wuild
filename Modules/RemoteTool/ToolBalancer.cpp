@@ -82,6 +82,7 @@ ToolBalancer::ClientStatus ToolBalancer::UpdateClient(const ToolServerInfo &tool
 	clientInfo.m_toolServer = toolServer;
 	clientInfo.UpdateBusy(m_sessionId);
 	m_clients.push_back(clientInfo);
+	index = m_clients.size() - 1;
 	RecalcAvailable();
 	return ClientStatus::Added;
 }
@@ -136,6 +137,14 @@ void ToolBalancer::FinishTask(size_t index)
 	if (busyMine)
 		--busyMine;
 	RecalcAvailable();
+}
+
+std::vector<uint16_t> ToolBalancer::TestGetBusy() const
+{
+	std::vector<uint16_t> result;
+	for (const ClientInfo & client : m_clients)
+		result.push_back(client.m_busyMine + client.m_busyOthers);
+	return result;
 }
 
 void ToolBalancer::RecalcAvailable()

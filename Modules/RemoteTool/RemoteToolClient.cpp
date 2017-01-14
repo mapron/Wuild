@@ -67,41 +67,46 @@ public:
 
 	void ProcessTasks()
 	{
-		std::lock_guard<std::mutex> lock(m_requestsMutex);
-		if (m_requests.empty())
-			return;
-		TimePoint now(true);
-		for (auto it = m_requests.begin(); it != m_requests.end(); )
+		RemoteToolRequestWrap task;
 		{
-			if (it->m_expirationMoment < now)
+			std::lock_guard<std::mutex> lock(m_requestsMutex);
+			if (m_requests.empty())
+				return;
+			TimePoint now(true);
+			for (auto it = m_requests.begin(); it != m_requests.end(); )
 			{
-				Syslogger(LOG_ERR) << "Task expired: " << SocketFrame::Ptr(it->m_toolRequest);
-				if (it->m_callback)
+				if (it->m_expirationMoment < now)
 				{
-					RemoteToolClient::TaskExecutionInfo info;
-					info.m_stdOutput = "Timeout expired.";
-					it->m_callback(info);
+					Syslogger(LOG_ERR) << "Task expired: " << SocketFrame::Ptr(it->m_toolRequest);
+					if (it->m_callback)
+					{
+						RemoteToolClient::TaskExecutionInfo info;
+						info.m_stdOutput = "Timeout expired.";
+						it->m_callback(info);
+					}
+					it = m_requests.erase(it);
 				}
-				it = m_requests.erase(it);
+				else
+				{
+					it++;
+				}
 			}
-			else
-			{
-				it++;
-			}
+
+			if (m_requests.empty())
+				return;
+
+			task = *m_requests.begin();
 		}
-
-		if (m_requests.empty())
-			return;
-
-		std::lock_guard<std::mutex> lock2(m_clientsMutex);
-
-		RemoteToolRequestWrap & task = *m_requests.begin();
 
 		size_t clientIndex = m_balancer.FindFreeClient(task.m_invocation.m_id.m_toolId);
 		if (clientIndex == std::numeric_limits<size_t>::max())
 			return;
 
-		SocketFrameHandler::Ptr handler = m_clients[clientIndex];
+		SocketFrameHandler::Ptr handler;
+		{
+			std::lock_guard<std::mutex> lock2(m_clientsMutex);
+			handler = m_clients[clientIndex];
+		}
 		auto frameCallback = [this, task, clientIndex](SocketFrame::Ptr responseFrame, SocketFrameHandler::TReplyState state)
 		{
 			m_balancer.FinishTask(clientIndex);
@@ -138,9 +143,10 @@ public:
 		m_balancer.StartTask(clientIndex);
 		m_pendingTasks--;
 		handler->QueueFrame(task.m_toolRequest, frameCallback);
-		m_requests.pop_front();
-
-
+		{
+			std::lock_guard<std::mutex> lock(m_requestsMutex);
+			m_requests.pop_front();
+		}
 	}
 };
 
@@ -178,7 +184,7 @@ bool RemoteToolClient::SetConfig(const RemoteToolClient::Config &config)
 
 int RemoteToolClient::GetFreeRemoteThreads() const
 {
-	return m_impl->m_balancer.GetFreeThreads() - m_impl->m_pendingTasks; // may be negative.
+	return static_cast<int>(m_impl->m_balancer.GetFreeThreads()) - m_impl->m_pendingTasks; // may be negative.
 }
 
 void RemoteToolClient::Start(const StringVector & requiredToolIds)
@@ -245,6 +251,7 @@ void RemoteToolClient::AddClient(const ToolServerInfo &info, bool start)
 	if (start)
 	   handler->Start();
 
+	std::lock_guard<std::mutex> lock2(m_impl->m_clientsMutex);
 	m_impl->m_clients.push_back(handler);
 }
 
@@ -273,7 +280,9 @@ void RemoteToolClient::InvokeTool(const ToolInvocation & invocation, InvokeCallb
 	wrap.m_expirationMoment = wrap.m_start + m_config.m_queueTimeout;
 	wrap.m_attemptsRemain = m_config.m_invocationAttempts;
 
-	Syslogger(LOG_INFO) << "QueueFrame [" << wrap.m_taskIndex << "] -> " << invocation.GetArgsString(false);
+	Syslogger(LOG_INFO) << "QueueFrame [" << wrap.m_taskIndex << "] -> " << invocation.GetArgsString(false)
+						<< ", balancerFree:" <<m_impl->m_balancer.GetFreeThreads()
+						<< ", pending:" << m_impl->m_pendingTasks;
 
 	m_impl->QueueTask(wrap);
 }

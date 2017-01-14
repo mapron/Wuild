@@ -242,6 +242,7 @@ bool FileInfo::WriteGzipped( const ByteArrayHolder & data)
 	if (inf(data.ref(), f) != Z_OK)
 		result = false;
 
+	fflush(f);
 	fclose(f);
 	return result;
 }
@@ -274,6 +275,7 @@ bool FileInfo::WriteFile(const ByteArrayHolder &data)
 		return false;
 
 	bool result = fwrite(data.data(), data.size(), 1, f) > 0;
+	fflush(f);
 	fclose(f);
 	return result;
 }

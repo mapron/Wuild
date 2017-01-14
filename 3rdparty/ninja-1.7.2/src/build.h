@@ -73,6 +73,7 @@ struct Plan {
   int command_edge_count() const { return command_edges_; }
   int remote_edges_count() const { return remote_edges_; }
   std::set<const Rule*> remote_rules() const { return remote_rules_; }
+  int get_ready_count() const { return ready_.size(); }
 
 private:
   bool AddSubTarget(Node* node, vector<Node*>* stack, string* err);
