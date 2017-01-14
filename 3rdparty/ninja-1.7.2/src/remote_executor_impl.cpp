@@ -29,13 +29,13 @@ RemoteExecutor::RemoteExecutor(ConfiguredApplication &app) : m_app(app)
 
 	m_minimalRemoteTasks = remoteToolConfig.m_minimalRemoteTasks;
 
-	m_invocationRewruiter = InvocationRewriter::Create(compilerConfig);
-	m_remoteService.reset(new RemoteToolClient(m_invocationRewruiter));
+	m_invocationRewriter = InvocationRewriter::Create(compilerConfig);
+	m_remoteService.reset(new RemoteToolClient(m_invocationRewriter));
 	if (!m_remoteService->SetConfig(remoteToolConfig))
 		return;
 
 #ifdef  TEST_CLIENT
-	m_localExecutor = LocalExecutor::Create(m_invocationRewruiter, m_app.m_tempDir);
+	m_localExecutor = LocalExecutor::Create(m_invocationRewriter, m_app.m_tempDir);
 	m_app.m_remoteToolServerConfig.m_threadCount = 2;
 	m_app.m_remoteToolServerConfig.m_listenHost = "localhost";
 	m_app.m_remoteToolServerConfig.m_listenPort = 12345;
@@ -87,7 +87,7 @@ bool RemoteExecutor::PreprocessCode(const std::vector<std::string> &originalRule
 	original.m_id.m_toolExecutable = srcExecutable;
 	original.m_args = args;
 	original.m_ignoredArgs = ignoredArgs;
-	if (!m_invocationRewruiter->SplitInvocation(original, pp, cc))
+	if (!m_invocationRewriter->SplitInvocation(original, pp, cc))
 		return false;
 
 	toolId = pp.m_id.m_toolId;
@@ -106,7 +106,7 @@ std::string RemoteExecutor::GetPreprocessedPath(const std::string &sourcePath, c
 	if (!m_remoteEnabled)
 		return "";
 
-	return m_invocationRewruiter->GetPreprocessedPath(sourcePath, objectPath);
+	return m_invocationRewriter->GetPreprocessedPath(sourcePath, objectPath);
 }
 
 std::string RemoteExecutor::FilterPreprocessorFlags(const std::string &toolId, const std::string &flags) const
@@ -114,7 +114,7 @@ std::string RemoteExecutor::FilterPreprocessorFlags(const std::string &toolId, c
 	if (!m_remoteEnabled)
 		return flags;
 
-	return m_invocationRewruiter->FilterFlags(ToolInvocation(flags, ToolInvocation::InvokeType::Preprocess).SetId(toolId)).GetArgsString(false);
+	return m_invocationRewriter->FilterFlags(ToolInvocation(flags, ToolInvocation::InvokeType::Preprocess).SetId(toolId)).GetArgsString(false);
 }
 
 std::string RemoteExecutor::FilterCompilerFlags(const std::string &toolId, const std::string &flags) const
@@ -122,7 +122,7 @@ std::string RemoteExecutor::FilterCompilerFlags(const std::string &toolId, const
 	if (!m_remoteEnabled)
 		return flags;
 
-	return m_invocationRewruiter->FilterFlags(ToolInvocation(flags, ToolInvocation::InvokeType::Compile).SetId(toolId)).GetArgsString(false);
+	return m_invocationRewriter->FilterFlags(ToolInvocation(flags, ToolInvocation::InvokeType::Compile).SetId(toolId)).GetArgsString(false);
 }
 
 void RemoteExecutor::RunIfNeeded(const std::vector<std::string> &toolIds)
@@ -167,7 +167,7 @@ bool RemoteExecutor::StartCommand(void *userData, const std::string &command)
 	ToolInvocation invocation(command.substr(space + 1));
 	invocation.SetExecutable(command.substr(0, space));
 
-	invocation = m_invocationRewruiter->CompleteInvocation(invocation);
+	invocation = m_invocationRewriter->CompleteInvocation(invocation);
 
 	auto outputFilename = invocation.GetOutput();
 	auto callback = [this, userData, outputFilename]( const RemoteToolClient::TaskExecutionInfo & info)
