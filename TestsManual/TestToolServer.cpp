@@ -65,28 +65,28 @@ int main(int argc, char** argv)
 	rcClient.SetConfig(clientConfig);
 	rcClient.Start();
 
+	rcClient.SetRemoteAvailableCallback([taskPP, &rcClient, taskCC, &localExecutor](int){
 
-	taskPP->m_callback = [&rcClient, taskCC] ( LocalExecutorResult::Ptr localResult ) {
+		taskPP->m_callback = [&rcClient, taskCC] ( LocalExecutorResult::Ptr localResult ) {
 
-		if (!localResult->m_result)
-		{
+			if (!localResult->m_result)
+			{
+				Syslogger(LOG_ERR) << "Preprocess failed\n" << localResult->m_stdOut;
+				Application::Interrupt(1);
+				return;
+			}
 
-			Syslogger(LOG_ERR) << "Preprocess failed\n" << localResult->m_stdOut;
-			Application::Interrupt(1);
-			return;
-		}
-
-		auto callback = [&rcClient]( const Wuild::RemoteToolClient::TaskExecutionInfo& info){
-			if (info.m_stdOutput.size())
-				std::cerr << info.m_stdOutput << std::endl << std::flush;
-			rcClient.FinishSession();
-			std::cout << rcClient.GetSessionInformation()  << " \n";
-			//std::cout << info.GetProfilingStr() << " \n";
-			Application::Interrupt(1 - info.m_result);
+			auto callback = [&rcClient]( const Wuild::RemoteToolClient::TaskExecutionInfo& info){
+				if (info.m_stdOutput.size())
+					std::cout << info.m_stdOutput << std::endl << std::flush;
+				rcClient.FinishSession();
+				std::cout << rcClient.GetSessionInformation()  << " \n";
+				Application::Interrupt(1 - info.m_result);
+			};
+			rcClient.InvokeTool(taskCC->m_invocation, callback);
 		};
-		rcClient.InvokeTool(taskCC->m_invocation, callback);
-	};
-	localExecutor->AddTask(taskPP);
+		localExecutor->AddTask(taskPP);
+	});
 
 	return ExecAppLoop(TestConfiguration::ExitHandler);
 }
