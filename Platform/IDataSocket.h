@@ -24,6 +24,7 @@ class IDataSocket
 public:
 	using Ptr = std::shared_ptr<IDataSocket>;
 	enum class WriteState { Success, TryAgain, Fail };
+	enum class ReadState { Success, TryAgain, Fail };
 
 public:
 	virtual ~IDataSocket() = default;
@@ -41,7 +42,7 @@ public:
 	virtual bool IsPending() const = 0;
 
 	/// Reads some data into ByteArray without blocking. Returns false if no data was read.
-	virtual bool Read(ByteArrayHolder & buffer) = 0;
+	virtual ReadState Read(ByteArrayHolder & buffer) = 0;
 
 	/// Write data to socket. Returns false on error.
 	virtual WriteState Write(const ByteArrayHolder & buffer, size_t maxBytes = size_t(-1)) = 0;

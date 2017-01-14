@@ -190,13 +190,16 @@ bool TcpSocket::IsPending() const
 	return m_state == ConnectionState::Pending;
 }
 
-bool TcpSocket::Read(ByteArrayHolder & buffer)
+IDataSocket::ReadState TcpSocket::Read(ByteArrayHolder & buffer)
 {
+	if (!IsConnected())
+		return ReadState::Fail;
+
 	if (!IsSocketReadReady( ))
-		return false;
+		return ReadState::TryAgain;
 
 	if (!SelectRead( m_params.m_readTimeout ))  //Нет данных в порту
-		return false;
+		return ReadState::TryAgain;
 
 	size_t bufferInitialSize = buffer.size();(void)bufferInitialSize;
 	char tmpbuffer[1024];
@@ -209,17 +212,17 @@ bool TcpSocket::Read(ByteArrayHolder & buffer)
 		#else
 			read( m_impl->m_socket, tmpbuffer, sizeof(tmpbuffer) );
 		#endif
-	  if (recieved == 0 && totalRecieved > 0)
+	  if (recieved == 0)
 		  break;
 
-	  if (recieved <= 0)
+	  if (recieved < 0)
 	  {
 		  const auto err = SocketGetLastError();
 		  if (SocketRWPending(err) )
 			  break;
 		  Syslogger(m_logContext, LOG_ERR) << "Disconnecting while Reading ("<< recieved << ") err=" << err;
 		  Disconnect();
-		  return false;
+		  return ReadState::Fail;
 	  }
 	  totalRecieved += recieved;
 	  buffer.ref().insert(buffer.ref().end(), tmpbuffer, tmpbuffer + recieved );
@@ -227,10 +230,10 @@ bool TcpSocket::Read(ByteArrayHolder & buffer)
 	} while(recieved == sizeof(tmpbuffer));
 
 #ifdef SOCKET_DEBUG
-	Syslogger(m_logContext) << "AbstractChannel::Read: " << Syslogger::Binary(buffer.data() + bufferInitialSize, totalRecieved);
+	Syslogger(m_logContext) << "TcpSocket::Read: " << Syslogger::Binary(buffer.data() + bufferInitialSize, totalRecieved);
 #endif
 
-	return true;
+	return totalRecieved > 0 ? ReadState::Success : ReadState::TryAgain;
 }
 
 TcpSocket::WriteState TcpSocket::Write(const ByteArrayHolder & buffer, size_t maxBytes)
@@ -253,7 +256,7 @@ TcpSocket::WriteState TcpSocket::Write(const ByteArrayHolder & buffer, size_t ma
 	}
 
 #ifdef SOCKET_DEBUG
-	Syslogger(m_logContext) << "AbstractChannel::Write: " << Syslogger::Binary(buffer.data(), written);
+	Syslogger(m_logContext) << "TcpSocket::Write: " << Syslogger::Binary(buffer.data(), written);
 #endif
 	return maxBytes == written ? WriteState::Success : WriteState::Fail;
 }

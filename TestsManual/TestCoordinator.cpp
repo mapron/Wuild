@@ -113,15 +113,16 @@ int main(int argc, char** argv)
 
 		totalFinished++;
 		if (totalFinished == totalCount)
-		   Application::Interrupt(0);
+		   Application::Interrupt(0 + info.m_result);
 	};
 
 	TimePoint start(true);
-	rcClient.SetRemoteAvailableCallback([start](int ) {
-		 std::cout <<  "Init client taken: " << start.GetElapsedTime().GetUS() << " us." << std::endl << std::flush;
+	rcClient.SetRemoteAvailableCallback([&start, &totalCount, &rcClient, &callback, &callbackFail](int ) {
+		 Syslogger(LOG_INFO) <<  "Init client taken: " << start.GetElapsedTime().GetUS() << " us.";
+		 totalCount++; rcClient.InvokeTool(ToolInvocation().SetId(g_testTool) , callback);
+		 totalCount++; rcClient.InvokeTool(ToolInvocation().SetId(g_testTool2), callbackFail);
 	});
-	totalCount++; rcClient.InvokeTool(ToolInvocation().SetId(g_testTool) , callback);
-	totalCount++; rcClient.InvokeTool(ToolInvocation().SetId(g_testTool2), callbackFail);
+
 
 	return ExecAppLoop(TestConfiguration::ExitHandler);
 }

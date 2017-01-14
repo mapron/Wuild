@@ -336,8 +336,10 @@ void RemoteToolClient::RecalcAvailable()
 	Syslogger() << "RecalcAvailable:" << available;
 	bool wasUnactive = m_availableRemoteThreads == 0;
 	m_availableRemoteThreads = available;
-	if (wasUnactive && m_remoteAvailableCallback)
+	if (wasUnactive && available > 0 && m_remoteAvailableCallback)
+	{
 		m_remoteAvailableCallback(available);
+	}
 }
 
 void RemoteToolClient::UpdateSessionInfo(const RemoteToolClient::TaskExecutionInfo &executionResult)

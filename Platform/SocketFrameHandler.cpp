@@ -189,104 +189,37 @@ void SocketFrameHandler::UpdateLogContext()
 bool SocketFrameHandler::ReadFrames()
 {
 	const size_t currentSize = m_readBuffer.GetHolder().size();
-	if (!m_channel->Read(m_readBuffer.GetHolder()))
-		return true; //nothing to read, it's not a error. Broken channel handled separately.
+	const auto readState = m_channel->Read(m_readBuffer.GetHolder());
+
+	if (readState == IDataSocket::ReadState::Fail)
+		return false;
+
+	if (readState == IDataSocket::ReadState::TryAgain)
+		return true;//nothing to read, it's not a error.
 
 	m_lastTestActivity = m_lastSucceessfulRead = TimePoint(true);
 
 	const size_t newSize = m_readBuffer.GetHolder().size();
-	if (!newSize)
-		return true;
 
 	m_readBuffer.SetSize(newSize);
-	ByteOrderDataStreamReader inputStream(&m_readBuffer, m_settings.m_byteOrder);
+
 
 	m_doTestActivity = true;
 	m_readBuffer.ResetRead();
 
 	m_outputAcknowledgesSize += newSize - currentSize;
 	bool validInput = true;
-	ServiceMessageType mtype = ServiceMessageType::User;
+
 
 	do
 	{
-		if (m_settings.m_hasChannelTypes)
-		{
-			mtype = SocketFrameHandler::ServiceMessageType(inputStream.ReadScalar<uint8_t>());
-		}
+		ConsumeState state = ConsumeReadBuffer();
+		if (state == ConsumeState::FatalError)
+			return false;
+		else if (state == ConsumeState::Broken)
+			validInput = false;
 
-
-
-		if (m_settings.m_hasAcknowledges && mtype == ServiceMessageType::Ack)
-		{
-			uint32_t size = 0;
-			inputStream >> size;
-			m_acknowledgeTimer = TimePoint(true);
-			m_bytesWaitingAcknowledge -= std::min(m_bytesWaitingAcknowledge, static_cast<size_t>(size));
-		}
-		else if (m_settings.m_hasLineTest && mtype == ServiceMessageType::LineTest) { } // do nothing
-		else if (m_settings.m_hasConnOptions && mtype == ServiceMessageType::ConnOptions)
-		{
-			uint32_t bufferSize, version;
-			int64_t timestamp;
-			inputStream >> bufferSize >> version >> timestamp;
-			TimePoint remoteTime;
-			remoteTime.SetUS(timestamp);
-			TimePoint now(true);
-
-			m_remoteTimeDiffToPast = now - remoteTime;
-
-			auto tcpch = std::dynamic_pointer_cast<TcpSocket>(m_channel);
-			const auto sendSize = tcpch ? tcpch->GetSendBufferSize() : 0;
-
-			m_maxUnAcknowledgedSize = std::min(sendSize,  bufferSize) * BUFFER_RATIO;
-			if (version != m_settings.m_channelProtocolVersion)
-			{
-				Syslogger(m_logContext, LOG_ERR) << "Remote version is  " << version << ", but mine is " << m_settings.m_channelProtocolVersion;
-				return false;
-			}
-			Syslogger(m_logContext)<< "Recieved buffer size = " << bufferSize << ", MaxUnAck=" << m_maxUnAcknowledgedSize  <<  ", remote time is " << m_remoteTimeDiffToPast.ToString() << " in past compare to me. (" << m_remoteTimeDiffToPast.GetUS() << " us)";
-		}
-		else
-		{
-			if (m_pendingReadType != ServiceMessageType::None && m_pendingReadType != mtype)
-				break;
-
-			if (m_frameReaders.find(int(mtype)) == m_frameReaders.end())
-			{
-				validInput = false;
-				Syslogger(m_logContext, LOG_ERR) << "MessageHandler: invalid type of SocketFrame = " << int(mtype) ;
-				break;
-			}
-
-			m_pendingReadType = mtype;
-
-			size_t frameLength = m_readBuffer.GetRemainRead();
-			if (!frameLength) break;
-			if (m_settings.m_hasChannelTypes)
-			{
-				uint32_t size = 0;
-				inputStream >> size;
-				if (size > m_settings.m_segmentSize)
-				{
-					validInput = false;
-					Syslogger(m_logContext, LOG_ERR) << "Invalid segment size =" << size;
-					break;
-				}
-				if (size > frameLength)
-					break; // incomplete read buffer;
-
-				frameLength = size;
-			}
-
-			auto * framePos = m_frameDataBuffer.PosWrite(frameLength);
-			assert(framePos);
-			inputStream.ReadBlock(framePos, frameLength);
-			m_readBuffer.RemoveFromStart(m_readBuffer.GetOffsetRead());
-			m_frameDataBuffer.MarkWrite(frameLength);
-		}
-
-		if (m_readBuffer.EofRead())
+		if (state != ConsumeState::Ok || m_readBuffer.EofRead())
 			break;
 
 		m_readBuffer.RemoveFromStart(m_readBuffer.GetOffsetRead());
@@ -300,34 +233,14 @@ bool SocketFrameHandler::ReadFrames()
 		if (!validInput || m_pendingReadType == ServiceMessageType::None)
 			break;
 
-		uint8_t mtypei = static_cast<uint8_t>(m_pendingReadType);
-		SocketFrame::Ptr incoming(m_frameReaders[mtypei]->FrameFactory());
-		SocketFrame::State state;
-		try
-		{
-			ByteOrderDataStreamReader frameStream(&m_frameDataBuffer, m_settings.m_byteOrder);
-			state = incoming->Read(frameStream);
-		}
-		catch(std::exception & ex)
-		{
+		ConsumeState state = ConsumeFrameBuffer();
+		if (state == ConsumeState::FatalError)
+			return false;
+		else if (state == ConsumeState::Broken)
 			validInput = false;
-			Syslogger(m_logContext, LOG_ERR) << "MessageHandler Read() exception: " << ex.what();
+
+		if (state != ConsumeState::Ok || m_frameDataBuffer.EofRead())
 			break;
-		}
-		if (state == SocketFrame::stIncomplete || m_frameDataBuffer.EofRead())
-		{
-			break;
-		}
-		else if (state == SocketFrame::stBroken)
-		{
-			validInput = false;
-			Syslogger(m_logContext, LOG_ERR) << "MessageHandler: broken message recieved. ";
-			break;
-		}
-		else if (state == SocketFrame::stOk)
-		{
-			PreprocessFrame(incoming);
-		}
 
 		m_frameDataBuffer.RemoveFromStart(m_frameDataBuffer.GetOffsetRead());
 	}while(m_frameDataBuffer.GetSize());
@@ -346,6 +259,116 @@ bool SocketFrameHandler::ReadFrames()
 	}
 
 	return true;
+}
+
+SocketFrameHandler::ConsumeState SocketFrameHandler::ConsumeReadBuffer()
+{
+	ByteOrderDataStreamReader inputStream(&m_readBuffer, m_settings.m_byteOrder);
+	ServiceMessageType mtype = ServiceMessageType::User;
+	if (m_settings.m_hasChannelTypes)
+		mtype = SocketFrameHandler::ServiceMessageType(inputStream.ReadScalar<uint8_t>());
+
+	if (m_settings.m_hasAcknowledges && mtype == ServiceMessageType::Ack)
+	{
+		uint32_t size = 0;
+		inputStream >> size;
+		m_acknowledgeTimer = TimePoint(true);
+		m_bytesWaitingAcknowledge -= std::min(m_bytesWaitingAcknowledge, static_cast<size_t>(size));
+	}
+	else if (m_settings.m_hasLineTest    && mtype == ServiceMessageType::LineTest) { } // do nothing
+	else if (m_settings.m_hasConnOptions && mtype == ServiceMessageType::ConnOptions)
+	{
+		uint32_t bufferSize, version;
+		int64_t timestamp;
+		inputStream >> bufferSize >> version >> timestamp;
+		TimePoint remoteTime;
+		remoteTime.SetUS(timestamp);
+		TimePoint now(true);
+
+		m_remoteTimeDiffToPast = now - remoteTime;
+
+		auto tcpch = std::dynamic_pointer_cast<TcpSocket>(m_channel);
+		const auto sendSize = tcpch ? tcpch->GetSendBufferSize() : 0;
+
+		m_maxUnAcknowledgedSize = std::min(sendSize,  bufferSize) * BUFFER_RATIO;
+		if (version != m_settings.m_channelProtocolVersion)
+		{
+			Syslogger(m_logContext, LOG_ERR) << "Remote version is  " << version << ", but mine is " << m_settings.m_channelProtocolVersion;
+			return ConsumeState::FatalError;
+		}
+		Syslogger(m_logContext)<< "Recieved buffer size = " << bufferSize << ", MaxUnAck=" << m_maxUnAcknowledgedSize  <<  ", remote time is " << m_remoteTimeDiffToPast.ToString() << " in past compare to me. (" << m_remoteTimeDiffToPast.GetUS() << " us)";
+	}
+	else
+	{
+		if (m_pendingReadType != ServiceMessageType::None && m_pendingReadType != mtype)
+			return ConsumeState::Incomplete; // returning incomplete when pending type changes to force ConsumeFrameBuffer call.
+
+		if (m_frameReaders.find(int(mtype)) == m_frameReaders.end())
+		{
+			Syslogger(m_logContext, LOG_ERR) << "MessageHandler: invalid type of SocketFrame = " << int(mtype) ;
+			return ConsumeState::Broken;
+		}
+
+		m_pendingReadType = mtype;
+
+		size_t frameLength = m_readBuffer.GetRemainRead();
+		if (!frameLength)
+			return ConsumeState::Incomplete;
+		if (m_settings.m_hasChannelTypes)
+		{
+			uint32_t size = 0;
+			inputStream >> size;
+			if (size > m_settings.m_segmentSize)
+			{
+
+				Syslogger(m_logContext, LOG_ERR) << "Invalid segment size =" << size;
+				return ConsumeState::Broken;
+			}
+			if (size > frameLength)
+				return ConsumeState::Incomplete; // incomplete read buffer;
+
+			frameLength = size;
+		}
+
+		auto * framePos = m_frameDataBuffer.PosWrite(frameLength);
+		assert(framePos);
+		inputStream.ReadBlock(framePos, frameLength);
+		m_readBuffer.RemoveFromStart(m_readBuffer.GetOffsetRead());
+		m_frameDataBuffer.MarkWrite(frameLength);
+	}
+	return ConsumeState::Ok;
+}
+
+SocketFrameHandler::ConsumeState SocketFrameHandler::ConsumeFrameBuffer()
+{
+	uint8_t mtypei = static_cast<uint8_t>(m_pendingReadType);
+	SocketFrame::Ptr incoming(m_frameReaders[mtypei]->FrameFactory());
+	SocketFrame::State framestate;
+	try
+	{
+		ByteOrderDataStreamReader frameStream(&m_frameDataBuffer, m_settings.m_byteOrder);
+		framestate = incoming->Read(frameStream);
+	}
+	catch(std::exception & ex)
+	{
+		Syslogger(m_logContext, LOG_ERR) << "MessageHandler ConsumeFrameBuffer() exception: " << ex.what();
+		return ConsumeState::Broken;
+	}
+	if (framestate == SocketFrame::stIncomplete || m_frameDataBuffer.EofRead())
+	{
+		return ConsumeState::Incomplete;
+	}
+	else if (framestate == SocketFrame::stBroken)
+	{
+		Syslogger(m_logContext, LOG_ERR) << "MessageHandler: broken message recieved. ";
+		return ConsumeState::Broken;
+	}
+	else if (framestate == SocketFrame::stOk)
+	{
+		PreprocessFrame(incoming);
+		return ConsumeState::Ok;
+	}
+	return ConsumeState::Broken;
 }
 
 bool SocketFrameHandler::WriteFrames()

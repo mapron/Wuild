@@ -159,7 +159,11 @@ protected:
 		User = SocketFrame::s_minimalUserFrameId
 	};
 
+	enum class ConsumeState { Ok, Broken, Incomplete, FatalError };
+
 	bool                        ReadFrames();
+	ConsumeState                ConsumeReadBuffer();
+	ConsumeState                ConsumeFrameBuffer();
 	bool                        WriteFrames();
 	bool                        CheckConnection() const;
 	bool                        CheckAndCreateConnection();

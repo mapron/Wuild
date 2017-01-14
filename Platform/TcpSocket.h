@@ -47,7 +47,7 @@ public:
 	bool IsConnected () const override;
 	bool IsPending() const override;
 
-	bool Read(ByteArrayHolder & buffer) override;
+	ReadState Read(ByteArrayHolder & buffer) override;
 	WriteState Write(const ByteArrayHolder & buffer, size_t maxBytes) override;
 
 	/// Socker buffer size available for reading.
