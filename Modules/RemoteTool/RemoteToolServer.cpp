@@ -19,6 +19,8 @@
 #include <CoordinatorClient.h>
 #include <ThreadUtils.h>
 
+#include <algorithm>
+
 namespace Wuild
 {
 

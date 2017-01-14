@@ -39,6 +39,7 @@
 #endif
 
 #include <vector>
+#include <algorithm>
 
 #if defined(__APPLE__) || defined(__FreeBSD__)
 #include <sys/sysctl.h>

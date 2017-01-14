@@ -59,8 +59,8 @@ protected:
 protected:
 	void RecalcAvailable();
 
-	std::atomic_uint16_t m_freeRemoteThreads {0};
-	std::atomic_uint16_t m_usedThreads {0};
+    std::atomic<uint16_t> m_freeRemoteThreads {0};
+    std::atomic<uint16_t> m_usedThreads {0};
 
 	int64_t m_sessionId = 0;
 
