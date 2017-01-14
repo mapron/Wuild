@@ -219,7 +219,12 @@ void ConfiguredApplication::ReadCoordinatorClientConfig(CoordinatorClientConfig 
 
 void ConfiguredApplication::ReadLoggingConfig()
 {
-	m_loggerConfig.m_maxLogLevel = m_config->GetInt(m_defaultGroupName, "logLevel", m_loggerConfig.m_maxLogLevel);
+	m_loggerConfig.m_maxLogLevel		= m_config->GetInt (m_defaultGroupName, "logLevel"			, m_loggerConfig.m_maxLogLevel);
+	m_loggerConfig.m_maxMessagesInFile	= m_config->GetInt (m_defaultGroupName, "maxMessagesInFile"	, m_loggerConfig.m_maxMessagesInFile);
+	m_loggerConfig.m_maxFilesInDir		= m_config->GetInt (m_defaultGroupName, "maxFilesInDir"		, m_loggerConfig.m_maxFilesInDir);
+	m_loggerConfig.m_outputTimestamp	= m_config->GetBool(m_defaultGroupName, "outputTimestamp"	, m_loggerConfig.m_outputTimestamp);
+	m_loggerConfig.m_outputTimeoffsets	= m_config->GetBool(m_defaultGroupName, "outputTimeoffsets"	, m_loggerConfig.m_outputTimeoffsets);
+	m_loggerConfig.m_outputLoglevel		= m_config->GetBool(m_defaultGroupName, "outputLoglevel"	, m_loggerConfig.m_outputLoglevel);
 
 	if (m_config->GetBool(m_defaultGroupName, "logToFile"))
 	{
