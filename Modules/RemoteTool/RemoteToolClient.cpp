@@ -14,6 +14,7 @@
 #include "RemoteToolClient.h"
 
 #include "RemoteToolFrames.h"
+#include "ToolBalancer.h"
 
 #include <CoordinatorClient.h>
 #include <SocketFrameService.h>
@@ -30,24 +31,15 @@ namespace Wuild
 {
 static const size_t g_recommendedBufferSize = 64 * 1024;
 
-class ToolServerInfoWrap
-{
-public:
-	SocketFrameHandler::Ptr m_handler;
-	ToolServerInfo m_toolServerInfo;
-
-	void UpdateBusy(int64_t mySessionId);
-	bool m_state = false;
-	int m_busyMine {0};
-	int m_busyOthers {0};
-	int m_eachTaskWeight = 32768;
-};
 
 class RemoteToolRequestWrap
 {
 public:
-	RemoteToolRequest::Ptr m_request;
-	SocketFrameHandler::ReplyNotifier m_callback;
+	TimePoint m_start;
+	int64_t m_taskIndex = 0;
+	ToolInvocation m_invocation;
+	RemoteToolRequest::Ptr m_toolRequest;
+	RemoteToolClient::InvokeCallback m_callback;
 	TimePoint m_expirationMoment;
 	int m_attemptsRemain = 1;
 };
@@ -55,18 +47,22 @@ public:
 class RemoteToolClientImpl
 {
 public:
-	std::mutex m_clientsInfoMutex;
-	std::deque<ToolServerInfoWrap> m_clientsInfo;
+	RemoteToolClient *m_parent; // ugly..
+	ToolBalancer m_balancer;
+	std::mutex m_clientsMutex;
+	std::deque<SocketFrameHandler::Ptr> m_clients;
 	std::mutex m_requestsMutex;
 	std::deque<RemoteToolRequestWrap> m_requests;
 	std::unique_ptr<SocketFrameService> m_server;
 	CoordinatorClient m_coordinator;
 	size_t m_clientIndex = 0;
+	std::atomic_int m_pendingTasks {0};
 
 	void QueueTask(const RemoteToolRequestWrap & task)
 	{
 		std::lock_guard<std::mutex> lock(m_requestsMutex);
 		m_requests.push_back(task);
+		m_pendingTasks++;
 	}
 
 	void ProcessTasks()
@@ -79,9 +75,13 @@ public:
 		{
 			if (it->m_expirationMoment < now)
 			{
-				Syslogger(LOG_INFO) << "expired !!= " << SocketFrame::Ptr(it->m_request);
+				Syslogger(LOG_ERR) << "Task expired: " << SocketFrame::Ptr(it->m_toolRequest);
 				if (it->m_callback)
-					it->m_callback(nullptr, SocketFrameHandler::rsTimeout);
+				{
+					RemoteToolClient::TaskExecutionInfo info;
+					info.m_stdOutput = "Timeout expired.";
+					it->m_callback(info);
+				}
 				it = m_requests.erase(it);
 			}
 			else
@@ -93,33 +93,53 @@ public:
 		if (m_requests.empty())
 			return;
 
-		std::lock_guard<std::mutex> lock2(m_clientsInfoMutex);
+		std::lock_guard<std::mutex> lock2(m_clientsMutex);
 
 		RemoteToolRequestWrap & task = *m_requests.begin();
 
-		SocketFrameHandler::Ptr handler;
-		int minimalLoad = std::numeric_limits<int>::max();
-		for (ToolServerInfoWrap & client : m_clientsInfo)
+		size_t clientIndex = m_balancer.FindFreeClient(task.m_invocation.m_id.m_toolId);
+		if (clientIndex == std::numeric_limits<size_t>::max())
+			return;
+
+		SocketFrameHandler::Ptr handler = m_clients[clientIndex];
+		auto frameCallback = [this, task, clientIndex](SocketFrame::Ptr responseFrame, SocketFrameHandler::TReplyState state)
 		{
-			if (client.m_state)
+			m_balancer.FinishTask(clientIndex);
+			const std::string outputFilename =  task.m_invocation.GetOutput();
+			Syslogger(LOG_INFO) << "RECIEVING [" << task.m_taskIndex << "]:" << outputFilename;
+			RemoteToolClient::TaskExecutionInfo info;
+			if (state == SocketFrameHandler::rsTimeout)
 			{
-				const StringVector & toolIds = client.m_toolServerInfo.m_toolIds;
-				const std::string & toolId = task.m_request->m_invocation.m_id.m_toolId;
-				const bool toolExists = (std::find(toolIds.cbegin(), toolIds.cend(), toolId) != toolIds.cend());
-				if (!toolExists) continue;
-				int clientLoad = (client.m_busyMine + client.m_busyOthers) * client.m_eachTaskWeight / client.m_toolServerInfo.m_totalThreads;
-				if (clientLoad < minimalLoad)
+				info.m_stdOutput = "Timeout expired.";
+			}
+			else if (state == SocketFrameHandler::rsError)
+			{
+				info.m_stdOutput = "Internal error.";
+			}
+			else
+			{
+				RemoteToolResponse::Ptr result = std::dynamic_pointer_cast<RemoteToolResponse>(responseFrame);
+				info.m_toolExecutionTime = result->m_executionTime;
+				info.m_networkRequestTime = task.m_start.GetElapsedTime();
+
+				info.m_result = result->m_result;
+				info.m_stdOutput = result->m_stdOut;
+
+				if (info.m_result && !outputFilename.empty())
 				{
-					handler = client.m_handler;
-					minimalLoad = clientLoad;
+					info.m_result = FileInfo(outputFilename).WriteGzipped(result->m_fileData);
+					if (!info.m_result)
+						 Syslogger(LOG_ERR) << "Failed to write response data to " << outputFilename;
 				}
 			}
-		}
-		if (handler)
-		{
-			handler->QueueFrame(task.m_request, task.m_callback);
-			m_requests.pop_front();
-		}
+			m_parent->UpdateSessionInfo(info);
+			task.m_callback(info);
+		};
+		m_balancer.StartTask(clientIndex);
+		m_pendingTasks--;
+		handler->QueueFrame(task.m_toolRequest, frameCallback);
+		m_requests.pop_front();
+
 
 	}
 };
@@ -128,25 +148,10 @@ public:
 RemoteToolClient::RemoteToolClient(IInvocationRewriter::Ptr invocationRewriter)
 	: m_impl(new RemoteToolClientImpl()), m_invocationRewriter(invocationRewriter)
 {
+	m_impl->m_parent = this;
 	m_impl->m_coordinator.SetToolServerChangeCallback([this](const ToolServerInfo& info){
-		{
-			std::lock_guard<std::mutex> lock(m_impl->m_clientsInfoMutex);
-			bool found = false;
-			for (ToolServerInfoWrap & clientsInfo : m_impl->m_clientsInfo)
-			{
-				if (clientsInfo.m_toolServerInfo.EqualIdTo(info))
-				{
-					clientsInfo.m_toolServerInfo = info;
-					clientsInfo.UpdateBusy(m_sessionId);
-					found = true;
-				}
-			}
-			if (!found)
-			{
-				AddClient(info, true);
-			}
-		}
-		this->RecalcAvailable();
+
+		this->AddClient(info, true);
 	});
 }
 
@@ -155,8 +160,8 @@ RemoteToolClient::~RemoteToolClient()
 	FinishSession();
 	m_thread.Stop();
 
-	for (auto & client : m_impl->m_clientsInfo)
-		client.m_handler->Stop(false);
+	for (auto & client : m_impl->m_clients)
+		client->Stop(false);
 }
 
 bool RemoteToolClient::SetConfig(const RemoteToolClient::Config &config)
@@ -173,7 +178,7 @@ bool RemoteToolClient::SetConfig(const RemoteToolClient::Config &config)
 
 int RemoteToolClient::GetFreeRemoteThreads() const
 {
-	return m_availableRemoteThreads - m_queuedTasks;
+	return m_impl->m_balancer.GetFreeThreads() - m_impl->m_pendingTasks; // may be negative.
 }
 
 void RemoteToolClient::Start(const StringVector & requiredToolIds)
@@ -183,9 +188,11 @@ void RemoteToolClient::Start(const StringVector & requiredToolIds)
 	m_sessionInfo = ToolServerSessionInfo();
 	m_sessionInfo.m_sessionId = m_sessionId = m_start.GetUS();
 	m_sessionInfo.m_clientId = m_config.m_clientId;
-	m_requiredToolIds = requiredToolIds;
-	for (auto & c : m_impl->m_clientsInfo)
-		c.m_handler->Start();
+	m_impl->m_balancer.SetRequiredTools(requiredToolIds);
+	m_impl->m_balancer.SetSessionId(m_sessionId);
+
+	for (auto & handler : m_impl->m_clients)
+		handler->Start();
 
 	if (!m_impl->m_coordinator.SetConfig(m_config.m_coordinator))
 		return;
@@ -210,93 +217,44 @@ void RemoteToolClient::SetRemoteAvailableCallback(RemoteToolClient::RemoteAvaila
 
 void RemoteToolClient::AddClient(const ToolServerInfo &info, bool start)
 {
-	if (!m_requiredToolIds.empty())
-	{
-		bool hasAtLeastOneTool = false;
-		for (const auto & toolId : m_requiredToolIds)
-		{
-			if (std::find(info.m_toolIds.begin(), info.m_toolIds.end(), toolId) != info.m_toolIds.end())
-			{
-				hasAtLeastOneTool = true;
-				break;
-			}
-		}
-		if (!hasAtLeastOneTool)
-		{
-			Syslogger() << "Skipping client "<< info.m_connectionHost;
-			return;
-		}
-	}
+	size_t index = 0;
+	ToolBalancer & balancer = m_impl->m_balancer;
+	auto status = balancer.UpdateClient(info, index);
+	if (status == ToolBalancer::ClientStatus::Skipped)
+		return;
+
+	AvailableCheck();
+
+	if (status == ToolBalancer::ClientStatus::Updated)
+		return;
+
 	Syslogger() << "RemoteToolClient::AddClient " << info.m_connectionHost  << ":" <<  info.m_connectionPort;
-	ToolServerInfoWrap wrapNew;
-	wrapNew.m_toolServerInfo = info;
-	wrapNew.UpdateBusy(m_sessionId);
-	m_impl->m_clientsInfo.push_back(std::move(wrapNew));
-	ToolServerInfoWrap & wrap = *(m_impl->m_clientsInfo.rbegin());
+
 	SocketFrameHandlerSettings settings;
 	settings.m_channelProtocolVersion       = RemoteToolRequest::s_version + RemoteToolResponse::s_version;
 	settings.m_recommendedRecieveBufferSize = g_recommendedBufferSize;
 	settings.m_recommendedSendBufferSize    = g_recommendedBufferSize;
-	wrap.m_handler.reset(new SocketFrameHandler( settings));
-	wrap.m_handler->RegisterFrameReader(SocketFrameReaderTemplate<RemoteToolResponse>::Create());
-	wrap.m_handler->SetTcpChannel(wrap.m_toolServerInfo.m_connectionHost, wrap.m_toolServerInfo.m_connectionPort);
+	SocketFrameHandler::Ptr handler(new SocketFrameHandler( settings ));
+	handler->RegisterFrameReader(SocketFrameReaderTemplate<RemoteToolResponse>::Create());
+	handler->SetTcpChannel(info.m_connectionHost, info.m_connectionPort);
 
-	wrap.m_handler->SetChannelNotifier([this, &wrap](bool state){
-
-		wrap.m_state = state;
-		this->RecalcAvailable();
+	handler->SetChannelNotifier([&balancer, index, this](bool state){
+		balancer.SetClientActive(index, state);
+		AvailableCheck();
 	});
 	if (start)
-	   wrap.m_handler->Start();
+	   handler->Start();
+
+	m_impl->m_clients.push_back(handler);
 }
 
 void RemoteToolClient::InvokeTool(const ToolInvocation & invocation, InvokeCallback callback)
 {
-	TimePoint start(true);
 	const std::string inputFilename  = invocation.GetInput();
-	const std::string outputFilename = invocation.GetOutput();
-	auto taskIndex = m_taskIndex++;
-	auto frameCallback = [this, callback, start, outputFilename, taskIndex](SocketFrame::Ptr responseFrame, SocketFrameHandler::TReplyState state)
-	{
-		m_queuedTasks--;
-		Syslogger(LOG_INFO) << "RECIEVING [" << taskIndex << "]:" << outputFilename << ", m_queuedTasks=" << m_queuedTasks;
-		TaskExecutionInfo info;
-		if (state == SocketFrameHandler::rsTimeout)
-		{
-			info.m_stdOutput = "Timeout expired.";
-		}
-		else if (state == SocketFrameHandler::rsError)
-		{
-			info.m_stdOutput ="Internal error.";
-		}
-		else
-		{
-			RemoteToolResponse::Ptr result = std::dynamic_pointer_cast<RemoteToolResponse>(responseFrame);
-			info.m_toolExecutionTime = result->m_executionTime;
-			info.m_networkRequestTime = start.GetElapsedTime();
-
-			info.m_result = result->m_result;
-			info.m_stdOutput = result->m_stdOut;
-
-			if (info.m_result && !outputFilename.empty())
-			{
-				info.m_result = FileInfo(outputFilename).WriteGzipped(result->m_fileData);
-				if (!info.m_result)
-					 Syslogger(LOG_ERR) << "Failed to write response data to " << outputFilename;
-			}
-		}
-		UpdateSessionInfo(info);
-		callback(info);
-	};
-
-	TaskExecutionInfo errInfo;
-	errInfo.m_result = false;
-
 	ByteArrayHolder inputData;
 	if (!inputFilename.empty() && !FileInfo(inputFilename).ReadGzipped(inputData))
 	{
-		errInfo.m_stdOutput =  "failed to read " + inputFilename;
-		callback(errInfo);
+		callback(RemoteToolClient::TaskExecutionInfo("failed to read " + inputFilename));
 		return;
 	}
 
@@ -304,43 +262,22 @@ void RemoteToolClient::InvokeTool(const ToolInvocation & invocation, InvokeCallb
 	toolRequest->m_invocation = m_invocationRewriter->PrepareRemote(invocation);
 	toolRequest->m_fileData = inputData;
 	toolRequest->m_sessionId = m_sessionId;
+	toolRequest->m_clientId = m_config.m_clientId;
+
 	RemoteToolRequestWrap wrap;
-	wrap.m_request = toolRequest;
-	wrap.m_callback = frameCallback;
-	wrap.m_expirationMoment = TimePoint(true) + m_config.m_queueTimeout;
+	wrap.m_start = TimePoint(true);
+	wrap.m_toolRequest = toolRequest;
+	wrap.m_taskIndex = m_taskIndex++;
+	wrap.m_invocation = invocation;
+	wrap.m_callback = callback;
+	wrap.m_expirationMoment = wrap.m_start + m_config.m_queueTimeout;
 	wrap.m_attemptsRemain = m_config.m_invocationAttempts;
 
-	{
-		std::lock_guard<std::mutex> lock(m_sessionInfoMutex);
-		m_sessionInfo.m_currentUsedThreads ++;
-		Syslogger(LOG_INFO) << "QueueFrame [" << taskIndex << "] -> " << SocketFrame::Ptr(wrap.m_request) << " usedThreads: " << m_sessionInfo.m_currentUsedThreads;
-	}
-	m_queuedTasks++;
+	Syslogger(LOG_INFO) << "QueueFrame [" << wrap.m_taskIndex << "] -> " << invocation.GetArgsString(false);
+
 	m_impl->QueueTask(wrap);
 }
 
-void RemoteToolClient::RecalcAvailable()
-{
-	std::lock_guard<std::mutex> lock(m_impl->m_clientsInfoMutex);
-	int available = 0;
-	for (ToolServerInfoWrap & client : m_impl->m_clientsInfo)
-	{
-		if (client.m_state)
-		{
-			auto busyOthers=  client.m_busyOthers;
-			if (busyOthers)
-				busyOthers--;
-			available += client.m_toolServerInfo.m_totalThreads - client.m_busyMine - busyOthers;
-		}
-	}
-	Syslogger() << "RecalcAvailable:" << available;
-	bool wasUnactive = m_availableRemoteThreads == 0;
-	m_availableRemoteThreads = available;
-	if (wasUnactive && available > 0 && m_remoteAvailableCallback)
-	{
-		m_remoteAvailableCallback(available);
-	}
-}
 
 void RemoteToolClient::UpdateSessionInfo(const RemoteToolClient::TaskExecutionInfo &executionResult)
 {
@@ -348,12 +285,21 @@ void RemoteToolClient::UpdateSessionInfo(const RemoteToolClient::TaskExecutionIn
 	m_sessionInfo.m_tasksCount ++;
 	if (!executionResult.m_result)
 		m_sessionInfo.m_failuresCount++;
-	 m_sessionInfo.m_totalNetworkTime += executionResult.m_networkRequestTime;
-	 m_sessionInfo.m_totalExecutionTime += executionResult.m_toolExecutionTime;
-	 m_sessionInfo.m_maxUsedThreads = std::max(m_sessionInfo.m_maxUsedThreads, m_sessionInfo.m_currentUsedThreads);
-	 m_sessionInfo.m_currentUsedThreads--;
+	m_sessionInfo.m_totalNetworkTime += executionResult.m_networkRequestTime;
+	m_sessionInfo.m_totalExecutionTime += executionResult.m_toolExecutionTime;
+	m_sessionInfo.m_currentUsedThreads = m_impl->m_balancer.GetUsedThreads();
+	m_sessionInfo.m_maxUsedThreads = std::max(m_sessionInfo.m_maxUsedThreads, m_sessionInfo.m_currentUsedThreads);
 
 	m_impl->m_coordinator.SendToolServerSessionInfo(m_sessionInfo, false);
+}
+
+void RemoteToolClient::AvailableCheck()
+{
+	if (!m_remoteIsAvailable && m_impl->m_balancer.GetFreeThreads() > 0 && m_remoteAvailableCallback)
+	{
+		m_remoteIsAvailable = true;
+		m_remoteAvailableCallback();
+	}
 }
 
 std::string RemoteToolClient::TaskExecutionInfo::GetProfilingStr() const
@@ -368,20 +314,5 @@ std::string RemoteToolClient::TaskExecutionInfo::GetProfilingStr() const
 	return os.str();
 }
 
-void ToolServerInfoWrap::UpdateBusy(int64_t mySessionId)
-{
-	m_busyMine = 0;
-	m_busyOthers = 0;
-	for (const ToolServerInfo::ConnectedClientInfo & client : this->m_toolServerInfo.m_connectedClients)
-	{
-		if (!client.m_sessionId)
-			continue;
-
-		if (client.m_sessionId == mySessionId)
-			m_busyMine += client.m_usedThreads;
-		else
-			m_busyOthers += client.m_usedThreads;
-	}
-}
 
 }

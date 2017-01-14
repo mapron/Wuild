@@ -65,7 +65,7 @@ int main(int argc, char** argv)
 	rcClient.SetConfig(clientConfig);
 	rcClient.Start();
 
-	rcClient.SetRemoteAvailableCallback([taskPP, &rcClient, taskCC, &localExecutor](int){
+	rcClient.SetRemoteAvailableCallback([taskPP, &rcClient, taskCC, &localExecutor](){
 
 		taskPP->m_callback = [&rcClient, taskCC] ( LocalExecutorResult::Ptr localResult ) {
 

@@ -27,7 +27,6 @@
 namespace Wuild
 {
 class RemoteToolClientImpl;
-class ToolServerInfoWrap;
 
 /**
  * @brief Transforms local tool execution command to remote.
@@ -37,6 +36,7 @@ class ToolServerInfoWrap;
  */
 class RemoteToolClient
 {
+	friend class RemoteToolClientImpl;
 public:
 	/// Remote tool execution result.
 	struct TaskExecutionInfo
@@ -47,9 +47,11 @@ public:
 
 		std::string m_stdOutput;
 		bool m_result = false;
+
+		TaskExecutionInfo(const std::string & stdOutput = std::string()) : m_stdOutput(stdOutput) {}
 	};
 	using Config = RemoteToolClientConfig;
-	using RemoteAvailableCallback = std::function<void(int)>;
+	using RemoteAvailableCallback = std::function<void()>;
 	using InvokeCallback = std::function<void(const TaskExecutionInfo& )>;
 
 public:
@@ -74,15 +76,12 @@ public:
 	std::string GetSessionInformation() const { return m_sessionInfo.ToString(false, true); }
 
 protected:
-	void AddClientInternal(ToolServerInfoWrap &info, bool start = false);
-	void RecalcAvailable();
 	void UpdateSessionInfo(const TaskExecutionInfo& executionResult);
+	void AvailableCheck();
 
 	ThreadLoop m_thread;
 
 	std::unique_ptr<RemoteToolClientImpl> m_impl;
-	std::atomic_int m_availableRemoteThreads {0};
-	std::atomic_int m_queuedTasks {0};
 
 	bool m_started = false;
 	TimePoint m_start;
@@ -91,9 +90,10 @@ protected:
 	ToolServerSessionInfo m_sessionInfo;
 	std::mutex m_sessionInfoMutex;
 
+	bool m_remoteIsAvailable = false;
 	RemoteAvailableCallback m_remoteAvailableCallback;
 	Config m_config;
-	StringVector m_requiredToolIds;
+	//StringVector m_requiredToolIds;
 	IInvocationRewriter::Ptr m_invocationRewriter;
 };
 

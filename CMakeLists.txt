@@ -185,7 +185,7 @@ if (APPLE)
 	list(APPEND sys_deps -stdlib=libc++ /usr/local/clang+llvm-3.9.0-x86_64-apple-darwin/lib/libc++.dylib)
 endif()
 
-foreach (testname AllConfigs Compiler Coordinator Inflate Networking ToolServer )
+foreach (testname AllConfigs Balancer Compiler Coordinator Inflate Networking ToolServer )
 	AddTarget(APP NAME Test${testname} ROOT ${CMAKE_CURRENT_SOURCE_DIR}/TestsManual/
 		CSRC Test${testname}.cpp *.h TestUtils.cpp
 		DEPS ${main_deps} ${sys_deps}

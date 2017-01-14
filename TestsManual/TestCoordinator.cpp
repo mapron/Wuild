@@ -117,7 +117,7 @@ int main(int argc, char** argv)
 	};
 
 	TimePoint start(true);
-	rcClient.SetRemoteAvailableCallback([&start, &totalCount, &rcClient, &callback, &callbackFail](int ) {
+	rcClient.SetRemoteAvailableCallback([&start, &totalCount, &rcClient, &callback, &callbackFail]() {
 		 Syslogger(LOG_INFO) <<  "Init client taken: " << start.GetElapsedTime().GetUS() << " us.";
 		 totalCount++; rcClient.InvokeTool(ToolInvocation().SetId(g_testTool) , callback);
 		 totalCount++; rcClient.InvokeTool(ToolInvocation().SetId(g_testTool2), callbackFail);
