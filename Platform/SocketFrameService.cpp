@@ -67,9 +67,7 @@ int SocketFrameService::QueueFrameToAll(SocketFrameHandler *sender, SocketFrame:
 void SocketFrameService::AddTcpListener(int port, std::string ip)
 {
 	TcpConnectionParams params;
-	if (!params.SetPoint(port, ip))
-		return;
-
+	params.SetPoint(port, ip);
 	params.m_connectTimeout = TimePoint(0.001);
 	params.m_recommendedRecieveBufferSize = m_settings.m_recommendedRecieveBufferSize;
 	params.m_recommendedSendBufferSize    = m_settings.m_recommendedSendBufferSize;

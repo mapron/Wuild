@@ -68,7 +68,6 @@ bool TcpListener::HasPendingConnections()
 
 	if (!StartListen())
 	{
-		m_listenerFailed = true;
 		Syslogger(m_logContext, LOG_ERR) << "Failed to listen on " << m_params.GetShortInfo() ;
 		return false;
 	}
@@ -82,10 +81,13 @@ bool TcpListener::StartListen()
 		return true;
 
 	Syslogger(m_logContext, LOG_INFO) << "Start listen on: " <<  m_params.GetShortInfo();
+	if (!m_params.Resolve())
+		return false;
 
 	m_impl->m_socket = socket( m_params.m_impl->ai->ai_family, m_params.m_impl->ai->ai_socktype, m_params.m_impl->ai->ai_protocol );
 	if (m_impl->m_socket == INVALID_SOCKET)
 	{
+		m_listenerFailed = true;
 		return false;
 	}
 
@@ -103,6 +105,7 @@ bool TcpListener::StartListen()
 	{
 		close( m_impl->m_socket );
 		m_impl->m_socket = INVALID_SOCKET;
+		m_listenerFailed = true;
 		return false;
 	}
 
@@ -110,6 +113,7 @@ bool TcpListener::StartListen()
 	{
 		close( m_impl->m_socket );
 		m_impl->m_socket = INVALID_SOCKET;
+		m_listenerFailed = true;
 		return false;
 	}
 

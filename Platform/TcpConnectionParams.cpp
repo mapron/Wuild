@@ -31,8 +31,20 @@ TcpConnectionParams::~TcpConnectionParams()
 
 }
 
-bool TcpConnectionParams::SetPoint(int port, std::string host)
+void TcpConnectionParams::SetPoint(int port, std::string host)
 {
+	m_errorShown = false;
+	m_resolved = false;
+	m_host = host;
+	m_port = port;
+}
+
+bool TcpConnectionParams::Resolve()
+{
+	if (m_resolved)
+		return true;
+
+	auto host = m_host;
 	bool any = false;
 	if (host == "*")
 	{
@@ -42,10 +54,7 @@ bool TcpConnectionParams::SetPoint(int port, std::string host)
 		any = true;
 	}
 
-	m_host = host;
-	m_port = port;
-
-	const std::string portStr = std::to_string(port);
+	const std::string portStr = std::to_string(m_port);
 
 	struct addrinfo hint = {};
 	hint.ai_family = AF_INET;
@@ -57,7 +66,11 @@ bool TcpConnectionParams::SetPoint(int port, std::string host)
 	int ret = getaddrinfo(host.c_str(), portStr.c_str(), &hint, &(m_impl->ai));
 	if (ret)
 	{
-		Syslogger(LOG_ERR) << "Failed to detect socket information for :" << GetShortInfo();
+		if (!m_errorShown)
+		{
+			m_errorShown = true;
+			Syslogger(LOG_ERR) << "Failed to detect socket information for :" << GetShortInfo() << ", ret=" << ret;
+		}
 		return false;
 	}
 	m_impl->ai->ai_protocol = PF_UNSPEC; // workaround for getaddrinfo wrong detection.
@@ -71,7 +84,7 @@ bool TcpConnectionParams::SetPoint(int port, std::string host)
 		sin->sin_addr.s_addr = htonl(INADDR_ANY);
 #endif
 	}
-
+	m_resolved = true;
 	return true;
 }
 

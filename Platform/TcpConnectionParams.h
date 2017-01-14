@@ -25,8 +25,11 @@ struct TcpConnectionParams
 	TcpConnectionParams();
 	~TcpConnectionParams();
 
-	/// Returns true if host resolved correctly.
-	bool SetPoint(int port, std::string host = std::string());
+	/// Set host and port information. No resolution performed until Resolve() call.
+	void SetPoint(int port, std::string host = std::string());
+
+	/// Creates internal data for host and port. If resolution already made, true returned.
+	bool Resolve();
 
 	/// Outputs host:port as string.
 	std::string GetShortInfo() const;
@@ -43,6 +46,8 @@ struct TcpConnectionParams
 	std::shared_ptr<TcpConnectionParamsPrivate> m_impl; //!< making possible to copy params.
 
 private:
+	bool m_resolved = false;
+	bool m_errorShown = false;
 	int m_port = 0;
 	std::string m_host;
 };

@@ -107,16 +107,23 @@ bool TcpSocket::Connect ()
 	}
 	Syslogger(m_logContext) << "Trying to connect..." ;
 
+	if (m_impl->m_socket != INVALID_SOCKET)
+	{
+		Syslogger(m_logContext, LOG_ALERT) << "Trying to reopen existing socket!" ;
+		return false;
+	}
+
+	if (!m_params.Resolve())
+		return false;
+
+	m_impl->m_socket = socket(m_params.m_impl->ai->ai_family, m_params.m_impl->ai->ai_socktype, m_params.m_impl->ai->ai_protocol);
 	if (m_impl->m_socket == INVALID_SOCKET)
 	{
-		m_impl->m_socket = socket(m_params.m_impl->ai->ai_family, m_params.m_impl->ai->ai_socktype, m_params.m_impl->ai->ai_protocol);
-		if (m_impl->m_socket == INVALID_SOCKET)
-		{
-			Syslogger(m_logContext, LOG_ERR) << "socket creation failed." ;
-			Fail();
-			return false;
-		}
+		Syslogger(m_logContext, LOG_ERR) << "socket creation failed." ;
+		Fail();
+		return false;
 	}
+
 	SetBufferSize();
 	if (!m_impl->SetBlocking(false))
 	{
