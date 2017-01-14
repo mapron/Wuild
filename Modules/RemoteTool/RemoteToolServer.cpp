@@ -173,6 +173,10 @@ void RemoteToolServer::FinishTask(int64_t sessionId, bool remove)
 void RemoteToolServer::UpdateInfo()
 {
 	ToolServerInfo & info = m_impl->m_info;
+	if (info.m_connectedClients.empty())
+	{
+		m_runningTasks = m_queuedTasks = 0;
+	}
 	info.m_runningTasks = m_runningTasks;
 	info.m_queuedTasks = m_queuedTasks;
 	m_impl->m_coordinator.SetToolServerInfo(info);
