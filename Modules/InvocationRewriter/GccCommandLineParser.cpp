@@ -97,7 +97,7 @@ void GccCommandLineParser::RemoveDependencyFiles()
 			skipNext = false;
 			continue;
 		}
-		if (arg == "-MMD")
+		if (arg == "-MMD" || arg == "-MD")
 			continue;
 		if (arg == "-MF" || arg == "-MT")
 		{
