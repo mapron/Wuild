@@ -107,6 +107,7 @@ void Error(const char* msg, ...) {
 bool CanonicalizePath(string* path, unsigned int* slash_bits, string* err) {
   METRIC_RECORD("canonicalize str");
   size_t len = path->size();
+  *slash_bits = 0;
   if (!len)
   {
 	  *err = "empty path";
@@ -115,7 +116,7 @@ bool CanonicalizePath(string* path, unsigned int* slash_bits, string* err) {
   fs::path fspath(*path) ;
   if (!fs::exists(fspath))
 	  return true;
-  *slash_bits = 0;
+
 #ifdef _WIN32
   if (path->find('\\') != std::string::npos)
 	 *slash_bits = 1;
