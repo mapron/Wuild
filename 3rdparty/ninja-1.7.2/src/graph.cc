@@ -282,6 +282,12 @@ string EdgeEnv::MakePathList(vector<Node*>::iterator begin,
 	if (path.find(cwd) == 0)
 		path = path.substr(cwd.size());
 
+	// FIXME: dirty hack for win RC!!
+	if (path.substr(path.size()-3)  == ".rc" && path[1] != ':')
+	{
+		path = cwd + path;
+	}
+
 	if (escape_in_out_ == kShellEscape) {
 #if _WIN32
 	  GetWin32EscapedString(path, &result);
