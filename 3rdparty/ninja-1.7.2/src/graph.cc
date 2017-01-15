@@ -274,7 +274,7 @@ string EdgeEnv::MakePathList(vector<Node*>::iterator begin,
 							 vector<Node*>::iterator end,
 							 char sep) {
   string result;
-  const string cwd = GetCWD();
+  const string & cwd = GetCWD();
   for (vector<Node*>::iterator i = begin; i != end; ++i) {
 	if (!result.empty())
 	  result.push_back(sep);
@@ -354,8 +354,11 @@ bool Edge::use_console() const {
 }
 
 // static
-string Node::PathDecanonicalized(const string& path, unsigned int ) {
-  return path;
+string Node::PathDecanonicalized(const string& path, unsigned int slash_bits) {
+	string pathCopy = path;
+	if (slash_bits)
+		std::replace(pathCopy.begin(), pathCopy.end(), '/', '\\');
+	return pathCopy;
 }
 
 void Node::RemoveOutEdge(Edge *edge) { auto it =  std::find(out_edges_.begin(), out_edges_.end(), edge);  if (it != out_edges_.end())  out_edges_.erase(it); }

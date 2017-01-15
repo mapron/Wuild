@@ -115,7 +115,12 @@ bool CanonicalizePath(string* path, unsigned int* slash_bits, string* err) {
   fs::path fspath(*path) ;
   if (!fs::exists(fspath))
 	  return true;
-  slash_bits = 0;
+  *slash_bits = 0;
+#ifdef _WIN32
+  if (path->find('\\') != std::string::npos)
+	 *slash_bits = 1;
+#endif
+
   std::error_code errc;
   *path = fs::canonical(fspath CODE_ARG(errc)).u8string();
   std::replace( path->begin(), path->end(), '\\', '/');
