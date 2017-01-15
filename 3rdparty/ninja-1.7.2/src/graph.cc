@@ -27,21 +27,6 @@
 #include "state.h"
 #include "util.h"
 
-// GetCWD... TODO:
-#ifdef _WIN32
-#include "getopt.h"
-#include <direct.h>
-#include <windows.h>
-#elif defined(_AIX)
-#include "getopt.h"
-#include <unistd.h>
-#else
-#include <getopt.h>
-#include <unistd.h>
-#include <errno.h>
-#endif
-
-
 bool Node::Stat(DiskInterface* disk_interface, string* err) {
   METRIC_RECORD("node stat");
   return (mtime_ = disk_interface->Stat(path_, err)) != -1;
@@ -283,33 +268,7 @@ string EdgeEnv::LookupVariable(const string& var) {
   return edge_->env_->LookupWithFallback(var, eval, this);
 }
 
-static std::string GetCWD()
-{
-	static std::string workingDir;
 
-	if (workingDir.empty())
-	{
-		vector<char> cwd;
-
-		do {
-		  cwd.resize(cwd.size() + 1024);
-		  errno = 0;
-		} while (!getcwd(&cwd[0], cwd.size()) && errno == ERANGE);
-		if (errno != 0 && errno != ERANGE) {
-		  printf("cannot determine working directory: %s\n", strerror(errno));
-		  workingDir = ".";
-		}
-		else{
-			workingDir = cwd.data();
-			if (workingDir.empty())
-				workingDir = ".";
-		}
-		std::replace(workingDir.begin(), workingDir.end(), '\\', '/');
-		if (*workingDir.rbegin() != '/')
-			workingDir += '/';
-	}
-	return workingDir;
-}
 
 string EdgeEnv::MakePathList(vector<Node*>::iterator begin,
 							 vector<Node*>::iterator end,

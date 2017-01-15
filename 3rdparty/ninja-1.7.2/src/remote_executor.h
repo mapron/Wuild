@@ -14,6 +14,9 @@
 #pragma once
 #include <vector>
 #include <string>
+#include <set>
+
+struct Edge;
 
 class IRemoteExecutor
 {
@@ -36,17 +39,20 @@ public:
 	virtual void SleepSome() const = 0;
 
 	virtual bool CanRunMore() = 0;
-	virtual bool StartCommand(void* userData, const std::string & command) = 0;
+	virtual bool StartCommand(Edge* userData, const std::string & command) = 0;
 
 	/// The result of waiting for a command.
 	struct Result {
 	  Result() = default;
-	  Result(void* u, bool s, const std::string & o) : userData(u), status(s), output(o) {}
-	  void* userData = nullptr;
+	  Result(Edge* u, bool s, const std::string & o) : userData(u), status(s), output(o) {}
+	  Edge* userData = nullptr;
 	  bool status = false;
 	  std::string output;
 	  bool success() const { return status; }
 	};
 	/// Wait for a command to complete, or return false if interrupted.
 	virtual bool WaitForCommand(Result* result) = 0;
+
+	virtual void Abort() = 0;
+	virtual std::set<Edge*> GetActiveEdges() = 0;
 };

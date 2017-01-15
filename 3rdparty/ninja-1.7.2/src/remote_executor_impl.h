@@ -33,6 +33,7 @@ class RemoteExecutor: public IRemoteExecutor
 {
 	Wuild::ConfiguredApplication & m_app;
 	Wuild::IInvocationRewriter::Ptr m_invocationRewriter;
+	Wuild::RemoteToolClient::Config m_remoteToolConfig;
 	std::shared_ptr<Wuild::RemoteToolClient> m_remoteService;
 
 #ifdef TEST_CLIENT
@@ -44,6 +45,7 @@ class RemoteExecutor: public IRemoteExecutor
 	bool m_hasStart = false;
 	int m_minimalRemoteTasks = 0;
 
+	std::set<Edge *> m_activeEdges;
 	std::deque<Result> m_results;
 	mutable std::mutex m_resultsMutex;
 
@@ -71,11 +73,14 @@ public:
 
 	bool CanRunMore() override;
 
-	bool StartCommand(void* userData, const std::string & command)  override;
+	bool StartCommand(Edge* userData, const std::string & command)  override;
 
 
 	/// return true if has finished result.
-	bool WaitForCommand(Result* result)  override;
+	bool WaitForCommand(Result* result) override;
+
+	void Abort() override;
+	std::set<Edge*> GetActiveEdges() override;
 
 	~RemoteExecutor();
 

@@ -118,6 +118,12 @@ bool CanonicalizePath(string* path, unsigned int* slash_bits, string* err) {
   std::error_code errc;
   *path = fs::canonical(fspath CODE_ARG(errc)).u8string();
   std::replace( path->begin(), path->end(), '\\', '/');
+
+  const string & cwd = GetCWD();
+
+  if (path->find(cwd) == 0)
+	*path = path->substr(cwd.size());
+
   return true;
 }
 bool CanonicalizePath(char *path, size_t *len, unsigned int *slash_bits, string *err)
@@ -523,3 +529,30 @@ bool Truncate(const string& path, size_t size, string* err) {
   return true;
 }
 
+const string & GetCWD()
+{
+	static std::string workingDir;
+
+	if (workingDir.empty())
+	{
+		vector<char> cwd;
+
+		do {
+		  cwd.resize(cwd.size() + 1024);
+		  errno = 0;
+		} while (!getcwd(&cwd[0], cwd.size()) && errno == ERANGE);
+		if (errno != 0 && errno != ERANGE) {
+		  printf("cannot determine working directory: %s\n", strerror(errno));
+		  workingDir = ".";
+		}
+		else{
+			workingDir = cwd.data();
+			if (workingDir.empty())
+				workingDir = ".";
+		}
+		std::replace(workingDir.begin(), workingDir.end(), '\\', '/');
+		if (*workingDir.rbegin() != '/')
+			workingDir += '/';
+	}
+	return workingDir;
+}

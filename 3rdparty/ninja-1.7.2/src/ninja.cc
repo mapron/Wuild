@@ -655,17 +655,7 @@ void EncodeJSONString(const char *str) {
 
 int NinjaMain::ToolCompilationDatabase(const Options* options, int argc, char* argv[]) {
   bool first = true;
-  vector<char> cwd;
-
-  do {
-	cwd.resize(cwd.size() + 1024);
-	errno = 0;
-  } while (!getcwd(&cwd[0], cwd.size()) && errno == ERANGE);
-  if (errno != 0 && errno != ERANGE) {
-	Error("cannot determine working directory: %s", strerror(errno));
-	return 1;
-  }
-
+  const string & cwd = GetCWD();
   putchar('[');
   for (vector<Edge*>::iterator e = state_.edges_.begin();
 	   e != state_.edges_.end(); ++e) {
@@ -677,7 +667,7 @@ int NinjaMain::ToolCompilationDatabase(const Options* options, int argc, char* a
 		  putchar(',');
 
 		printf("\n  {\n    \"directory\": \"");
-		EncodeJSONString(&cwd[0]);
+		EncodeJSONString(cwd.c_str());
 		printf("\",\n    \"command\": \"");
 		EncodeJSONString((*e)->EvaluateCommand().c_str());
 		printf("\",\n    \"file\": \"");
@@ -795,7 +785,6 @@ const Tool* ChooseTool(const string& tool_name) {
 bool DebugEnable(const string& name) {
   if (name == "list") {
 	printf("debugging modes:\n"
-"  wuild        wuild extra debug\n"
 "  stats        print operation counts/timing info\n"
 "  explain      explain what caused a command to execute\n"
 "  keepdepfile  don't delete depfiles after they're read by ninja\n"

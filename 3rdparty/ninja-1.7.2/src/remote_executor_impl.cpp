@@ -24,17 +24,17 @@ RemoteExecutor::RemoteExecutor(ConfiguredApplication &app) : m_app(app)
 		return;
 
 	RemoteToolClient::Config remoteToolConfig;
-	if (!m_app.GetRemoteToolClientConfig(remoteToolConfig, silent))
+	if (!m_app.GetRemoteToolClientConfig(m_remoteToolConfig, silent))
 		return;
 
-	m_minimalRemoteTasks = remoteToolConfig.m_minimalRemoteTasks;
+	m_minimalRemoteTasks = m_remoteToolConfig.m_minimalRemoteTasks;
 
 	m_invocationRewriter = InvocationRewriter::Create(compilerConfig);
-	m_remoteService.reset(new RemoteToolClient(m_invocationRewriter));
-	if (!m_remoteService->SetConfig(remoteToolConfig))
-		return;
 
 #ifdef  TEST_CLIENT
+	m_remoteService.reset(new RemoteToolClient(m_invocationRewriter));
+	if (!m_remoteService->SetConfig(m_remoteToolConfig))
+		return;
 	m_localExecutor = LocalExecutor::Create(m_invocationRewriter, m_app.m_tempDir);
 	m_app.m_remoteToolServerConfig.m_threadCount = 2;
 	m_app.m_remoteToolServerConfig.m_listenHost = "localhost";
@@ -131,6 +131,12 @@ void RemoteExecutor::RunIfNeeded(const std::vector<std::string> &toolIds)
 		return;
 
 	m_hasStart = true;
+	if (!m_remoteService)
+	{
+		m_remoteService.reset(new RemoteToolClient(m_invocationRewriter));
+		if (!m_remoteService->SetConfig(m_remoteToolConfig))
+			return;
+	}
 	m_remoteService->Start(toolIds);
 #ifdef  TEST_CLIENT
 	m_toolServer->Start();
@@ -152,15 +158,15 @@ int RemoteExecutor::GetMinimalRemoteTasks() const
 
 bool RemoteExecutor::CanRunMore()
 {
-	if (!m_remoteEnabled)
+	if (!m_remoteEnabled || !m_hasStart)
 		return false;
 
 	return m_remoteService->GetFreeRemoteThreads() > 0;
 }
 
-bool RemoteExecutor::StartCommand(void *userData, const std::string &command)
+bool RemoteExecutor::StartCommand(Edge *userData, const std::string &command)
 {
-	if (!m_remoteEnabled)
+	if (!m_remoteEnabled || !m_hasStart)
 		return false;
 
 	const auto space = command.find(' ');
@@ -176,7 +182,14 @@ bool RemoteExecutor::StartCommand(void *userData, const std::string &command)
 		Syslogger() << outputFilename<< " -> " << result << ", " <<  info.GetProfilingStr() ;
 		std::lock_guard<std::mutex> lock(m_resultsMutex);
 		m_results.emplace_back(userData, result, info.m_stdOutput);
+		if (m_hasStart)
+		{
+			auto it = m_activeEdges.find(userData);
+			if (it != m_activeEdges.end())
+				m_activeEdges.erase(it);
+		}
 	};
+	m_activeEdges.insert(userData);
 	m_remoteService->InvokeTool(invocation, callback);
 
 	return true;
@@ -197,12 +210,22 @@ bool RemoteExecutor::WaitForCommand(IRemoteExecutor::Result *result)
 	return false;
 }
 
+void RemoteExecutor::Abort()
+{
+	if (m_hasStart && m_remoteService)
+	{
+		m_remoteService->FinishSession();
+		Syslogger(LOG_NOTICE) <<  m_remoteService->GetSessionInformation();
+	}
+	m_hasStart = false;
+	m_remoteService.reset();
+}
+
+std::set<Edge *> RemoteExecutor::GetActiveEdges()
+{
+	return m_activeEdges;
+}
+
 RemoteExecutor::~RemoteExecutor()
 {
-	if (!m_remoteEnabled)
-		return;
-
-	m_remoteService->FinishSession();
-	Syslogger(LOG_NOTICE) <<  m_remoteService->GetSessionInformation();
-
 }

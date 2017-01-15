@@ -372,23 +372,29 @@ bool Plan::CheckDependencyCycle(Node* node, const vector<Node*>& stack,
   return true;
 }
 
-Edge* Plan::FindWork() {
-  if (ready_.empty())
-	return NULL;
-  set<Edge*>::iterator e = ready_.begin();
-  Edge* edge = *e;
-  ready_.erase(e);
-  return edge;
-}
+Edge* Plan::FindWork(bool onlyRemote) {
+	if (onlyRemote)
+	{
+		if (ready_remote_.empty())
+			return nullptr;
+		auto e = ready_remote_.begin();
+		Edge* edge = *e;
+		ready_remote_.erase(e);
+		auto re = ready_.find(edge);
+		if (re != ready_.end())
+			ready_.erase(re);
+		return edge;
+	}
 
-bool Plan::top_edge_remote() const
-{
 	if (ready_.empty())
-	  return false;
-
-	set<Edge*>::const_iterator e = ready_.begin();
-
-	return (*e)->is_remote_;
+		return nullptr;
+	auto e = ready_.begin();
+	Edge* edge = *e;
+	ready_.erase(e);
+	auto re = ready_remote_.find(edge);
+	if (re != ready_remote_.end())
+		ready_remote_.erase(re);
+	return edge;
 }
 
 void Plan::ScheduleWork(Edge* edge) {
@@ -404,10 +410,17 @@ void Plan::ScheduleWork(Edge* edge) {
   Pool* pool = edge->pool();
   if (pool->ShouldDelayEdge()) {
 	pool->DelayEdge(edge);
-	pool->RetrieveReadyEdges(&ready_);
+	set<Edge*> ready;
+	pool->RetrieveReadyEdges(&ready);
+	ready_.insert(ready.begin(), ready.end());
+	for (Edge * redge : ready)
+		if (redge->is_remote_)
+			ready_remote_.insert(redge);
   } else {
 	pool->EdgeScheduled(*edge);
 	ready_.insert(e, edge);
+	if (edge->is_remote_)
+		ready_remote_.insert(edge);
   }
 }
 
@@ -598,33 +611,37 @@ Builder::~Builder() {
 }
 
 void Builder::Cleanup() {
+  vector<Edge*> active_edges;
   if (command_runner_.get()) {
-	vector<Edge*> active_edges = command_runner_->GetActiveEdges();
+	active_edges = command_runner_->GetActiveEdges();
 	command_runner_->Abort();
+  }
+  remote_runner_->Abort();
+  auto active_remote = remote_runner_->GetActiveEdges();
+  active_edges.insert(active_edges.end(), active_remote.begin(), active_remote.end());
 
-	for (vector<Edge*>::iterator e = active_edges.begin();
-		 e != active_edges.end(); ++e) {
-	  string depfile = (*e)->GetUnescapedDepfile();
-	  for (vector<Node*>::iterator o = (*e)->outputs_.begin();
-		   o != (*e)->outputs_.end(); ++o) {
-		// Only delete this output if it was actually modified.  This is
-		// important for things like the generator where we don't want to
-		// delete the manifest file if we can avoid it.  But if the rule
-		// uses a depfile, always delete.  (Consider the case where we
-		// need to rebuild an output because of a modified header file
-		// mentioned in a depfile, and the command touches its depfile
-		// but is interrupted before it touches its output file.)
-		string err;
-		TimeStamp new_mtime = disk_interface_->Stat((*o)->path(), &err);
-		if (new_mtime == -1)  // Log and ignore Stat() errors.
-		  Error("%s", err.c_str());
-		if (!depfile.empty() || (*o)->mtime() != new_mtime)
-		  disk_interface_->RemoveFile((*o)->path());
+  for (Edge* e : active_edges) {
+	  string depfile = e->GetUnescapedDepfile();
+	  for (vector<Node*>::iterator o = e->outputs_.begin();
+		   o != e->outputs_.end(); ++o) {
+		  // Only delete this output if it was actually modified.  This is
+		  // important for things like the generator where we don't want to
+		  // delete the manifest file if we can avoid it.  But if the rule
+		  // uses a depfile, always delete.  (Consider the case where we
+		  // need to rebuild an output because of a modified header file
+		  // mentioned in a depfile, and the command touches its depfile
+		  // but is interrupted before it touches its output file.)
+		  string err;
+		  TimeStamp new_mtime = disk_interface_->Stat((*o)->path(), &err);
+		  if (new_mtime == -1)  // Log and ignore Stat() errors.
+			  Error("%s", err.c_str());
+		  if (!depfile.empty() || (*o)->mtime() != new_mtime)
+			  disk_interface_->RemoveFile((*o)->path());
 	  }
 	  if (!depfile.empty())
-		disk_interface_->RemoveFile(depfile);
-	}
+		  disk_interface_->RemoveFile(depfile);
   }
+
 }
 
 Node* Builder::AddTarget(const string& name, string* err) {
@@ -695,14 +712,9 @@ bool Builder::Build(string* err) {
   // Second, we attempt to wait for / reap the next finished command.
   IRemoteExecutor::Result remoteResult;
   while (plan_.more_to_do()) {
-	bool canRunRemote = plan_.top_edge_remote();
-	/*status_->GetLinePrinter().Print("canRunRemote=" + std::to_string( canRunRemote)
-									+ ", CanRunMore=" + std::to_string(remote_runner_->CanRunMore())
-									+ ", ready_to_run=" + std::to_string(plan_.get_ready_count())
-									, LinePrinter::FULL);*/
 
-	if (failures_allowed && canRunRemote && remote_runner_->CanRunMore() ) {
-		if (Edge* edge = plan_.FindWork()) {
+	if (failures_allowed && remote_runner_->CanRunMore()  ) {
+		if (Edge* edge = plan_.FindWork(true)) {
 
 			if (!StartEdge(edge, err, true)) {
 			  Cleanup();
@@ -715,7 +727,10 @@ bool Builder::Build(string* err) {
 			else
 				pending_remote++;
 
-			status_->GetLinePrinter().Print("Start, pending_remote=" + std::to_string( pending_remote) + ", ready_to_run=" + std::to_string(plan_.get_ready_count()), LinePrinter::FULL);
+//			status_->GetLinePrinter().Print("Start, pending_remote=" + std::to_string( pending_remote) +
+//											", ready_to_run=" + std::to_string(plan_.get_ready_count()) +
+//											", ready_remote=" + std::to_string(plan_.get_ready_remote_count())
+//											, LinePrinter::FULL);
 			// We made some progress; go back to the main loop.
 			continue;
 		}
@@ -724,10 +739,10 @@ bool Builder::Build(string* err) {
 	if (remote_runner_->WaitForCommand(&remoteResult))
 	{
 		pending_remote--;
-		status_->GetLinePrinter().Print("Finish, pending_remote=" + std::to_string( pending_remote) + ", ready_to_run=" + std::to_string(plan_.get_ready_count()), LinePrinter::FULL);
+		//status_->GetLinePrinter().Print("Finish, pending_remote=" + std::to_string( pending_remote) + ", ready_to_run=" + std::to_string(plan_.get_ready_count()), LinePrinter::FULL);
 		CommandRunner::Result result;
 		result.output = std::move(remoteResult.output);
-		result.edge = static_cast<Edge*>(remoteResult.userData);
+		result.edge = remoteResult.userData;
 		result.status = remoteResult.status ? ExitSuccess : ExitFailure;
 		if (!FinishCommand(&result, err, true)) {
 		  Cleanup();
@@ -794,7 +809,7 @@ bool Builder::Build(string* err) {
 	  continue;
 	}
 
-	if (pending_remote)
+	if (failures_allowed && pending_remote)
 	{
 		remote_runner_->SleepSome();
 		continue;

@@ -48,11 +48,10 @@ struct Plan {
 
   // Pop a ready edge off the queue of edges to build.
   // Returns NULL if there's no work to do.
-  Edge* FindWork();
+  Edge* FindWork(bool onlyRemote = false);
 
   /// Returns true if there's more work to be done.
   bool more_to_do() const { return wanted_edges_ > 0 && command_edges_ > 0; }
-  bool top_edge_remote() const;
 
   /// Dumps the current state of the plan.
   void Dump();
@@ -74,6 +73,7 @@ struct Plan {
   int remote_edges_count() const { return remote_edges_; }
   std::set<const Rule*> remote_rules() const { return remote_rules_; }
   int get_ready_count() const { return ready_.size(); }
+  int get_ready_remote_count() const { return ready_remote_.size(); }
 
 private:
   bool AddSubTarget(Node* node, vector<Node*>* stack, string* err);
@@ -94,6 +94,7 @@ private:
   map<Edge*, bool> want_;
 
   set<Edge*> ready_;
+  set<Edge*> ready_remote_;
 
   /// Total number of edges that have commands (not phony).
   int command_edges_;
