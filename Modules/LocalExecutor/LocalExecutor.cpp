@@ -162,7 +162,6 @@ void LocalExecutor::Quant()
 
 					if (! task->m_inputFile.WriteGzipped(task->m_inputData) )
 					{
-						task->ErrorResult("Failed to write " +  task->m_inputFile.GetPath() );
 						break;
 					}
 					inv.SetInput(task->m_inputFile.GetPath());

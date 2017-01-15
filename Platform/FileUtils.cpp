@@ -13,6 +13,8 @@
 
 #include "FileUtils.h"
 
+#include <Syslogger.h>
+
 #include <zlib.h>
 #include <assert.h>
 #include <stdio.h>
@@ -237,13 +239,22 @@ bool FileInfo::WriteGzipped( const ByteArrayHolder & data)
 {
 	FILE * f = fopen(GetPath().c_str(), "wb");
 	if (!f)
+	{
+		Syslogger(LOG_ERR) << "Failed to open for write " << GetPath();
 		return false;
+	}
 	bool result = true;
 	if (inf(data.ref(), f) != Z_OK)
+	{
+		Syslogger(LOG_ERR) << "Failed to unzip data " << GetPath() << ", size = " << data.size();
 		result = false;
+	}
 
-	fflush(f);
-	fclose(f);
+	if (fclose(f) == EOF)
+	{
+		Syslogger(LOG_ERR) << "Failed to close " << GetPath();
+		return false;
+	}
 	return result;
 }
 
@@ -272,11 +283,17 @@ bool FileInfo::WriteFile(const ByteArrayHolder &data)
 {
 	FILE * f = fopen(GetPath().c_str(), "wb");
 	if (!f)
+	{
+		Syslogger(LOG_ERR) << "Failed to write " << GetPath();
 		return false;
+	}
 
 	bool result = fwrite(data.data(), data.size(), 1, f) > 0;
-	fflush(f);
-	fclose(f);
+	if (fclose(f) == EOF)
+	{
+		Syslogger(LOG_ERR) << "Failed to close " << GetPath();
+		return false;
+	}
 	return result;
 }
 
