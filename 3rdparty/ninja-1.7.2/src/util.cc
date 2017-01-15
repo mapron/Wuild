@@ -21,6 +21,7 @@
 #include <windows.h>
 #include <io.h>
 #include <share.h>
+#include <direct.h>
 #endif
 
 #include <assert.h>
