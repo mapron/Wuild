@@ -333,7 +333,6 @@ SocketFrameHandler::ConsumeState SocketFrameHandler::ConsumeReadBuffer()
 		auto * framePos = m_frameDataBuffer.PosWrite(frameLength);
 		assert(framePos);
 		inputStream.ReadBlock(framePos, frameLength);
-		m_readBuffer.RemoveFromStart(m_readBuffer.GetOffsetRead());
 		m_frameDataBuffer.MarkWrite(frameLength);
 	}
 	return ConsumeState::Ok;
