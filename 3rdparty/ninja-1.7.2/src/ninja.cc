@@ -1099,9 +1099,8 @@ int real_main(int argc, char** argv) {
   options.input_file = "build.ninja";
 
   Wuild::ConfiguredApplication app(argc, argv, "WuildNinja", "toolClient");
-  // TODO: crashes!
- // argc = app.GetRemainArgc();
- // argv = app.GetRemainArgv();
+  argc = app.GetRemainArgc();
+  argv = app.GetRemainArgv();
   RemoteExecutor remoteExecutor(app);
 
   setvbuf(stdout, NULL, _IOLBF, BUFSIZ);
