@@ -40,10 +40,12 @@ ConfiguredApplication::ConfiguredApplication(int argc, char **argv, const std::s
 	AbstractConfig & config = *m_config;
 	const auto inputArgs = StringUtils::StringVectorFromArgv(argc, argv);
 	m_remainArgs = config.ReadCommandLine(inputArgs, g_commandLinePrefix);
-	m_remainArgv.resize(m_remainArgs.size() + 1);
+	m_remainArgv.resize(m_remainArgs.size() + 2);
 	m_remainArgv[0] = argv[0];
 	for (size_t i = 0; i < m_remainArgs.size(); ++i)
 		m_remainArgv[i+1] = const_cast<char*>(m_remainArgs[i].data()); // waiting for non-const data().
+
+	m_remainArgv[m_remainArgv.size() - 1] = nullptr;
 
 	std::string configPath = config.GetString("", "config");
 	if (configPath.empty())
@@ -85,7 +87,7 @@ ConfiguredApplication::~ConfiguredApplication()
 
 int ConfiguredApplication::GetRemainArgc() const
 {
-	return m_remainArgv.size();
+	return m_remainArgv.size() - 1;
 }
 
 char **ConfiguredApplication::GetRemainArgv() const
