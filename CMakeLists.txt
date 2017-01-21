@@ -119,10 +119,6 @@ AddTarget(NAME ninja_subprocess ROOT ${NINJA_ROOT}/ CSRC ${ninja_subprocess_src}
 AddTarget(NAME ninja_lib ROOT ${NINJA_ROOT}/ CSRC ${ninja_lib_src} *.h
 	EXCLUDE remote_executor_impl.h
 	DEPS ninja_subprocess
-	INCLUDES
-		${BOOST_INCLUDEDIR}
-	OPTIONS
-	   ${HAS_BOOST}
 	)
 
 AddTarget(NAME Platform CSRC *.cpp *.h

@@ -56,17 +56,6 @@
 #include "edit_distance.h"
 #include "metrics.h"
 
-#ifdef HAS_BOOST
-#include <boost/filesystem.hpp>
-namespace fs = boost::filesystem;
-#define u8string string
-#define CODE_ARG(arg)
-#else
-#include <experimental/filesystem>
-namespace fs = std::experimental::filesystem;
-#define CODE_ARG(arg) , arg
-#endif
-
 
 void Fatal(const char* msg, ...) {
   va_list ap;
@@ -104,47 +93,104 @@ void Error(const char* msg, ...) {
   fprintf(stderr, "\n");
 }
 
+bool CanonicalizePath(char* path, size_t* len, unsigned int* slash_bits,
+					  string* err) {
+  // WARNING: this function is performance-critical; please benchmark
+  // any changes you make to it.
+  METRIC_RECORD("canonicalize path");
+  *slash_bits = 0;
+  if (*len == 0) {
+	*err = "empty path";
+	return false;
+  }
+
+  vector<char *> components;
+  components.reserve(32);
+
+  char* start = path;
+  char* dst = start;
+  const char* src = start;
+  const char* end = start + *len;
+
+#ifdef _WIN32
+  // Convert \ to /, setting  slash_bits to 1 if \ encountered.
+  for (char* c = path; c < end; ++c) {
+	if (*c == '\\') {
+		*slash_bits = 1;
+		*c = '/';
+	}
+  }
+#endif
+
+  if (*src == '/') {
+#ifdef _WIN32
+	// network path starts with //
+	if (*len > 1 && *(src + 1) == '/') {
+	  src += 2;
+	  dst += 2;
+	} else {
+	  ++src;
+	  ++dst;
+	}
+#else
+	++src;
+	++dst;
+#endif
+  }
+
+  while (src < end) {
+	if (*src == '.') {
+	  if (src + 1 == end || src[1] == '/') {
+		// '.' component; eliminate.
+		src += 2;
+		continue;
+	  } else if (src[1] == '.' && (src + 2 == end || src[2] == '/')) {
+		// '..' component.  Back up if possible.
+		if (components.size() > 0) {
+		  dst = components[components.size() - 1];
+		  src += 3;
+		  components.pop_back();
+		} else {
+		  *dst++ = *src++;
+		  *dst++ = *src++;
+		  *dst++ = *src++;
+		}
+		continue;
+	  }
+	}
+
+	if (*src == '/') {
+	  src++;
+	  continue;
+	}
+
+	components.push_back(dst);
+
+	while (*src != '/' && src != end)
+	  *dst++ = *src++;
+
+	*dst++ = *src++;  // Copy '/' or final \0 character as well.
+  }
+
+  if (dst == start) {
+	*dst++ = '.';
+	*dst++ = '\0';
+  }
+
+  *len = dst - start - 1;
+  return true;
+}
+
 bool CanonicalizePath(string* path, unsigned int* slash_bits, string* err) {
   METRIC_RECORD("canonicalize str");
   size_t len = path->size();
-  *slash_bits = 0;
-  if (!len)
-  {
-	  *err = "empty path";
-	  return false;
-  }
-  fs::path fspath(*path) ;
-  if (!fs::exists(fspath))
-	  return true;
-
-#ifdef _WIN32
-  if (path->find('\\') != std::string::npos)
-	 *slash_bits = 1;
-#endif
-
-  std::error_code errc;
-  *path = fs::canonical(fspath CODE_ARG(errc)).u8string();
-  std::replace( path->begin(), path->end(), '\\', '/');
-
-  const string & cwd = GetCWD();
-
-  if (path->find(cwd) == 0)
-	*path = path->substr(cwd.size());
-
+  char* str = 0;
+  if (len > 0)
+	str = &(*path)[0];
+  if (!CanonicalizePath(str, &len, slash_bits, err))
+	return false;
+  path->resize(len);
   return true;
-}
-bool CanonicalizePath(char *path, size_t *len, unsigned int *slash_bits, string *err)
-{
-	string copy(path, *len);
-	bool ret = CanonicalizePath(&copy, slash_bits, err);
-	if (ret)
-	{
-		//assert(*len >= copy.size());
-		// TODO:!!!
-		if (*len >= copy.size())
-		  strcpy(path, copy.c_str());
-	}
-	return ret;
 }
 
 
