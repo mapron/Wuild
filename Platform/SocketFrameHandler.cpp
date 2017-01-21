@@ -259,7 +259,7 @@ bool SocketFrameHandler::ReadFrames()
 		m_pendingReadType = ServiceMessageType::None;
 	}
 
-	Syslogger(m_logContext, LOG_INFO) << "Read taken:" << m_lastSucceessfulRead.GetElapsedTime().ToProfilingTime();
+	//Syslogger(m_logContext, LOG_INFO) << "Read taken:" << m_lastSucceessfulRead.GetElapsedTime().ToProfilingTime();
 
 	return true;
 }
@@ -487,8 +487,8 @@ bool SocketFrameHandler::WriteFrames()
 				break;
 		}
 	}
-	if (written)
-		Syslogger(m_logContext, LOG_INFO) << "Write taken:" << startWrite.GetElapsedTime().ToProfilingTime();
+	//if (written)
+	//	Syslogger(m_logContext, LOG_INFO) << "Write taken:" << startWrite.GetElapsedTime().ToProfilingTime();
 	return true;
 }
 

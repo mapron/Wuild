@@ -238,6 +238,7 @@ void RemoteToolClient::AddClient(const ToolServerInfo &info, bool start)
 	settings.m_channelProtocolVersion       = RemoteToolRequest::s_version + RemoteToolResponse::s_version;
 	settings.m_recommendedRecieveBufferSize = g_recommendedBufferSize;
 	settings.m_recommendedSendBufferSize    = g_recommendedBufferSize;
+	settings.m_segmentSize = 8192;
 	SocketFrameHandler::Ptr handler(new SocketFrameHandler( settings ));
 	handler->RegisterFrameReader(SocketFrameReaderTemplate<RemoteToolResponse>::Create());
 	handler->SetTcpChannel(info.m_connectionHost, info.m_connectionPort);
