@@ -52,15 +52,17 @@ protected:
 		bool m_active = false;
 		uint16_t m_busyMine = 0;
 		uint16_t m_busyOthers = 0;
+		uint16_t m_busyTotal = 0;
+		int64_t m_clientLoad = 0;
 		int m_eachTaskWeight = 32768;
-		void UpdateBusy(int64_t mySessionId);
+		void UpdateLoad(int64_t mySessionId);
 	};
 
 protected:
 	void RecalcAvailable();
 
-    std::atomic<uint16_t> m_freeRemoteThreads {0};
-    std::atomic<uint16_t> m_usedThreads {0};
+	std::atomic<uint16_t> m_freeRemoteThreads {0};
+	std::atomic<uint16_t> m_usedThreads {0};
 
 	int64_t m_sessionId = 0;
 

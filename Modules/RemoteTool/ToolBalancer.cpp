@@ -68,7 +68,7 @@ ToolBalancer::ClientStatus ToolBalancer::UpdateClient(const ToolServerInfo &tool
 		if (clientsInfo.m_toolServer.EqualIdTo(toolServer))
 		{
 			clientsInfo.m_toolServer = toolServer;
-			clientsInfo.UpdateBusy(m_sessionId);
+			clientsInfo.UpdateLoad(m_sessionId);
 			found = true;
 		}
 	}
@@ -80,7 +80,7 @@ ToolBalancer::ClientStatus ToolBalancer::UpdateClient(const ToolServerInfo &tool
 
 	ClientInfo clientInfo;
 	clientInfo.m_toolServer = toolServer;
-	clientInfo.UpdateBusy(m_sessionId);
+	clientInfo.UpdateLoad(m_sessionId);
 	m_clients.push_back(clientInfo);
 	index = m_clients.size() - 1;
 	RecalcAvailable();
@@ -111,10 +111,10 @@ size_t ToolBalancer::FindFreeClient(const std::string &toolId) const
 			const bool toolExists = (std::find(toolIds.cbegin(), toolIds.cend(), toolId) != toolIds.cend());
 			if (!toolExists)
 				continue;
-			int64_t clientLoad = (client.m_busyMine + client.m_busyOthers) * client.m_eachTaskWeight / client.m_toolServer.m_totalThreads;
-			if (clientLoad < minimalLoad)
+
+			if (client.m_clientLoad < minimalLoad)
 			{
-				minimalLoad = clientLoad;
+				minimalLoad = client.m_clientLoad;
 				freeIndex = index;
 			}
 		}
@@ -127,6 +127,7 @@ void ToolBalancer::StartTask(size_t index)
 {
 	std::lock_guard<std::mutex> lock(m_clientsMutex);
 	m_clients[index].m_busyMine ++;
+	m_clients[index].UpdateLoad(m_sessionId);
 	RecalcAvailable();
 }
 
@@ -136,6 +137,7 @@ void ToolBalancer::FinishTask(size_t index)
 	uint16_t & busyMine = m_clients[index].m_busyMine;
 	if (busyMine)
 		--busyMine;
+	m_clients[index].UpdateLoad(m_sessionId);
 	RecalcAvailable();
 }
 
@@ -149,17 +151,13 @@ std::vector<uint16_t> ToolBalancer::TestGetBusy() const
 
 void ToolBalancer::RecalcAvailable()
 {
-	//std::lock_guard<std::mutex> lock(m_clientsMutex);
 	uint16_t free = 0;
 	uint16_t used = 0;
 	for (const ClientInfo & client : m_clients)
 	{
 		if (client.m_active)
 		{
-			auto busyOthers =  client.m_busyOthers;
-			if (busyOthers)
-				busyOthers--;
-			free += client.m_toolServer.m_totalThreads - client.m_busyMine - busyOthers;
+			free += client.m_toolServer.m_totalThreads - client.m_busyTotal;
 			used += client.m_busyMine;
 		}
 	}
@@ -167,20 +165,21 @@ void ToolBalancer::RecalcAvailable()
 	m_usedThreads = used;
 }
 
-void ToolBalancer::ClientInfo::UpdateBusy(int64_t mySessionId)
+void ToolBalancer::ClientInfo::UpdateLoad(int64_t mySessionId)
 {
-	m_busyMine = 0;
 	m_busyOthers = 0;
 	for (const ToolServerInfo::ConnectedClientInfo & client : m_toolServer.m_connectedClients)
 	{
-		if (!client.m_sessionId)
-			continue;
-
-		if (client.m_sessionId == mySessionId)
-			m_busyMine += client.m_usedThreads;
-		else
+		if (client.m_sessionId && client.m_sessionId != mySessionId)
 			m_busyOthers += client.m_usedThreads;
 	}
+	if (m_busyOthers > 0)
+		m_busyOthers--; // reduce other's load for more greedy behaviour.
+	m_busyTotal = m_busyOthers + m_busyMine;
+	if (m_busyTotal > m_toolServer.m_totalThreads)
+		m_busyTotal = m_toolServer.m_totalThreads;
+
+	m_clientLoad = m_busyTotal * m_eachTaskWeight / m_toolServer.m_totalThreads;
 }
 
 }

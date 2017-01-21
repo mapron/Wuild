@@ -63,18 +63,19 @@ int main(int argc, char ** argv)
 	info2.m_connectedClients[0].m_usedThreads = 2;
 	info2.m_connectedClients[0].m_sessionId  = 2;
 	balancer.UpdateClient(info2, index);
-	TEST_ASSERT((balancer.TestGetBusy() == LoadVector{0, 2}));
+	TEST_ASSERT((balancer.TestGetBusy() == LoadVector{0, 1}));
 
 	index = balancer.FindFreeClient(g_tool);
 	TEST_ASSERT(index == 0);
 	balancer.StartTask(index);
-	TEST_ASSERT((balancer.TestGetBusy() == LoadVector{1, 2}));
+	TEST_ASSERT((balancer.TestGetBusy() == LoadVector{1, 1}));
 
 	index = balancer.FindFreeClient(g_tool);
 	TEST_ASSERT(index == 0);
 	balancer.StartTask(index);
-	TEST_ASSERT((balancer.TestGetBusy() == LoadVector{2, 2}));
+	TEST_ASSERT((balancer.TestGetBusy() == LoadVector{2, 1}));
 
+	balancer.StartTask( balancer.FindFreeClient(g_tool) );
 	balancer.StartTask( balancer.FindFreeClient(g_tool) );
 
 	index = balancer.FindFreeClient(g_tool);
