@@ -245,6 +245,11 @@ std::string TimePoint::ToString(bool printMS, bool printDate) const
 	return os.str();
 }
 
+std::string TimePoint::ToProfilingTime() const
+{
+	return m_us > 2 * ONE_SECOND ? this->ToString(false) : std::to_string(m_us) + " us.";
+}
+
 int TimePoint::LocalOffsetSeconds()
 {
 	static int sec = getTimeOffset();

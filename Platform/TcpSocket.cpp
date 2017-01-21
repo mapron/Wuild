@@ -202,7 +202,7 @@ IDataSocket::ReadState TcpSocket::Read(ByteArrayHolder & buffer)
 		return ReadState::TryAgain;
 
 	size_t bufferInitialSize = buffer.size();(void)bufferInitialSize;
-	char tmpbuffer[1024];
+	char tmpbuffer[0x4000]; // 16k buffer. stack is rather cheap...
 	int recieved, totalRecieved = 0;
 	do {
 

@@ -50,7 +50,7 @@ public:
 	std::string GetFullExtension() const;
 
 	/// Read file from disk and compress its contents in memory.
-	bool ReadGzipped(ByteArrayHolder & data, int level = 5);
+	bool ReadGzipped(ByteArrayHolder & data, int level = 1);
 
 	/// Write deflated memory data to file on disk uncompressed.
 	bool WriteGzipped( const ByteArrayHolder & data);

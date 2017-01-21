@@ -142,8 +142,8 @@ std::string ToolServerSessionInfo::ToString(bool asCurrent, bool full) const
 		os << ", maxThreads:" << m_maxUsedThreads;
 		auto cus = m_totalExecutionTime.GetUS();
 		auto nus = m_totalNetworkTime.GetUS();
-		const std::string execstr = m_totalExecutionTime > TimePoint(2.0) ?  m_totalExecutionTime.ToString(false) : std::to_string(cus) + " us.";
-		const std::string netstr  = m_totalNetworkTime   > TimePoint(2.0) ?  m_totalNetworkTime.ToString(false)   : std::to_string(nus) + " us.";
+		const std::string execstr = m_totalExecutionTime.ToProfilingTime();
+		const std::string netstr  = m_totalNetworkTime  .ToProfilingTime();
 		auto overheadPercent = ((nus - cus) * 100) / (cus ? cus : 1);
 		os << " Total remote tasks:" << m_tasksCount << ", done in " << m_elapsedTime.ToString(false)
 							  <<  " total compilationTime: " << execstr << ", "

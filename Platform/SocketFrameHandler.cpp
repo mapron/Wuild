@@ -18,6 +18,7 @@
 #include <Application.h>
 #include <ByteOrderStream.h>
 
+#include <cstring>
 #include <stdexcept>
 #include <sstream>
 #include <assert.h>
@@ -258,6 +259,8 @@ bool SocketFrameHandler::ReadFrames()
 		m_pendingReadType = ServiceMessageType::None;
 	}
 
+	Syslogger(m_logContext, LOG_INFO) << "Read taken:" << m_lastSucceessfulRead.GetElapsedTime().ToProfilingTime();
+
 	return true;
 }
 
@@ -372,6 +375,7 @@ SocketFrameHandler::ConsumeState SocketFrameHandler::ConsumeFrameBuffer()
 
 bool SocketFrameHandler::WriteFrames()
 {
+	TimePoint startWrite(true);
 	if (m_settings.m_hasAcknowledges && m_bytesWaitingAcknowledge >= m_maxUnAcknowledgedSize)
 	{
 		if (m_acknowledgeTimer.GetElapsedTime() > m_settings.m_acknowledgeTimeout)
@@ -435,19 +439,21 @@ bool SocketFrameHandler::WriteFrames()
 		for (size_t offset = 0; offset < buffer.size(); offset += m_settings.m_segmentSize)
 		{
 			ByteArrayHolder bufferPart;
-			size_t length = std::min(m_settings.m_segmentSize, buffer.size() - offset);
+			const size_t length = std::min(m_settings.m_segmentSize, buffer.size() - offset);
 			if (m_settings.m_hasChannelTypes)
 			{
 				ByteOrderBuffer partStreamBuf(bufferPart);
 				ByteOrderDataStreamWriter partStreamWriter(&partStreamBuf, m_settings.m_byteOrder);
 				partStreamWriter << typeId << uint32_t(length);
 			}
-			bufferPart.ref().insert(bufferPart.ref().end(), buffer.ref().begin() + offset, buffer.ref().begin() + offset + length);
+			size_t curSize = bufferPart.ref().size();
+			bufferPart.ref().resize(curSize + length);
+			memcpy(bufferPart.data() + curSize, buffer.data() + offset , length);
 			m_outputSegments.push_back(bufferPart);
 		}
 	}
 
-
+	bool written = false;
 	while (!m_outputSegments.empty())
 	{
 		ByteArrayHolder frontSegment = m_outputSegments.front();
@@ -460,6 +466,7 @@ bool SocketFrameHandler::WriteFrames()
 		auto writeResult = m_channel->Write(frontSegment, sizeForWrite);
 		if (writeResult == IDataSocket::WriteState::TryAgain)
 			break;
+		written = true;
 
 		m_outputSegments.pop_front();
 		if (writeResult == IDataSocket::WriteState::Fail)
@@ -480,6 +487,8 @@ bool SocketFrameHandler::WriteFrames()
 				break;
 		}
 	}
+	if (written)
+		Syslogger(m_logContext, LOG_INFO) << "Write taken:" << startWrite.GetElapsedTime().ToProfilingTime();
 	return true;
 }
 

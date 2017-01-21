@@ -112,6 +112,7 @@ public:
 
     /// Printable format, like [YYYY-MM-DD] hh:mm:ss[.zzz]
     std::string ToString(bool printMS = true, bool printDate = false) const;
+	std::string ToProfilingTime() const;
 
 private:
     static int LocalOffsetSeconds();
