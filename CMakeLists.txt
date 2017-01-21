@@ -14,27 +14,55 @@
 cmake_minimum_required(VERSION 3.5)
 project(Wuild)
 
+# main paths.
 set(NINJA_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/ninja-1.7.2/src)
 set(ZLIB_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/zlib-1.2.8)
 
-option(USE_SYSTEM_ZLIB "Use system zlib library." ON)
+#configure options
+option( USE_SYSTEM_ZLIB "Use system zlib library." ON )
+SET( BOOST_INCLUDEDIR "" CACHE PATH "Boost path to includes")
+SET( BOOST_LIBRARYDIR "" CACHE PATH "Boost path to compiled libs")
 
+#platform configuration.
 set(ZLIB_LIBS -lz)
 if (MSVC)
 	set(USE_SYSTEM_ZLIB OFF)
 	add_definitions(-D_CRT_SECURE_NO_WARNINGS -DNOMINMAX /wd4267 /wd4244)
 endif()
 
-SET( BOOST_INCLUDEDIR "" CACHE PATH "Boost path to includes")
-SET( BOOST_LIBRARYDIR "" CACHE PATH "Boost path to compiled libs")
 set(HAS_BOOST)
-
 if (BOOST_LIBRARYDIR)
    find_package(Boost REQUIRED system filesystem)
    set(HAS_BOOST -DHAS_BOOST=1)
 endif()
 
+if (NOT MSVC)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1z ")
+endif()
 
+set(sys_deps)
+
+if ( WIN32)
+	list(APPEND sys_deps ws2_32.lib)
+else()
+	list(APPEND sys_deps -lpthread)
+endif()
+
+if (APPLE)
+	list(APPEND sys_deps -stdlib=libc++ -lc++)
+endif()
+
+if (NOT BOOST_LIBRARYDIR)
+	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+		list(APPEND sys_deps  -lc++experimental)  # Libc++experimental.a may not always be available, even when libc++ is already installed
+	else()
+		if (NOT MSVC)
+			list(APPEND sys_deps  -lstdc++fs)
+		endif()
+	endif()
+endif()
+
+# function for target declaration.
 function(AddTarget)
 	set(options APP)
 	set(oneValueArgs NAME ROOT SUBDIR)
@@ -68,8 +96,7 @@ function(AddTarget)
 	endforeach()
 endfunction()
 
-
-
+# Source code targets.
 if (NOT USE_SYSTEM_ZLIB)
 	AddTarget(NAME zlib_static ROOT ${ZLIB_ROOT}/ CSRC *.c)
 	set(ZLIB_LIBS zlib_static)
@@ -108,11 +135,6 @@ if (WIN32)
 else()
 	set(ninja_subprocess_src subprocess-posix.cc )
 endif()
-
-if (NOT MSVC)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1z ")
-endif()
-
 
 AddTarget(NAME ninja_subprocess ROOT ${NINJA_ROOT}/ CSRC ${ninja_subprocess_src}
 	)
@@ -162,24 +184,9 @@ AddTarget(NAME ConfiguredApplication CSRC *.cpp *.h
 	DEPS Configs Platform
 	)
 
-
 set(main_deps
 	ConfiguredApplication Configs LocalExecutor InvocationRewriter ToolExecutionInterface ToolProxy RemoteTool Coordinator Platform ninja_subprocess ninja_lib
 	)
-
-set(sys_deps)
-
-if ( WIN32)
-	list(APPEND sys_deps ws2_32.lib)
-else()
-	list(APPEND sys_deps -lpthread)
-endif()
-if ((UNIX AND NOT APPLE) OR (WIN32 AND NOT MSVC))
-	list(APPEND sys_deps  -lstdc++fs)
-endif()
-if (APPLE)
-	list(APPEND sys_deps -stdlib=libc++ /usr/local/clang+llvm-3.9.0-x86_64-apple-darwin/lib/libc++.dylib)
-endif()
 
 foreach (testname AllConfigs Balancer Compiler Coordinator Inflate Networking ToolServer )
 	AddTarget(APP NAME Test${testname} ROOT ${CMAKE_CURRENT_SOURCE_DIR}/TestsManual/
