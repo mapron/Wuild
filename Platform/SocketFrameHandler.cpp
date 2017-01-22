@@ -82,10 +82,7 @@ bool SocketFrameHandler::Quant()
 			m_stateNotifier(check);
 		if (!check)
 		{
-			for (auto &p : m_replyNotifiers)
-				p.second(nullptr, ReplyState::Error);
-
-			m_replyNotifiers.clear();
+			m_replyManager.ClearAndSendError();
 		}
 		else
 		{
@@ -107,6 +104,11 @@ bool SocketFrameHandler::Quant()
 		if (m_retryConnectOnFail)
 			usleep(m_settings.m_afterDisconnectWait.GetUS());
 		return m_retryConnectOnFail;
+	}
+	if (m_lastTimeoutCheck.GetElapsedTime() > m_settings.m_replyTimeoutCheckInterval)
+	{
+		m_lastTimeoutCheck = TimePoint(true);
+		m_replyManager.CheckTimeouts();
 	}
 	return true;
 }
@@ -148,12 +150,12 @@ void SocketFrameHandler::SetChannelNotifier(TStateNotifier stateNotifier)
 }
 // Application logic:
 
-void SocketFrameHandler::QueueFrame(SocketFrame::Ptr message, SocketFrameHandler::ReplyNotifier replyNotifier)
+void SocketFrameHandler::QueueFrame(SocketFrame::Ptr message, SocketFrameHandler::ReplyNotifier replyNotifier, TimePoint timeout)
 {
 	if (replyNotifier)
 	{
 		message->m_transactionId = m_transaction++;
-		m_replyNotifiers[message->m_transactionId] = replyNotifier;
+		m_replyManager.AddNotifier(message->m_transactionId, replyNotifier, timeout);
 	}
 
 	m_framesQueueOutput.push(message);
@@ -533,12 +535,10 @@ bool SocketFrameHandler::IsOutputBufferEmpty()
 void SocketFrameHandler::PreprocessFrame(SocketFrame::Ptr incomingMessage)
 {
 	Syslogger(m_logContext, LOG_INFO) << "incoming <- " << incomingMessage;
-	auto search = m_replyNotifiers.find(incomingMessage->m_replyToTransactionId);
-	if (search != m_replyNotifiers.end())
+	auto notifyCallback = m_replyManager.TakeNotifier(incomingMessage->m_replyToTransactionId);
+	if (notifyCallback)
 	{
-		auto callback = search->second;
-		m_replyNotifiers.erase(search);
-		callback(incomingMessage, ReplyState::Success);
+		notifyCallback(incomingMessage, ReplyState::Success);
 	}
 	else
 	{
@@ -555,6 +555,78 @@ void SocketFrameHandler::PreprocessFrame(SocketFrame::Ptr incomingMessage)
 			handler->QueueFrame(reply);
 		});
 	}
+}
+
+void SocketFrameHandler::ReplyManager::ClearAndSendError()
+{
+	std::lock_guard<std::mutex> lock(m_mutex);
+
+	for (auto &p : m_replyNotifiers)
+		p.second(nullptr, ReplyState::Error);
+
+	m_replyNotifiers.clear();
+	m_timeouts.clear();
+}
+
+void SocketFrameHandler::ReplyManager::AddNotifier(uint64_t id, SocketFrameHandler::ReplyNotifier callback, TimePoint timeout)
+{
+	std::lock_guard<std::mutex> lock(m_mutex);
+	m_replyNotifiers[id] = callback;
+	if (timeout)
+	{
+		TimePoint expiration = TimePoint(true) + timeout;
+		Syslogger(LOG_NOTICE) << "Queueing " << id << ", now:" <<  TimePoint(true).ToString() << ", expiration:" <<expiration.ToString() << ", timeout=" << timeout.ToProfilingTime();
+		m_timeouts.emplace(id, expiration);
+	}
+}
+
+void SocketFrameHandler::ReplyManager::CheckTimeouts()
+{
+	std::lock_guard<std::mutex> lock(m_mutex);
+	TimePoint now(true);
+	auto timeoutsIt = m_timeouts.begin();
+	while (timeoutsIt != m_timeouts.end())
+	{
+		uint64_t id = timeoutsIt->first;
+		TimePoint deadline = timeoutsIt->second;
+		if (deadline < now)
+		{
+			Syslogger(LOG_NOTICE) << "deadline:" << deadline.ToString() << ", now:" <<  now.ToString();
+
+			auto search = m_replyNotifiers.find(id);
+			if (search != m_replyNotifiers.end())
+			{
+				search->second(nullptr, ReplyState::Timeout);
+				m_replyNotifiers.erase(search);
+			}
+			else
+			{
+				Syslogger(LOG_CRIT) << "Timeout request =" << id << "does not has callback.";
+			}
+
+			timeoutsIt = m_timeouts.erase(timeoutsIt);
+			continue;
+		}
+		++timeoutsIt;
+	}
+}
+
+SocketFrameHandler::ReplyNotifier SocketFrameHandler::ReplyManager::TakeNotifier(uint64_t id)
+{
+	std::lock_guard<std::mutex> lock(m_mutex);
+	auto timeoutsIt = m_timeouts.find(id);
+	if (timeoutsIt != m_timeouts.end())
+		m_timeouts.erase(timeoutsIt);
+
+	auto replyIt = m_replyNotifiers.find(id);
+	if (replyIt != m_replyNotifiers.end())
+	{
+		auto callback = replyIt->second;
+		m_replyNotifiers.erase(replyIt);
+		return callback;
+	}
+
+	return ReplyNotifier();
 }
 
 }

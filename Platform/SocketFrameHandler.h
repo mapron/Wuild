@@ -58,7 +58,7 @@ struct SocketFrameHandlerSettings
 	TimePoint      m_acknowledgeTimeout      = TimePoint(10.0);   //!< After this time, unacknowledged data send will stated failed.
 	TimePoint      m_lineTestInterval        = TimePoint(3.0);    //!< If no channel activity for this time, line test frame will be send.
 	TimePoint      m_afterDisconnectWait     = TimePoint(10.0);   //!< If channel was disconnected, connect retry will be after that time.
-	TimePoint      m_deadClientRemove        = TimePoint(120.0);  //!<
+	TimePoint      m_replyTimeoutCheckInterval = TimePoint(1.0);  //!< How often check for timeouted requests.
 
 	TimePoint      m_tcpReadTimeout          = TimePoint(0.0);    //!< Read timeout for underlying physical channel.
 	size_t         m_recommendedRecieveBufferSize = 4 * 1024;     //!< Recommended TCP-buffer size.
@@ -139,7 +139,7 @@ public:
 
 // Application logic:
 	///  Adding new frame to queue. If replyNotifier is set, it will called instead of IFrameReader::ProcessFrame, when reply arrived or failure occurs.
-	void   QueueFrame(SocketFrame::Ptr message, ReplyNotifier replyNotifier = ReplyNotifier());
+	void   QueueFrame(SocketFrame::Ptr message, ReplyNotifier replyNotifier = ReplyNotifier(), TimePoint timeout = TimePoint());
 
 	/// Register new frame reader. FrameId should start from s_minimalUserFrameId!
 	void   RegisterFrameReader(IFrameReader::Ptr reader);
@@ -158,6 +158,18 @@ protected:
 	{
 		using Ptr = std::shared_ptr<AliveStateHolder>;
 		bool m_isAlive = true;
+	};
+
+	class ReplyManager
+	{
+		std::mutex m_mutex;
+		std::map<uint64_t, ReplyNotifier>    m_replyNotifiers;
+		std::map<uint64_t, TimePoint >		 m_timeouts;
+	public:
+		void ClearAndSendError();
+		void AddNotifier(uint64_t id, ReplyNotifier callback, TimePoint timeout);
+		void CheckTimeouts();
+		ReplyNotifier TakeNotifier(uint64_t id);
 	};
 
 protected:
@@ -190,7 +202,7 @@ protected:
 
 	ThreadSafeQueue<SocketFrame::Ptr>    m_framesQueueOutput;
 	size_t                               m_outputAcknowledgesSize {0};
-	std::map<uint64_t, ReplyNotifier>    m_replyNotifiers;
+	ReplyManager                         m_replyManager;
 	std::map<uint8_t, IFrameReader::Ptr> m_frameReaders;
 
 	size_t                      m_maxUnAcknowledgedSize {0};
@@ -199,6 +211,7 @@ protected:
 	TimePoint                   m_lastSucceessfulRead;
 	TimePoint                   m_acknowledgeTimer;
 	TimePoint                   m_lastTestActivity;
+	TimePoint                   m_lastTimeoutCheck;
 	bool mutable                m_doTestActivity {false};
 	bool mutable                m_setConnectionOptionsNeedSend {false};
 	TimePoint                   m_remoteTimeDiffToPast;

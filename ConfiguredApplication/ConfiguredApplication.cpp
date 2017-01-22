@@ -284,6 +284,10 @@ void ConfiguredApplication::ReadRemoteToolClientConfig()
 	if (queueTimeoutMS)
 		m_remoteToolClientConfig.m_queueTimeout = TimePoint(queueTimeoutMS / 1000.);
 
+	int requestTimeoutMS = m_config->GetInt(defaultGroup, "requestTimeoutMS");
+	if (requestTimeoutMS)
+		m_remoteToolClientConfig.m_requestTimeout = TimePoint(requestTimeoutMS / 1000.);
+
 	ReadCoordinatorClientConfig(m_remoteToolClientConfig.m_coordinator, defaultGroup);
 }
 
@@ -309,6 +313,10 @@ void ConfiguredApplication::ReadToolProxyServerConfig()
 	m_toolProxyServerConfig.m_listenPort   = m_config->GetInt   (defaultGroup, "listenPort");
 	m_toolProxyServerConfig.m_toolId       = m_config->GetString(defaultGroup, "toolId");
 	m_toolProxyServerConfig.m_threadCount  = m_config->GetInt   (defaultGroup, "threadCount", m_toolProxyServerConfig.m_threadCount);
+
+	int proxyClientTimeoutMS = m_config->GetInt(defaultGroup, "proxyClientTimeoutMS");
+	if (proxyClientTimeoutMS)
+		m_toolProxyServerConfig.m_proxyClientTimeout = TimePoint(proxyClientTimeoutMS / 1000.);
 }
 
 }

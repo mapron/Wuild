@@ -41,6 +41,7 @@ public:
 	RemoteToolRequest::Ptr m_toolRequest;
 	RemoteToolClient::InvokeCallback m_callback;
 	TimePoint m_expirationMoment;
+	TimePoint m_requestTimeout;
 	int m_attemptsRemain = 1;
 };
 
@@ -140,7 +141,7 @@ public:
 		};
 		m_balancer.StartTask(clientIndex);
 		m_pendingTasks--;
-		handler->QueueFrame(task.m_toolRequest, frameCallback);
+		handler->QueueFrame(task.m_toolRequest, frameCallback, task.m_requestTimeout);
 		{
 			std::lock_guard<std::mutex> lock(m_requestsMutex);
 			m_requests.pop_front();
@@ -278,6 +279,7 @@ void RemoteToolClient::InvokeTool(const ToolInvocation & invocation, InvokeCallb
 	wrap.m_callback = callback;
 	wrap.m_expirationMoment = wrap.m_start + m_config.m_queueTimeout;
 	wrap.m_attemptsRemain = m_config.m_invocationAttempts;
+	wrap.m_requestTimeout = m_config.m_requestTimeout;
 
 	Syslogger(LOG_INFO) << "QueueFrame [" << wrap.m_taskIndex << "] -> " << invocation.GetArgsString(false)
 						<< ", balancerFree:" <<m_impl->m_balancer.GetFreeThreads()
