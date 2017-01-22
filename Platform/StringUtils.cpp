@@ -66,7 +66,14 @@ StringVector StringVectorFromArgv(int argc, char **argv, bool skipFirstArg)
 {
 	StringVector ret;
 	for (int i = int(skipFirstArg); i < argc; ++i)
-		ret.emplace_back(argv[i]);
+	{
+		std::string arg(argv[i]);
+		std::string escapedArg = arg;
+		if (arg.find(' ') != std::string::npos && arg[0] != '"')
+			escapedArg = '"' + arg + '"';
+
+		ret.emplace_back(escapedArg);
+	}
 	return ret;
 }
 
