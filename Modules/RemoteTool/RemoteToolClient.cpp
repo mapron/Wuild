@@ -155,9 +155,9 @@ RemoteToolClient::RemoteToolClient(IInvocationRewriter::Ptr invocationRewriter)
 	: m_impl(new RemoteToolClientImpl()), m_invocationRewriter(invocationRewriter)
 {
 	m_impl->m_parent = this;
-	m_impl->m_coordinator.SetToolServerChangeCallback([this](const ToolServerInfo& info){
-
-		this->AddClient(info, true);
+	m_impl->m_coordinator.SetInfoArrivedCallback([this](const CoordinatorInfo& info){
+		for (const auto & client : info.m_toolServers)
+			this->AddClient(client, true);
 	});
 }
 
@@ -306,10 +306,14 @@ void RemoteToolClient::UpdateSessionInfo(const RemoteToolClient::TaskExecutionIn
 
 void RemoteToolClient::AvailableCheck()
 {
-	if (!m_remoteIsAvailable && m_impl->m_balancer.GetFreeThreads() > 0 && m_remoteAvailableCallback)
+	if (!m_remoteIsAvailable && m_impl->m_balancer.IsAllActive() && m_impl->m_balancer.GetFreeThreads() > 0)
 	{
 		m_remoteIsAvailable = true;
-		m_remoteAvailableCallback();
+		if (m_remoteAvailableCallback)
+			m_remoteAvailableCallback();
+		const auto free  = m_impl->m_balancer.GetFreeThreads();
+		const auto total = m_impl->m_balancer.GetTotalThreads();
+		Syslogger(LOG_NOTICE) << "Recieved info from coordinator: total remote threads=" << total << ", free=" << free;
 	}
 }
 

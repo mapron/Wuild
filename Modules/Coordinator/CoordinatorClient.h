@@ -30,7 +30,6 @@ class SocketFrameHandler;
 class CoordinatorClient
 {
 public:
-	using ToolServerChangeCallback = std::function<void(const ToolServerInfo&)>;
 	using InfoArrivedCallback = std::function<void(const CoordinatorInfo&)>;
 	using Config = CoordinatorClientConfig;
 
@@ -39,7 +38,6 @@ public:
 	~CoordinatorClient();
 
 	bool SetConfig(const Config & config);
-	void SetToolServerChangeCallback(ToolServerChangeCallback callback);
 	void SetInfoArrivedCallback(InfoArrivedCallback callback);
 
 	void Start();
@@ -49,7 +47,6 @@ public:
 
 protected:
 	void Quant();
-	ToolServerChangeCallback m_toolServerChangeCallback;
 	InfoArrivedCallback m_infoArrivedCallback;
 
 	std::unique_ptr<SocketFrameHandler> m_client;

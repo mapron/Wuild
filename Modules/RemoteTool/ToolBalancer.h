@@ -39,8 +39,11 @@ public:
 	void StartTask(size_t index);
 	void FinishTask(size_t index);
 
+	uint16_t GetTotalThreads() const { return m_totalRemoteThreads; }
 	uint16_t GetFreeThreads() const { return m_freeRemoteThreads; }
 	uint16_t GetUsedThreads() const { return m_usedThreads; }
+
+	bool IsAllActive() const;
 
 	/// Used for tests.
 	std::vector<uint16_t> TestGetBusy() const;
@@ -61,6 +64,7 @@ protected:
 protected:
 	void RecalcAvailable();
 
+	std::atomic<uint16_t> m_totalRemoteThreads {0};
 	std::atomic<uint16_t> m_freeRemoteThreads {0};
 	std::atomic<uint16_t> m_usedThreads {0};
 

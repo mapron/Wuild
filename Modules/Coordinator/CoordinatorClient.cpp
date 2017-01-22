@@ -50,11 +50,6 @@ bool CoordinatorClient::SetConfig(const CoordinatorClient::Config &config)
 	return true;
 }
 
-void CoordinatorClient::SetToolServerChangeCallback(CoordinatorClient::ToolServerChangeCallback callback)
-{
-	m_toolServerChangeCallback = callback;
-}
-
 void CoordinatorClient::SetInfoArrivedCallback(CoordinatorClient::InfoArrivedCallback callback)
 {
 	m_infoArrivedCallback = callback;
@@ -78,14 +73,12 @@ void CoordinatorClient::Start()
 
 		 Syslogger(this->m_config.m_logContext) << " list arrived [" << inputMessage.m_info.m_toolServers.size() << "]";
 		 auto modified = m_coord.Update(inputMessage.m_info.m_toolServers);
-		 if (!modified.empty() && m_toolServerChangeCallback)
+		 if (!modified.empty())
 		 {
-			 for (const ToolServerInfo * toolServer: modified)
-				 m_toolServerChangeCallback(*toolServer);
-
+			 if (m_infoArrivedCallback)
+				 m_infoArrivedCallback(m_coord);
 		 }
-		 if (m_infoArrivedCallback)
-			 m_infoArrivedCallback(m_coord);
+
 	}));
 	m_client->SetChannelNotifier([this](bool state){
 		m_clientState = state;

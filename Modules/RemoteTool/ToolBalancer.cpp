@@ -141,6 +141,16 @@ void ToolBalancer::FinishTask(size_t index)
 	RecalcAvailable();
 }
 
+bool ToolBalancer::IsAllActive() const
+{
+	bool result = true;
+	std::lock_guard<std::mutex> lock(m_clientsMutex);
+	for (const ClientInfo & client : m_clients)
+		if (!client.m_active)
+			result = false;
+	return result;
+}
+
 std::vector<uint16_t> ToolBalancer::TestGetBusy() const
 {
 	std::vector<uint16_t> result;
@@ -151,16 +161,17 @@ std::vector<uint16_t> ToolBalancer::TestGetBusy() const
 
 void ToolBalancer::RecalcAvailable()
 {
-	uint16_t free = 0;
-	uint16_t used = 0;
+	uint16_t free = 0, used = 0, total = 0;
 	for (const ClientInfo & client : m_clients)
 	{
 		if (client.m_active)
 		{
+			total += client.m_toolServer.m_totalThreads;
 			free += client.m_toolServer.m_totalThreads - client.m_busyTotal;
 			used += client.m_busyMine;
 		}
 	}
+	m_totalRemoteThreads = total;
 	m_freeRemoteThreads = free;
 	m_usedThreads = used;
 }
