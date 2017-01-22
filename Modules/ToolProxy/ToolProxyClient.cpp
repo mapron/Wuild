@@ -19,6 +19,7 @@
 #include <SocketFrameHandler.h>
 #include <Application.h>
 
+#include <algorithm>
 #include <iostream>
 
 namespace Wuild
