@@ -306,6 +306,7 @@ void RemoteToolClient::UpdateSessionInfo(const RemoteToolClient::TaskExecutionIn
 
 void RemoteToolClient::AvailableCheck()
 {
+	std::lock_guard<std::mutex> lock(m_availableCheckMutex);
 	if (!m_remoteIsAvailable && m_impl->m_balancer.IsAllActive() && m_impl->m_balancer.GetFreeThreads() > 0)
 	{
 		m_remoteIsAvailable = true;

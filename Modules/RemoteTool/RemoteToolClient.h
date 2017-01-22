@@ -89,6 +89,7 @@ protected:
 	int64_t m_taskIndex  = 0;
 	ToolServerSessionInfo m_sessionInfo;
 	std::mutex m_sessionInfoMutex;
+	std::mutex m_availableCheckMutex;
 
 	bool m_remoteIsAvailable = false;
 	RemoteAvailableCallback m_remoteAvailableCallback;
