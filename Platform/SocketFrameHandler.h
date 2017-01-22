@@ -85,7 +85,7 @@ public:
 	enum class ReplyState { Success, Error, Timeout };
 
 	using Ptr = std::shared_ptr<SocketFrameHandler>;
-	using TStateNotifier = std::function<void(bool)> ;
+	using StateNotifierCallback = std::function<void(bool)> ;
 	using ReplyNotifier  = std::function<void(SocketFrame::Ptr, ReplyState)>;
 	using OutputCallback = std::function<void(SocketFrame::Ptr)>;
 
@@ -135,7 +135,7 @@ public:
 	void   DisconnectChannel();
 
 	/// callback will be called when underlying state changes. It also will called on initial state.
-	void   SetChannelNotifier(TStateNotifier stateNotifier);
+	void   SetChannelNotifier(StateNotifierCallback stateNotifier);
 
 // Application logic:
 	///  Adding new frame to queue. If replyNotifier is set, it will called instead of IFrameReader::ProcessFrame, when reply arrived or failure occurs.
@@ -153,6 +153,8 @@ protected:
 	enum class ServiceMessageType { None, Ack, LineTest, ConnOptions, User = SocketFrame::s_minimalUserFrameId };
 
 	enum class ConsumeState { Ok, Broken, Incomplete, FatalError };
+
+	enum class ConnectionState { Pending, Ok, Failed };
 
 	struct AliveStateHolder
 	{
@@ -185,11 +187,10 @@ protected:
 
 protected:
 
-	bool                              m_retryConnectOnFail {true};
-	bool                              m_prevConnectionState {false};
-	bool                              m_initChannel {false};
+	bool                              m_retryConnectOnFail = true;
+	ConnectionState                   m_prevConnectionState = ConnectionState::Pending;
 
-	TStateNotifier                    m_stateNotifier;
+	StateNotifierCallback             m_stateNotifier;
 	std::atomic_uint_fast64_t         m_transaction {0};
 
 	IDataSocket::Ptr                  m_channel;
@@ -201,19 +202,19 @@ protected:
 	ServiceMessageType                m_pendingReadType = ServiceMessageType::None;
 
 	ThreadSafeQueue<SocketFrame::Ptr>    m_framesQueueOutput;
-	size_t                               m_outputAcknowledgesSize {0};
+	size_t                               m_outputAcknowledgesSize = 0;
 	ReplyManager                         m_replyManager;
 	std::map<uint8_t, IFrameReader::Ptr> m_frameReaders;
 
-	size_t                      m_maxUnAcknowledgedSize {0};
+	size_t                      m_maxUnAcknowledgedSize = 0;
 
-	size_t                      m_bytesWaitingAcknowledge {0};
+	size_t                      m_bytesWaitingAcknowledge = 0;
 	TimePoint                   m_lastSucceessfulRead;
 	TimePoint                   m_acknowledgeTimer;
 	TimePoint                   m_lastTestActivity;
 	TimePoint                   m_lastTimeoutCheck;
-	bool mutable                m_doTestActivity {false};
-	bool mutable                m_setConnectionOptionsNeedSend {false};
+	bool mutable                m_doTestActivity = false;
+	bool mutable                m_setConnectionOptionsNeedSend = false;
 	TimePoint                   m_remoteTimeDiffToPast;
 
 	std::string                 m_logContextAdditional;

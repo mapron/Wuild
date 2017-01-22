@@ -73,24 +73,23 @@ void SocketFrameHandler::Stop(bool wait)
 
 bool SocketFrameHandler::Quant()
 {
-	bool check = this->CheckAndCreateConnection();
-	if (check != m_prevConnectionState || !m_initChannel)
+	ConnectionState connectionState = this->CheckAndCreateConnection() ? ConnectionState::Ok : ConnectionState::Failed;
+	if (connectionState != m_prevConnectionState)
 	{
-		m_initChannel = true;
-		m_prevConnectionState = check;
 		if (m_stateNotifier)
-			m_stateNotifier(check);
-		if (!check)
+			m_stateNotifier(connectionState == ConnectionState::Ok);
+		if (m_prevConnectionState != ConnectionState::Pending && connectionState == ConnectionState::Failed)
 		{
 			m_replyManager.ClearAndSendError();
 		}
-		else
+		if (connectionState == ConnectionState::Ok)
 		{
 			m_lastSucceessfulRead = TimePoint(true);
 		}
+		m_prevConnectionState = connectionState;
 		UpdateLogContext();
 	}
-	if (!check)
+	if (connectionState != ConnectionState::Ok)
 		return m_retryConnectOnFail;
 
 	if (m_channel && m_channel->IsPending())
@@ -144,7 +143,7 @@ void SocketFrameHandler::DisconnectChannel()
 		m_channel->Disconnect();
 }
 
-void SocketFrameHandler::SetChannelNotifier(TStateNotifier stateNotifier)
+void SocketFrameHandler::SetChannelNotifier(StateNotifierCallback stateNotifier)
 {
 	m_stateNotifier = stateNotifier;
 }
