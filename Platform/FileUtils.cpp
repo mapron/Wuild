@@ -31,6 +31,22 @@ namespace fs = std::experimental::filesystem;
 #define CODE_ARG(arg) , arg
 #endif
 
+#ifdef _MSC_VER
+#define strtoull _strtoui64
+#define getcwd _getcwd
+#define PATH_MAX _MAX_PATH
+#endif
+
+#if defined( _WIN32)
+#include <windows.h>
+#include <io.h>
+#include <share.h>
+#include <direct.h>
+#else
+#include <unistd.h>
+#endif
+
+
 #define CHUNK 16384
 
 /* Compress from file source to file dest until EOF on source.
@@ -341,6 +357,37 @@ StringVector FileInfo::GetDirFiles(bool sortByName)
 TemporaryFile::~TemporaryFile()
 {
 	this->Remove();
+}
+
+std::string GetCWD()
+{
+	std::vector<char> cwd;
+	std::string workingDir;
+	do
+	{
+		cwd.resize(cwd.size() + 1024);
+		errno = 0;
+	} while (!getcwd(&cwd[0], cwd.size()) && errno == ERANGE);
+	if (errno != 0 && errno != ERANGE)
+	{
+		workingDir = ".";
+	}
+	else
+	{
+		workingDir = cwd.data();
+		if (workingDir.empty())
+			workingDir = ".";
+	}
+	std::replace(workingDir.begin(), workingDir.end(), '\\', '/');
+	if (*workingDir.rbegin() != '/')
+		workingDir += '/';
+
+	return workingDir;
+}
+
+void SetCWD(const std::string &cwd)
+{
+	chdir(cwd.c_str());
 }
 
 

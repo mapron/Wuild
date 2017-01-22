@@ -88,4 +88,7 @@ public:
 	~TemporaryFile();
 };
 
+std::string GetCWD();
+void SetCWD(const std::string & cwd);
+
 }

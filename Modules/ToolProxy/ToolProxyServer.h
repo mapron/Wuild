@@ -40,6 +40,7 @@ protected:
 	ILocalExecutor::Ptr m_executor;
 	RemoteToolClient & m_rcClient;
 	Config m_config;
+	std::string m_cwd;
 	std::unique_ptr<SocketFrameService> m_server;
 };
 

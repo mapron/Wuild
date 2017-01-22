@@ -21,8 +21,8 @@ int main(int argc, char** argv)
 	using namespace Wuild;
 	ConfiguredApplication app(argc, argv, "WuildProxyClient", "proxy");
 
-	app.m_loggerConfig.m_maxLogLevel = LOG_NOTICE;
-	app.InitLogging(app.m_loggerConfig);
+	//app.m_loggerConfig.m_maxLogLevel = LOG_NOTICE;
+	//app.InitLogging(app.m_loggerConfig);
 
 	ToolProxyClient::Config proxyConfig;
 	if (!app.GetToolProxyServerConfig(proxyConfig))

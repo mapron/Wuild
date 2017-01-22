@@ -14,6 +14,7 @@
 #include "ToolProxyServer.h"
 
 #include <SocketFrameService.h>
+#include <FileUtils.h>
 
 namespace Wuild
 {
@@ -46,6 +47,13 @@ void ToolProxyServer::Start()
 {
 	m_server.reset(new SocketFrameService( m_config.m_listenPort ));
 	m_server->RegisterFrameReader(SocketFrameReaderTemplate<ToolProxyRequest>::Create([this](const ToolProxyRequest& inputMessage, SocketFrameHandler::OutputCallback outputCallback){
+
+		// TODO: we assume that proxy server is used to build only one working directory at once.
+		if (m_cwd != inputMessage.m_cwd)
+		{
+			m_cwd = inputMessage.m_cwd;
+			SetCWD(m_cwd);
+		}
 
 		LocalExecutorTask::Ptr original(new LocalExecutorTask());
 		original->m_invocation = inputMessage.m_invocation;
@@ -89,9 +97,7 @@ void ToolProxyServer::Start()
 			m_executor->AddTask(original);
 		}
 	}));
-	m_server->SetHandlerDestroyCallback([this](SocketFrameHandler * handler){
 
-	});
 	m_server->Start();
 }
 }

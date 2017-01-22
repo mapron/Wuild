@@ -18,6 +18,7 @@
 #include <Syslogger.h>
 #include <SocketFrameHandler.h>
 #include <Application.h>
+#include <FileUtils.h>
 
 #include <algorithm>
 #include <iostream>
@@ -86,6 +87,7 @@ void ToolProxyClient::RunTask(const StringVector &args)
 	ToolProxyRequest::Ptr req(new ToolProxyRequest());
 	req->m_invocation.m_id.m_toolId = m_config.m_toolId;
 	req->m_invocation.m_args = args;
+	req->m_cwd = GetCWD();
 	m_client->QueueFrame(req, frameCallback, m_config.m_proxyClientTimeout);
 }
 

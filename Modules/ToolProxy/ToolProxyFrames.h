@@ -29,6 +29,7 @@ public:
 
 public:
 	ToolInvocation      m_invocation;
+	std::string         m_cwd;
 
 	uint8_t             FrameTypeId() const override { return s_frameTypeId;}
 
