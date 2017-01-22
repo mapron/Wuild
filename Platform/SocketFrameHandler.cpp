@@ -575,7 +575,6 @@ void SocketFrameHandler::ReplyManager::AddNotifier(uint64_t id, SocketFrameHandl
 	if (timeout)
 	{
 		TimePoint expiration = TimePoint(true) + timeout;
-		Syslogger(LOG_NOTICE) << "Queueing " << id << ", now:" <<  TimePoint(true).ToString() << ", expiration:" <<expiration.ToString() << ", timeout=" << timeout.ToProfilingTime();
 		m_timeouts.emplace(id, expiration);
 	}
 }
@@ -591,8 +590,6 @@ void SocketFrameHandler::ReplyManager::CheckTimeouts()
 		TimePoint deadline = timeoutsIt->second;
 		if (deadline < now)
 		{
-			Syslogger(LOG_NOTICE) << "deadline:" << deadline.ToString() << ", now:" <<  now.ToString();
-
 			auto search = m_replyNotifiers.find(id);
 			if (search != m_replyNotifiers.end())
 			{
