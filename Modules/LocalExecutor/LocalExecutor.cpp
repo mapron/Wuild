@@ -43,7 +43,7 @@ size_t LocalExecutor::AddTask(LocalExecutorTask::Ptr task)
 	return m_taskQueue.size();
 }
 
-ILocalExecutor::TaskPair LocalExecutor::SplitTask(LocalExecutorTask::Ptr task, string &err)
+ILocalExecutor::TaskPair LocalExecutor::SplitTask(LocalExecutorTask::Ptr task, std::string &err)
 {
 	TaskPair result;
 	ToolInvocation pp, cc;

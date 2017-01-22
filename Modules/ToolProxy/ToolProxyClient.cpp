@@ -59,17 +59,17 @@ void ToolProxyClient::Start()
 
 void ToolProxyClient::RunTask(const StringVector &args)
 {
-	auto frameCallback = [](SocketFrame::Ptr responseFrame, SocketFrameHandler::TReplyState state)
+	auto frameCallback = [](SocketFrame::Ptr responseFrame, SocketFrameHandler::ReplyState state)
 	{
 		std::string stdOut;
 		bool result = false;
-		if (state == SocketFrameHandler::rsTimeout)
+		if (state == SocketFrameHandler::ReplyState::Timeout)
 		{
 			stdOut = "Timeout expired.";
 		}
-		else if (state == SocketFrameHandler::rsError)
+		else if (state == SocketFrameHandler::ReplyState::Error)
 		{
-			stdOut ="Internal error.";
+			stdOut = "Internal error.";
 		}
 		else
 		{
@@ -77,8 +77,9 @@ void ToolProxyClient::RunTask(const StringVector &args)
 			result = responseFrameProxy->m_result;
 			stdOut = responseFrameProxy->m_stdOut;
 		}
+		std::replace(stdOut.begin(), stdOut.end(), '\r', ' ');
 		if (!stdOut.empty())
-			std::cerr << stdOut << std::endl;
+			std::cerr << stdOut << std::endl << std::flush;
 		Application::Interrupt(1 - result);
 	};
 	ToolProxyRequest::Ptr req(new ToolProxyRequest());

@@ -81,7 +81,7 @@ bool SocketFrameHandler::Quant()
 		if (!check)
 		{
 			for (auto &p : m_replyNotifiers)
-				p.second(nullptr, rsError);
+				p.second(nullptr, ReplyState::Error);
 
 			m_replyNotifiers.clear();
 		}
@@ -536,7 +536,7 @@ void SocketFrameHandler::PreprocessFrame(SocketFrame::Ptr incomingMessage)
 	{
 		auto callback = search->second;
 		m_replyNotifiers.erase(search);
-		callback(incomingMessage, rsSuccess);
+		callback(incomingMessage, ReplyState::Success);
 	}
 	else
 	{

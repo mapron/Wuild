@@ -82,11 +82,11 @@ struct SocketFrameHandlerSettings
 class SocketFrameHandler final
 {
 public:
-	enum TReplyState { rsSuccess, rsError, rsTimeout };
+	enum class ReplyState { Success, Error, Timeout };
 
 	using Ptr = std::shared_ptr<SocketFrameHandler>;
 	using TStateNotifier = std::function<void(bool)> ;
-	using ReplyNotifier  = std::function<void(SocketFrame::Ptr, TReplyState)>;
+	using ReplyNotifier  = std::function<void(SocketFrame::Ptr, ReplyState)>;
 	using OutputCallback = std::function<void(SocketFrame::Ptr)>;
 
 	class IFrameReader

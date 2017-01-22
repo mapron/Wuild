@@ -38,10 +38,17 @@ SocketFrame::State ToolProxyRequest::WriteInternal(ByteOrderDataStreamWriter &st
 	return stOk;
 }
 
+ToolProxyResponse::ToolProxyResponse(const std::string &stdOut, bool result)
+	: m_result(result)
+	, m_stdOut(stdOut)
+{
+
+}
+
 void ToolProxyResponse::LogTo(std::ostream &os) const
 {
 	SocketFrame::LogTo(os);
-	os << " -> " << (m_result ? "OK" : "FAIL") << " [" << m_stdOut.size() << "]";
+	os << " -> " << (m_result ? "OK" : "FAIL") << " [" << m_stdOut.size() << m_stdOut << "]";
 }
 
 SocketFrame::State ToolProxyResponse::ReadInternal(ByteOrderDataStreamReader &stream)

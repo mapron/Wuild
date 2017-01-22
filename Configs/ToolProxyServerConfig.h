@@ -21,6 +21,7 @@ class ToolProxyServerConfig : public IConfig
 public:
 	int m_listenPort = 0;
 	std::string m_toolId;
+	int m_threadCount = 1;
 	bool Validate(std::ostream * errStream = nullptr) const override;
 };
 }

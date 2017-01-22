@@ -24,7 +24,6 @@
 namespace Wuild
 {
 class SocketFrameHandler;
-/// TODO:
 class ToolProxyClient
 {
 public:

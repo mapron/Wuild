@@ -107,17 +107,17 @@ public:
 			std::lock_guard<std::mutex> lock2(m_clientsMutex);
 			handler = m_clients[clientIndex];
 		}
-		auto frameCallback = [this, task, clientIndex](SocketFrame::Ptr responseFrame, SocketFrameHandler::TReplyState state)
+		auto frameCallback = [this, task, clientIndex](SocketFrame::Ptr responseFrame, SocketFrameHandler::ReplyState state)
 		{
 			m_balancer.FinishTask(clientIndex);
 			const std::string outputFilename =  task.m_invocation.GetOutput();
 			Syslogger(LOG_INFO) << "RECIEVING [" << task.m_taskIndex << "]:" << outputFilename;
 			RemoteToolClient::TaskExecutionInfo info;
-			if (state == SocketFrameHandler::rsTimeout)
+			if (state == SocketFrameHandler::ReplyState::Timeout)
 			{
 				info.m_stdOutput = "Timeout expired.";
 			}
-			else if (state == SocketFrameHandler::rsError)
+			else if (state == SocketFrameHandler::ReplyState::Error)
 			{
 				info.m_stdOutput = "Internal error.";
 			}

@@ -306,8 +306,9 @@ void ConfiguredApplication::ReadCoordinatorServerConfig()
 void ConfiguredApplication::ReadToolProxyServerConfig()
 {
 	const std::string defaultGroup("proxy");
-	m_toolProxyServerConfig.m_listenPort = m_config->GetInt(defaultGroup, "listenPort");
-	m_toolProxyServerConfig.m_toolId = m_config->GetString(defaultGroup, "toolId");
+	m_toolProxyServerConfig.m_listenPort   = m_config->GetInt   (defaultGroup, "listenPort");
+	m_toolProxyServerConfig.m_toolId       = m_config->GetString(defaultGroup, "toolId");
+	m_toolProxyServerConfig.m_threadCount  = m_config->GetInt   (defaultGroup, "threadCount", m_toolProxyServerConfig.m_threadCount);
 }
 
 }

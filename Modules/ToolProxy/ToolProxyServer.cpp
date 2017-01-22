@@ -21,7 +21,7 @@ namespace Wuild
 ToolProxyServer::ToolProxyServer(ILocalExecutor::Ptr executor, RemoteToolClient &rcClient)
 	: m_executor(executor), m_rcClient(rcClient)
 {
-
+	m_executor->SetThreadCount(m_config.m_threadCount);
 }
 
 ToolProxyServer::~ToolProxyServer()
@@ -47,13 +47,48 @@ void ToolProxyServer::Start()
 	m_server.reset(new SocketFrameService( m_config.m_listenPort ));
 	m_server->RegisterFrameReader(SocketFrameReaderTemplate<ToolProxyRequest>::Create([this](const ToolProxyRequest& inputMessage, SocketFrameHandler::OutputCallback outputCallback){
 
-		ToolProxyResponse::Ptr response(new ToolProxyResponse());
-		response->m_result = false;
-		response->m_stdOut = "FFFOOOO!";
-		outputCallback(response);
+		LocalExecutorTask::Ptr original(new LocalExecutorTask());
+		original->m_invocation = inputMessage.m_invocation;
+		original->m_readOutput = original->m_writeInput = false;
+		std::string err;
+		ILocalExecutor::TaskPair tasks = m_executor->SplitTask(original, err);
+		if (tasks.first)
+		{
+			LocalExecutorTask::Ptr taskPP = tasks.first;
+
+			taskPP->m_callback = [&rcClient=m_rcClient, &executor=m_executor, taskCC=tasks.second, outputCallback] ( LocalExecutorResult::Ptr localResult ) {
+
+				if (!localResult->m_result)
+				{
+					outputCallback(ToolProxyResponse::Ptr(new ToolProxyResponse(localResult->m_stdOut)));
+					return;
+				}
+
+				if (rcClient.GetFreeRemoteThreads() > 0)
+				{
+					auto remoteCallback = [outputCallback]( const Wuild::RemoteToolClient::TaskExecutionInfo& info) {
+						outputCallback(ToolProxyResponse::Ptr(new ToolProxyResponse(info.m_stdOutput, info.m_result)));
+					};
+					rcClient.InvokeTool(taskCC->m_invocation, remoteCallback);
+				}
+				else
+				{
+					taskCC->m_callback = [outputCallback]( LocalExecutorResult::Ptr localResult ) {
+						outputCallback(ToolProxyResponse::Ptr(new ToolProxyResponse(localResult->m_stdOut, localResult->m_result)));
+					};
+					executor->AddTask(taskCC);
+				}
+			};
+			m_executor->AddTask(taskPP);
+		}
+		else
+		{
+			original->m_callback = [outputCallback] ( LocalExecutorResult::Ptr localResult ) {
+				outputCallback(ToolProxyResponse::Ptr(new ToolProxyResponse(localResult->m_stdOut, localResult->m_result)));
+			};
+			m_executor->AddTask(original);
+		}
 	}));
-
-
 	m_server->SetHandlerDestroyCallback([this](SocketFrameHandler * handler){
 
 	});
