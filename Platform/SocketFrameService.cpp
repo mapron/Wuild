@@ -88,7 +88,6 @@ void SocketFrameService::Stop()
 	m_mainThread.Stop();
 }
 
-
 void SocketFrameService::Quant()
 {
 	std::lock_guard<std::mutex> lock(m_workersLock);
@@ -97,31 +96,18 @@ void SocketFrameService::Quant()
 	{
 		if (!(*workerIt)->IsActive())
 		{
-
 			(*workerIt)->Stop(true);
 
 			if (m_handlerDestroyCallback)
 				m_handlerDestroyCallback((*workerIt).get());
 
-			m_workersUnactive.push_back(DeadClient(*workerIt, TimePoint(true)));
-			Syslogger(m_logContext) << "SocketFrameService::quant() erasing unactive worker ";
+			Syslogger(m_logContext) << "SocketFrameService::Quant() erasing unactive worker ";
 			workerIt = m_workers.erase(workerIt);
 			continue;
 		}
 		++workerIt;
 	}
 
-	auto deadWorkerIt = m_workersUnactive.begin();
-	while (deadWorkerIt != m_workersUnactive.end())
-	{
-		DeadClient & deadWorker = *deadWorkerIt;
-		if (deadWorker.second.GetElapsedTime() > m_settings.m_deadClientRemove)
-		{
-			deadWorkerIt = m_workersUnactive.erase(deadWorkerIt);
-			continue;
-		}
-		++deadWorkerIt;
-	}
 	for (IDataListener::Ptr & listenter : m_listenters)
 	{
 		auto client = listenter->GetPendingConnection();

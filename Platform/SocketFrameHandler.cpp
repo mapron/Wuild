@@ -39,10 +39,12 @@ SocketFrameHandler::SocketFrameHandler(const SocketFrameHandlerSettings & settin
 	m_maxUnAcknowledgedSize = 4 * 1024 * BUFFER_RATIO;// 4 Kb is a minimal socket buffer.
 	if (m_settings.m_hasConnOptions)
 		m_setConnectionOptionsNeedSend = true;
+	m_aliveHolder.reset(new AliveStateHolder());
 }
 
 SocketFrameHandler::~SocketFrameHandler()
 {
+	m_aliveHolder->m_isAlive = false;
 	Stop();
 }
 
@@ -542,10 +544,15 @@ void SocketFrameHandler::PreprocessFrame(SocketFrame::Ptr incomingMessage)
 	{
 		auto tid = incomingMessage->m_transactionId;
 		// frame factory succeeded, so it's safe do not check TypeId.
-		m_frameReaders[incomingMessage->FrameTypeId()]->ProcessFrame(incomingMessage, [this, tid](SocketFrame::Ptr reply)
+		m_frameReaders[incomingMessage->FrameTypeId()]->ProcessFrame(incomingMessage, [handler=this, aliveHolder=m_aliveHolder, tid](SocketFrame::Ptr reply)
 		{
+			if (!aliveHolder->m_isAlive)
+			{
+				Syslogger() << "SocketFrameHandler is dead! skipping outgouing frame.";
+				return;
+			}
 			reply->m_replyToTransactionId = tid;
-			QueueFrame(reply);
+			handler->QueueFrame(reply);
 		});
 	}
 }

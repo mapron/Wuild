@@ -150,17 +150,17 @@ public:
 
 protected:
 
-	enum class ServiceMessageType
-	{
-		None,
-		Ack,
-		LineTest,
-		ConnOptions,
-		User = SocketFrame::s_minimalUserFrameId
-	};
+	enum class ServiceMessageType { None, Ack, LineTest, ConnOptions, User = SocketFrame::s_minimalUserFrameId };
 
 	enum class ConsumeState { Ok, Broken, Incomplete, FatalError };
 
+	struct AliveStateHolder
+	{
+		using Ptr = std::shared_ptr<AliveStateHolder>;
+		bool m_isAlive = true;
+	};
+
+protected:
 	bool                        ReadFrames();
 	ConsumeState                ConsumeReadBuffer();
 	ConsumeState                ConsumeFrameBuffer();
@@ -206,6 +206,7 @@ protected:
 	std::string                 m_logContextAdditional;
 	std::string                 m_logContext;
 	ThreadLoop                  m_thread;
+	AliveStateHolder::Ptr       m_aliveHolder;
 };
 
 /// Convenience FrameReader creator. FrameType is SocketFrame successor.

@@ -82,7 +82,6 @@ protected:
 	std::deque<SocketFrameHandler::IFrameReader::Ptr> m_readers;
 	std::deque<IDataListener::Ptr>                    m_listenters;
 	std::deque<SocketFrameHandler::Ptr>               m_workers;
-	std::deque<DeadClient>                            m_workersUnactive;
 	std::mutex                                        m_workersLock;
 
 	HandlerInitCallback                               m_handlerInitCallback;
