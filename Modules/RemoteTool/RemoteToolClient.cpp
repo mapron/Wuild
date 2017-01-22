@@ -130,6 +130,7 @@ public:
 
 				info.m_result = result->m_result;
 				info.m_stdOutput = result->m_stdOut;
+				std::replace(info.m_stdOutput.begin(), info.m_stdOutput.end(), '\r', ' ');
 
 				if (info.m_result && !outputFilename.empty())
 				{

@@ -23,13 +23,16 @@ using namespace Wuild;
 class LocalExecutorTest : public ILocalExecutor
 {
 public:
-	size_t AddTask(LocalExecutorTask::Ptr task) override
+	void AddTask(LocalExecutorTask::Ptr task) override
 	{
 		using namespace Wuild;
 		LocalExecutorResult::Ptr res(new LocalExecutorResult("Stub output OK", true));
 		res->m_executionTime.SetUS(1000);
 		Syslogger(LOG_INFO) << "AddTask ";
 		task->m_callback(res);
+	}
+	size_t GetQueueSize() const override
+	{
 		return 0;
 	}
 	TaskPair SplitTask(LocalExecutorTask::Ptr , std::string & ) override

@@ -38,10 +38,11 @@ public:
 	{ return Ptr(new LocalExecutor(invocationRewriter, tempPath)); }
 
 public:
-	size_t AddTask(LocalExecutorTask::Ptr task) override;
+	void AddTask(LocalExecutorTask::Ptr task) override;
 	TaskPair SplitTask(LocalExecutorTask::Ptr task, std::string & err) override;
 	StringVector GetToolIds() const override;
 	void SetThreadCount(int threads) override;
+	size_t GetQueueSize() const override;
 
 	~LocalExecutor();
 
@@ -53,7 +54,7 @@ private:
 
 	size_t m_maxSubProcesses = 1;
 	size_t m_taskId = 0;
-	std::mutex m_queueMutex;
+	mutable std::mutex m_queueMutex;
 	using Guard = std::lock_guard<std::mutex>;
 	std::queue<LocalExecutorTask::Ptr> m_taskQueue;
 

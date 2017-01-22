@@ -40,7 +40,11 @@ SocketFrameService::~SocketFrameService()
 {
 	Syslogger(m_logContext) << "SocketFrameService::~SocketFrameService()";
 	for (auto workerPtr : m_workers)
+	{
+		if (m_handlerDestroyCallback)
+			m_handlerDestroyCallback(workerPtr.get());
 		workerPtr->Stop(false);
+	}
 	m_workers.clear();
 	m_listenters.clear();
 	Stop();

@@ -95,11 +95,8 @@ void RemoteToolServer::Start()
 			LocalExecutorTask::Ptr taskCC(new LocalExecutorTask());
 			taskCC->m_invocation = inputMessage.m_invocation;
 			taskCC->m_inputData = std::move(inputMessage.m_fileData);
-			taskCC->m_callback = [outputCallback, this, sessionId, handler](LocalExecutorResult::Ptr result)
+			taskCC->m_callback = [outputCallback, this, sessionId](LocalExecutorResult::Ptr result)
 			{
-				if (!handler->IsActive())
-					return;
-
 				FinishTask(sessionId, false);
 				RemoteToolResponse::Ptr response(new RemoteToolResponse());
 				response->m_result = result->m_result;
@@ -108,13 +105,11 @@ void RemoteToolServer::Start()
 				response->m_executionTime = result->m_executionTime;
 				outputCallback(response);
 			};
-			const size_t queueSize = m_impl->m_executor->AddTask(taskCC);
-			m_queuedTasks = static_cast<uint16_t>(queueSize);
+			m_impl->m_executor->AddTask(taskCC);
 		}));
 	});
 
 	m_impl->m_server->SetHandlerDestroyCallback([this](SocketFrameHandler * handler){
-
 		int64_t sessionId;
 		{
 			std::lock_guard<std::mutex> lock(m_impl->m_sessionsIdsMutex);
@@ -156,19 +151,20 @@ void RemoteToolServer::FinishTask(int64_t sessionId, bool remove)
 {
 	std::lock_guard<std::mutex> lock(m_impl->m_infoMutex);
 	ToolServerInfo & info = m_impl->m_info;
+	auto clientIt = std::find_if(info.m_connectedClients.begin(), info.m_connectedClients.end(), [sessionId](const auto & client){
+		return client.m_sessionId == sessionId;
+	});
 	if (remove)
 	{
-		auto clientIt = std::find_if(info.m_connectedClients.begin(), info.m_connectedClients.end(), [sessionId](const auto & client){
-			return client.m_sessionId == sessionId;
-		});
 		if (clientIt != info.m_connectedClients.end())
 			info.m_connectedClients.erase(clientIt);
 	}
 	else
 	{
-		auto  &client = GetClientInfo(m_impl->m_info, sessionId);
-		client.m_usedThreads --;
-		m_runningTasks--;
+		if (clientIt != info.m_connectedClients.end())
+			clientIt->m_usedThreads--;
+		if (m_runningTasks)
+			m_runningTasks--;
 	}
 	UpdateInfo();
 }
@@ -177,11 +173,10 @@ void RemoteToolServer::UpdateInfo()
 {
 	ToolServerInfo & info = m_impl->m_info;
 	if (info.m_connectedClients.empty())
-	{
-		m_runningTasks = m_queuedTasks = 0;
-	}
+		m_runningTasks = 0;
+
 	info.m_runningTasks = m_runningTasks;
-	info.m_queuedTasks = m_queuedTasks;
+	info.m_queuedTasks = m_impl->m_executor->GetQueueSize();
 	m_impl->m_coordinator.SetToolServerInfo(info);
 }
 

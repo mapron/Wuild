@@ -33,14 +33,14 @@ void LocalExecutor::Start()
 	m_thread.Exec(std::bind(&LocalExecutor::Quant, this));
 }
 
-size_t LocalExecutor::AddTask(LocalExecutorTask::Ptr task)
+void LocalExecutor::AddTask(LocalExecutorTask::Ptr task)
 {
 	Guard guard(m_queueMutex);
 
 	if (!m_thread.IsRunning())
 		Start();
 	m_taskQueue.push(task);
-	return m_taskQueue.size();
+
 }
 
 ILocalExecutor::TaskPair LocalExecutor::SplitTask(LocalExecutorTask::Ptr task, std::string &err)
@@ -70,6 +70,12 @@ StringVector LocalExecutor::GetToolIds() const
 void LocalExecutor::SetThreadCount(int threads)
 {
 	m_maxSubProcesses = threads;
+}
+
+size_t LocalExecutor::GetQueueSize() const
+{
+	Guard guard(m_queueMutex);
+	return m_taskQueue.size();
 }
 
 LocalExecutor::~LocalExecutor()

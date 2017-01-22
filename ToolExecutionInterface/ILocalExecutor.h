@@ -27,7 +27,7 @@ public:
 	virtual ~ILocalExecutor() = default;
 
 	/// Schedule task for execution. task contains callback to call when finished. Return value is current number of queued tasks.
-	virtual size_t AddTask(LocalExecutorTask::Ptr task) = 0;
+	virtual void AddTask(LocalExecutorTask::Ptr task) = 0;
 
 	/// Try to split task to preprocessing and compilation tasks. Returns empty TaskPair on fail.
 	virtual TaskPair SplitTask(LocalExecutorTask::Ptr task, std::string & err) = 0;
@@ -37,5 +37,8 @@ public:
 
 	/// Sets maximal process count.
 	virtual void SetThreadCount(int threads) = 0;
+
+	/// Queued tasks count.
+	virtual size_t GetQueueSize() const = 0;
 };
 }
