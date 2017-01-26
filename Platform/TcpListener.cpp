@@ -109,7 +109,7 @@ bool TcpListener::StartListen()
 		return false;
 	}
 
-	if (listen(m_impl->m_socket, 1))
+	if (listen(m_impl->m_socket, m_params.m_pendingListenConnections))
 	{
 		close( m_impl->m_socket );
 		m_impl->m_socket = INVALID_SOCKET;
