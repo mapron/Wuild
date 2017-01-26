@@ -112,11 +112,13 @@ bool ConfiguredApplication::InitLogging(const LoggerConfig &loggerConfig)
 			break;
 	#endif
 			//fallthrough
-		case LoggerConfig::LogType::Cerr:
-			backend.reset(new LoggerBackendCerr(loggerConfig.m_maxLogLevel,
+        case LoggerConfig::LogType::Cout:
+        case LoggerConfig::LogType::Cerr:
+            backend.reset(new LoggerBackendConsole(loggerConfig.m_maxLogLevel,
 												loggerConfig.m_outputLoglevel,
 												loggerConfig.m_outputTimestamp,
-												loggerConfig.m_outputTimeoffsets));
+                                                loggerConfig.m_outputTimeoffsets,
+                                                loggerConfig.m_logType == LoggerConfig::LogType::Cerr));
 		break;
 		case LoggerConfig::LogType::Files:
 			backend.reset(new LoggerBackendFiles(loggerConfig.m_maxLogLevel,
@@ -238,7 +240,8 @@ void ConfiguredApplication::ReadLoggingConfig()
 
 	if (m_config->GetBool(m_defaultGroupName, "logToSyslog"))
 		m_loggerConfig.m_logType = LoggerConfig::LogType::Syslog;
-
+    else if (m_config->GetBool(m_defaultGroupName, "logToCerr"))
+        m_loggerConfig.m_logType = LoggerConfig::LogType::Cerr;
 }
 
 void ConfiguredApplication::ReadInvocationRewriterConfig()

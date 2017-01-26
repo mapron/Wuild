@@ -21,16 +21,16 @@ namespace Wuild
 class LoggerConfig : public IConfig
 {
 public:
-	enum class LogType { Cerr, Syslog, Files };
-	int m_maxLogLevel = LOG_INFO;
-	LogType m_logType = LogType::Cerr;
+    enum class LogType { Cout, Cerr, Syslog, Files };
+    int m_maxLogLevel = LOG_NOTICE;
+    LogType m_logType = LogType::Cout;
 	std::string m_dir;
 	int m_maxMessagesInFile = 10000;
 	int m_maxFilesInDir = 5;
 	bool m_outputTimestamp = false;
 	bool m_outputTimeoffsets = false;
 	bool m_outputLoglevel = false;
-	LoggerConfig(int maxLogLevel = LOG_INFO, LogType logType = LogType::Cerr) : m_maxLogLevel(maxLogLevel), m_logType(logType) {}
+    LoggerConfig(int maxLogLevel = LOG_INFO, LogType logType = LogType::Cout) : m_maxLogLevel(maxLogLevel), m_logType(logType) {}
 	bool Validate(std::ostream * errStream = nullptr) const override;
 };
 }

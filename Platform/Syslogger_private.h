@@ -98,18 +98,23 @@ private:
 	const bool m_appendEndl;
 };
 
-class LoggerBackendCerr : public AbstractLoggerBackend
+class LoggerBackendConsole : public AbstractLoggerBackend
 {
-
+    const bool m_useCerr;
 public:
-	LoggerBackendCerr(int maxLogLevel,
+    LoggerBackendConsole(int maxLogLevel,
 					  bool outputLoglevel,
 					  bool outputTimestamp,
-					  bool outputTimeoffsets)
-		: AbstractLoggerBackend(maxLogLevel, outputLoglevel, outputTimestamp, outputTimeoffsets, true) { }
+                      bool outputTimeoffsets,
+                      bool useCerr)
+        : AbstractLoggerBackend(maxLogLevel, outputLoglevel, outputTimestamp, outputTimeoffsets, true)
+        , m_useCerr(useCerr){ }
 	void FlushMessageInternal(const std::string & message, int ) const override
 	{
-		std::cerr << message << std::flush;
+        if (m_useCerr)
+            std::cerr << message << std::flush;
+        else
+            std::cout << message << std::flush;
 	}
 };
 #ifdef __linux__
