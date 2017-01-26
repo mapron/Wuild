@@ -98,7 +98,7 @@ bool SocketFrameHandler::Quant()
 	bool taskResult = ReadFrames() && WriteFrames();
 	if (!taskResult)
 	{
-		Syslogger(m_logContext, LOG_INFO) << "read/write frames return false, " << ( m_retryConnectOnFail ? "waiting." : "stopping.");
+		Syslogger(m_logContext, Syslogger::Info) << "read/write frames return false, " << ( m_retryConnectOnFail ? "waiting." : "stopping.");
 		DisconnectChannel();
 		if (m_retryConnectOnFail)
 			usleep(m_settings.m_afterDisconnectWait.GetUS());
@@ -262,7 +262,7 @@ bool SocketFrameHandler::ReadFrames()
 		m_pendingReadType = ServiceMessageType::None;
 	}
 
-	//Syslogger(m_logContext, LOG_INFO) << "Read taken:" << m_lastSucceessfulRead.GetElapsedTime().ToProfilingTime();
+	//Syslogger(m_logContext, Syslogger::Info) << "Read taken:" << m_lastSucceessfulRead.GetElapsedTime().ToProfilingTime();
 
 	return true;
 }
@@ -299,7 +299,7 @@ SocketFrameHandler::ConsumeState SocketFrameHandler::ConsumeReadBuffer()
 		m_maxUnAcknowledgedSize = std::min(sendSize,  bufferSize) * BUFFER_RATIO;
 		if (version != m_settings.m_channelProtocolVersion)
 		{
-			Syslogger(m_logContext, LOG_ERR) << "Remote version is  " << version << ", but mine is " << m_settings.m_channelProtocolVersion;
+			Syslogger(m_logContext, Syslogger::Err) << "Remote version is  " << version << ", but mine is " << m_settings.m_channelProtocolVersion;
 			return ConsumeState::FatalError;
 		}
 		Syslogger(m_logContext)<< "Recieved buffer size = " << bufferSize << ", MaxUnAck=" << m_maxUnAcknowledgedSize  <<  ", remote time is " << m_remoteTimeDiffToPast.ToString() << " in past compare to me. (" << m_remoteTimeDiffToPast.GetUS() << " us)";
@@ -311,7 +311,7 @@ SocketFrameHandler::ConsumeState SocketFrameHandler::ConsumeReadBuffer()
 
 		if (m_frameReaders.find(int(mtype)) == m_frameReaders.end())
 		{
-			Syslogger(m_logContext, LOG_ERR) << "MessageHandler: invalid type of SocketFrame = " << int(mtype) ;
+			Syslogger(m_logContext, Syslogger::Err) << "MessageHandler: invalid type of SocketFrame = " << int(mtype) ;
 			return ConsumeState::Broken;
 		}
 
@@ -327,7 +327,7 @@ SocketFrameHandler::ConsumeState SocketFrameHandler::ConsumeReadBuffer()
 			if (size > m_settings.m_segmentSize)
 			{
 
-				Syslogger(m_logContext, LOG_ERR) << "Invalid segment size =" << size;
+				Syslogger(m_logContext, Syslogger::Err) << "Invalid segment size =" << size;
 				return ConsumeState::Broken;
 			}
 			if (size > frameLength)
@@ -356,7 +356,7 @@ SocketFrameHandler::ConsumeState SocketFrameHandler::ConsumeFrameBuffer()
 	}
 	catch(std::exception & ex)
 	{
-		Syslogger(m_logContext, LOG_ERR) << "MessageHandler ConsumeFrameBuffer() exception: " << ex.what();
+		Syslogger(m_logContext, Syslogger::Err) << "MessageHandler ConsumeFrameBuffer() exception: " << ex.what();
 		return ConsumeState::Broken;
 	}
 	if (framestate == SocketFrame::stIncomplete || m_frameDataBuffer.EofRead())
@@ -365,7 +365,7 @@ SocketFrameHandler::ConsumeState SocketFrameHandler::ConsumeFrameBuffer()
 	}
 	else if (framestate == SocketFrame::stBroken)
 	{
-		Syslogger(m_logContext, LOG_ERR) << "MessageHandler: broken message recieved. ";
+		Syslogger(m_logContext, Syslogger::Err) << "MessageHandler: broken message recieved. ";
 		return ConsumeState::Broken;
 	}
 	else if (framestate == SocketFrame::stOk)
@@ -383,7 +383,7 @@ bool SocketFrameHandler::WriteFrames()
 	{
 		if (m_acknowledgeTimer.GetElapsedTime() > m_settings.m_acknowledgeTimeout)
 		{
-			Syslogger(m_logContext, LOG_ERR) << "Acknowledge not recieved!"
+			Syslogger(m_logContext, Syslogger::Err) << "Acknowledge not recieved!"
 											<< " acknowledgeTimer=" << m_acknowledgeTimer.ToString()
 											<< " now:" << TimePoint(true).ToString()
 											<< " acknowledgeTimeout=" << m_settings.m_acknowledgeTimeout.ToString()
@@ -431,13 +431,13 @@ bool SocketFrameHandler::WriteFrames()
 			throw std::logic_error("Invalid queue logic");
 
 		ByteOrderDataStreamWriter streamWriter(m_settings.m_byteOrder);
-		Syslogger(m_logContext, LOG_INFO) << "outgoung -> " << frontMsg;
+		Syslogger(m_logContext, Syslogger::Info) << "outgoung -> " << frontMsg;
 		frontMsg->Write(streamWriter);
 
 		const auto typeId = frontMsg->FrameTypeId();
 		ByteArrayHolder buffer = streamWriter.GetBuffer().GetHolder();
 
-		//Syslogger(m_logContext, LOG_INFO) << "buffer -> " << streamWriter.GetBuffer().ToHex();
+		//Syslogger(m_logContext, Syslogger::Info) << "buffer -> " << streamWriter.GetBuffer().ToHex();
 		/// splitting onto segments.
 		for (size_t offset = 0; offset < buffer.size(); offset += m_settings.m_segmentSize)
 		{
@@ -456,7 +456,6 @@ bool SocketFrameHandler::WriteFrames()
 		}
 	}
 
-	bool written = false;
 	while (!m_outputSegments.empty())
 	{
 		ByteArrayHolder frontSegment = m_outputSegments.front();
@@ -469,12 +468,11 @@ bool SocketFrameHandler::WriteFrames()
 		auto writeResult = m_channel->Write(frontSegment, sizeForWrite);
 		if (writeResult == IDataSocket::WriteState::TryAgain)
 			break;
-		written = true;
 
 		m_outputSegments.pop_front();
 		if (writeResult == IDataSocket::WriteState::Fail)
 		{
-			Syslogger(m_logContext, LOG_ERR) << "Write failed: sizeForWrite=" <<  sizeForWrite
+			Syslogger(m_logContext, m_settings.m_writeFailureLogLevel) << "Write failed: sizeForWrite=" <<  sizeForWrite
 											 << ", maxSize=" << maxSize
 											 << ", m_bytesWaitingAcknowledge=" << m_bytesWaitingAcknowledge
 												;
@@ -490,8 +488,6 @@ bool SocketFrameHandler::WriteFrames()
 				break;
 		}
 	}
-	//if (written)
-	//	Syslogger(m_logContext, LOG_INFO) << "Write taken:" << startWrite.GetElapsedTime().ToProfilingTime();
 	return true;
 }
 
@@ -533,7 +529,7 @@ bool SocketFrameHandler::IsOutputBufferEmpty()
 
 void SocketFrameHandler::PreprocessFrame(SocketFrame::Ptr incomingMessage)
 {
-	Syslogger(m_logContext, LOG_INFO) << "incoming <- " << incomingMessage;
+	Syslogger(m_logContext, Syslogger::Info) << "incoming <- " << incomingMessage;
 	auto notifyCallback = m_replyManager.TakeNotifier(incomingMessage->m_replyToTransactionId);
 	if (notifyCallback)
 	{
@@ -597,7 +593,7 @@ void SocketFrameHandler::ReplyManager::CheckTimeouts()
 			}
 			else
 			{
-				Syslogger(LOG_CRIT) << "Timeout request =" << id << "does not has callback.";
+				Syslogger(Syslogger::Crit) << "Timeout request =" << id << "does not has callback.";
 			}
 
 			timeoutsIt = m_timeouts.erase(timeoutsIt);

@@ -22,7 +22,7 @@
 namespace Wuild
 {
 
-std::unique_ptr<ILoggerBackend> g_loggerBackend(new LoggerBackendConsole(LOG_NOTICE, false, false, false, true));
+std::unique_ptr<ILoggerBackend> g_loggerBackend(new LoggerBackendConsole(Syslogger::Notice, false, false, false, true));
 
 void Syslogger::SetLoggerBackend(std::unique_ptr<ILoggerBackend> && backend)
 {

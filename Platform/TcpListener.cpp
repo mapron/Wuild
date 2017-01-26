@@ -68,7 +68,7 @@ bool TcpListener::HasPendingConnections()
 
 	if (!StartListen())
 	{
-		Syslogger(m_logContext, LOG_ERR) << "Failed to listen on " << m_params.GetShortInfo() ;
+		Syslogger(m_logContext, Syslogger::Err) << "Failed to listen on " << m_params.GetShortInfo() ;
 		return false;
 	}
 
@@ -80,7 +80,7 @@ bool TcpListener::StartListen()
 	if (m_impl->m_socket != INVALID_SOCKET)
 		return true;
 
-	Syslogger(m_logContext, LOG_INFO) << "Start listen on: " <<  m_params.GetShortInfo();
+	Syslogger(m_logContext, Syslogger::Info) << "Start listen on: " <<  m_params.GetShortInfo();
 	if (!m_params.Resolve())
 		return false;
 
@@ -162,7 +162,7 @@ bool TcpListener::DoAccept(TcpSocket *client)
 	const bool success = (Socket != INVALID_SOCKET);
 	Syslogger() << "TcpListener::doAccept = " << success;
 	if (!success)
-		Syslogger(LOG_ERR) << "Socket accept failed." ;
+		Syslogger(Syslogger::Err) << "Socket accept failed." ;
 
 	return success;
 }

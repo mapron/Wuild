@@ -26,7 +26,7 @@ int main(int argc, char** argv)
 
 	Syslogger() << "Configuration: " << app.DumpAllConfigValues();
 
-	//app.m_loggerConfig.m_maxLogLevel = LOG_DEBUG;
+	//app.m_loggerConfig.m_maxLogLevel = Syslogger::Debug;
 	app.InitLogging(app.m_loggerConfig);
 
 	const auto args = app.GetRemainArgs();
@@ -40,7 +40,7 @@ int main(int argc, char** argv)
 	auto tasks = localExecutor->SplitTask(original, err);
 	if (!tasks.first)
 	{
-		Syslogger(LOG_ERR) << err;
+		Syslogger(Syslogger::Err) << err;
 		return 1;
 	}
 	LocalExecutorTask::Ptr taskPP = tasks.first;
@@ -62,7 +62,7 @@ int main(int argc, char** argv)
 
 		if (!localResult->m_result)
 		{
-			Syslogger(LOG_ERR) << "Preprocess failed";
+			Syslogger(Syslogger::Err) << "Preprocess failed";
 			Application::Interrupt(1);
 			return;
 		}

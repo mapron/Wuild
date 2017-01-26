@@ -47,8 +47,14 @@ void Application::SignalHandler(int Signal)
 		case SIGINT:
 			signalName = "SIGINT";
 			break;
+
+#ifndef _WIN32
+		case SIGHUP:
+			signalName = "SIGHUP";
+			break;
+#endif
 	}
-	Syslogger(LOG_WARNING) << "recieved " << signalName << ".";
+	Syslogger(Syslogger::Warning) << "recieved " << signalName << ".";
 	Application::Interrupt();
 }
 
@@ -173,6 +179,10 @@ void Application::SetSignalHandlers()
 {
 	signal(SIGTERM, SignalHandler);
 	signal(SIGINT, SignalHandler);
+#ifndef _WIN32
+	signal(SIGPIPE, SIG_IGN);
+	signal(SIGHUP, SignalHandler);
+#endif
 }
 
 void Application::WaitForTermination(int terminateAfterMS, int usleepTimeout)

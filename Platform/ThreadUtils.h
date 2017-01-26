@@ -18,15 +18,10 @@
 #include <queue>
 #include <mutex>
 
-/// defines usleep function for Windows; in Unix-like it defined in unistd.h
-#ifdef _WIN32
-#define usleep(useconds) std::this_thread::sleep_for( std::chrono::microseconds(useconds) )
-#else
-#include <unistd.h>
-#endif
-
 namespace Wuild
 {
+inline void usleep(int64_t useconds) { std::this_thread::sleep_for( std::chrono::microseconds(useconds) ); }
+
 /// mutex-locked std::queue wrapper.
 template <class T>
 class ThreadSafeQueue

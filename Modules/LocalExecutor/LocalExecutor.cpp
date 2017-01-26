@@ -135,7 +135,7 @@ void LocalExecutor::Quant()
 			if (!result->m_result)
 				result->m_stdOut = "Failed to read file " + task->m_outputFile.GetPath();
 		}
-		Syslogger(LOG_NOTICE) << task->GetShortErrorInfo() << " -> " << task->m_outputFile.GetPath() << compressionInfo.str();
+		Syslogger(Syslogger::Notice) << task->GetShortErrorInfo() << " -> " << task->m_outputFile.GetPath() << compressionInfo.str();
 
 		assert(bool(task->m_callback));
 		task->m_callback(result);

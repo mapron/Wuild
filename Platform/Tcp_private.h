@@ -64,6 +64,7 @@ public:
 	uint32_t GetRecieveBuffer();
 	bool SetSendBuffer(uint32_t size);
 	uint32_t GetSendBuffer();
+	bool SetNoSigPipe();
 };
 
 }

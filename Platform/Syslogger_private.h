@@ -13,7 +13,7 @@
 
 #pragma once
 
-#ifdef __linux__  // ensure LOG_EMERG* defines is first.
+#ifdef __linux__  // ensure Syslogger::Emerg* defines is first.
 #include <sys/syslog.h>
 #endif
 
@@ -76,14 +76,14 @@ protected:
 	{
 		switch (loglevel)
 		{
-		case LOG_EMERG    : return "EMERG";
-		case LOG_ALERT    : return "ALERT";
-		case LOG_CRIT     : return "CRIT ";
-		case LOG_ERR	  : return "ERROR";
-		case LOG_WARNING  : return "WARNI";
-		case LOG_NOTICE   : return "NOTIC";
-		case LOG_INFO     : return "INFO ";
-		case LOG_DEBUG    : return "DEBUG";
+		case Syslogger::Emerg    : return "EMERG";
+		case Syslogger::Alert    : return "ALERT";
+		case Syslogger::Crit     : return "CRIT ";
+		case Syslogger::Err		 : return "ERROR";
+		case Syslogger::Warning  : return "WARNI";
+		case Syslogger::Notice   : return "NOTIC";
+		case Syslogger::Info     : return "INFO ";
+		case Syslogger::Debug    : return "DEBUG";
 		default:
 			return "?????";
 		}
@@ -112,9 +112,9 @@ public:
 	void FlushMessageInternal(const std::string & message, int ) const override
 	{
         if (m_useCerr)
-            std::cerr << message << std::flush;
+			std::cerr << message << std::flush;
         else
-            std::cout << message << std::flush;
+			std::cout << message << std::flush;
 	}
 };
 #ifdef __linux__

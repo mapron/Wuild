@@ -15,6 +15,7 @@
 
 #include <SocketFrameService.h>
 #include <ByteOrderStream.h>
+#include <ThreadUtils.h>
 
 using namespace Wuild;
 
@@ -87,12 +88,13 @@ public:
 	void setServer(int port);
 	void addClient(std::string ip, int port);
 	void sendHello(std::string hello, int repeats);
+	void start();
 
 };
 
 using namespace Wuild;
 const int segmentSize = 240;
-const int textRepeats = 100000;
+const int textRepeats = 1;
 const int bufferSize = 128900;
 const int testServicePort = 12345;
 const std::string testHost = "localhost";
@@ -115,17 +117,22 @@ int main(int argc, char** argv)
 
 	TestService service;
 	service.setServer(testServicePort);
-	service.addClient(testHost, testServicePort);
+	usleep(100000);
+	for (int i=0; i< 20; ++i)
+	{
+		service.addClient(testHost, testServicePort);
+	}
    // service.addClient("localhost", testServicePort);
 
 	service.sendHello("Hello!", textRepeats);
+	service.start();
 
 	return ExecAppLoop(TestConfiguration::ExitHandler);
 }
 
 void TestService::setServer(int port)
 {
-	Syslogger(LOG_INFO) << "Listening on:" << port;
+	Syslogger(Syslogger::Info) << "Listening on:" << port;
 
 	SocketFrameHandlerSettings settings;
 	settings.m_recommendedRecieveBufferSize = bufferSize;
@@ -162,17 +169,16 @@ void TestService::addClient(std::string ip, int port)
 		{
 			exitCode = 0;
 		}
-		Application::Interrupt(exitCode);
+		//Application::Interrupt(exitCode);
 	}));
 	h->SetLogContext("client");
 	h->SetTcpChannel( ip, port);
 	m_clients.push_back(h);
-	h->Start();
 }
 
 void TestService::sendHello(std::string hello, int repeats)
 {
-	TimePoint start(true);
+	/*TimePoint start(true);
 	while (start.GetElapsedTime() < m_waitForConnectedClientsTimeout)
 	{
 		if ( m_clients[0]->IsActive())
@@ -181,13 +187,22 @@ void TestService::sendHello(std::string hello, int repeats)
 	}
 	if (! m_clients[0]->IsActive())
 	{
-		Syslogger(LOG_ERR) << "Failed to find active connection.";
+		Syslogger(Syslogger::Err) << "Failed to find active connection.";
 		return;
-	}
-	TestFrame::Ptr frame(new TestFrame());
-	for (int r = 0; r < repeats; ++r)
-		frame->m_text += hello;
+	}*/
+
 
 	for (auto client : m_clients)
+	{
+		TestFrame::Ptr frame(new TestFrame());
+		for (int r = 0; r < repeats; ++r)
+			frame->m_text += hello;
 		client->QueueFrame(frame);
+	}
+}
+
+void TestService::start()
+{
+	for (auto & client : m_clients)
+		client->Start();
 }

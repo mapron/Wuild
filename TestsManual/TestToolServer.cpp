@@ -36,7 +36,7 @@ int main(int argc, char** argv)
 	auto tasks = localExecutor->SplitTask(original, err);
 	if (!tasks.first)
 	{
-		Syslogger(LOG_ERR) << err;
+		Syslogger(Syslogger::Err) << err;
 		return 1;
 	}
 	LocalExecutorTask::Ptr taskPP = tasks.first;
@@ -71,7 +71,7 @@ int main(int argc, char** argv)
 
 			if (!localResult->m_result)
 			{
-				Syslogger(LOG_ERR) << "Preprocess failed\n" << localResult->m_stdOut;
+				Syslogger(Syslogger::Err) << "Preprocess failed\n" << localResult->m_stdOut;
 				Application::Interrupt(1);
 				return;
 			}

@@ -69,7 +69,7 @@ bool TcpConnectionParams::Resolve()
 		if (!m_errorShown)
 		{
 			m_errorShown = true;
-			Syslogger(LOG_ERR) << "Failed to detect socket information for :" << GetShortInfo() << ", ret=" << ret;
+			Syslogger(Syslogger::Err) << "Failed to detect socket information for :" << GetShortInfo() << ", ret=" << ret;
 		}
 		return false;
 	}

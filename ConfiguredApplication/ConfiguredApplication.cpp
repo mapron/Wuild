@@ -62,7 +62,7 @@ ConfiguredApplication::ConfiguredApplication(int argc, char **argv, const std::s
 	}
 	if (!config.ReadIniFile(configPath) && unexistendConfigIsError)
 	{
-		Syslogger(LOG_ERR) << "Failed to load:" << configPath;
+		Syslogger(Syslogger::Err) << "Failed to load:" << configPath;
 	}
 	// if global variable is set in inifile, override in again with commandline
 	config.ReadCommandLine(inputArgs, g_commandLinePrefix);
@@ -137,7 +137,7 @@ bool ConfiguredApplication::InitLogging(const LoggerConfig &loggerConfig)
 	}
 	else
 	{
-		Syslogger(LOG_ERR) << os.str();
+		Syslogger(Syslogger::Err) << os.str();
 	}
 	return true;
 }
@@ -149,7 +149,7 @@ bool ConfiguredApplication::GetInvocationRewriterConfig(InvocationRewriterConfig
 	if (!m_invocationRewriterConfig.Validate(&os))
 	{
 		if (!silent)
-			Syslogger(LOG_ERR) << os.str();
+			Syslogger(Syslogger::Err) << os.str();
 		return false;
 	}
 	config = m_invocationRewriterConfig;
@@ -162,7 +162,7 @@ bool ConfiguredApplication::GetCoordinatorServerConfig(CoordinatorServerConfig &
 	std::ostringstream os;
 	if (!m_coordinatorServerConfig.Validate(&os))
 	{
-		Syslogger(LOG_ERR) << os.str();
+		Syslogger(Syslogger::Err) << os.str();
 		return false;
 	}
 	config = m_coordinatorServerConfig;
@@ -174,7 +174,7 @@ bool ConfiguredApplication::GetToolProxyServerConfig(ToolProxyServerConfig &conf
 	std::ostringstream os;
 	if (!m_toolProxyServerConfig.Validate(&os))
 	{
-		Syslogger(LOG_ERR) << os.str();
+		Syslogger(Syslogger::Err) << os.str();
 		return false;
 	}
 	config = m_toolProxyServerConfig;
@@ -187,7 +187,7 @@ bool ConfiguredApplication::GetRemoteToolClientConfig(RemoteToolClientConfig &co
 	if (!m_remoteToolClientConfig.Validate(&os))
 	{
 		if (!silent)
-			Syslogger(LOG_ERR) << os.str();
+			Syslogger(Syslogger::Err) << os.str();
 		return false;
 	}
 	config = m_remoteToolClientConfig;
@@ -200,7 +200,7 @@ bool ConfiguredApplication::GetRemoteToolServerConfig(RemoteToolServerConfig &co
 	if (!m_remoteToolServerConfig.Validate(&os))
 	{
 		if (!silent)
-			Syslogger(LOG_ERR) << os.str();
+			Syslogger(Syslogger::Err) << os.str();
 		return false;
 	}
 	config = m_remoteToolServerConfig;

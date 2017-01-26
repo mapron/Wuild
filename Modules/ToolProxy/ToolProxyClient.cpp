@@ -41,7 +41,7 @@ bool ToolProxyClient::SetConfig(const ToolProxyClient::Config &config)
 	std::ostringstream os;
 	if (!config.Validate(&os))
 	{
-		Syslogger(LOG_ERR) << os.str();
+		Syslogger(Syslogger::Err) << os.str();
 		return false;
 	}
 	m_config = config;
@@ -50,7 +50,9 @@ bool ToolProxyClient::SetConfig(const ToolProxyClient::Config &config)
 
 void ToolProxyClient::Start()
 {
-	m_client.reset(new SocketFrameHandler( ));
+	SocketFrameHandlerSettings settings;
+	settings.m_writeFailureLogLevel = Syslogger::Info;
+	m_client.reset(new SocketFrameHandler( settings ));
 	m_client->RegisterFrameReader(SocketFrameReaderTemplate<ToolProxyResponse>::Create());
 
 	m_client->SetTcpChannel("localhost", m_config.m_listenPort);

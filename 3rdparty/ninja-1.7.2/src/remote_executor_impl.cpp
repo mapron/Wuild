@@ -17,7 +17,7 @@ using namespace Wuild;
 
 RemoteExecutor::RemoteExecutor(ConfiguredApplication &app) : m_app(app)
 {
-	bool silent = !Syslogger::IsLogLevelEnabled(LOG_DEBUG);
+	bool silent = !Syslogger::IsLogLevelEnabled(Syslogger::Debug);
 
 	IInvocationRewriter::Config compilerConfig;
 	if (!m_app.GetInvocationRewriterConfig(compilerConfig, silent))
@@ -61,10 +61,10 @@ RemoteExecutor::RemoteExecutor(ConfiguredApplication &app) : m_app(app)
 
 void RemoteExecutor::SetVerbose(bool verbose)
 {
-	if (!verbose || Syslogger::IsLogLevelEnabled(LOG_INFO))
+	if (!verbose || Syslogger::IsLogLevelEnabled(Syslogger::Info))
 		return;
 
-	m_app.m_loggerConfig.m_maxLogLevel = LOG_INFO;
+	m_app.m_loggerConfig.m_maxLogLevel = Syslogger::Info;
 	m_app.InitLogging(m_app.m_loggerConfig);
 }
 
@@ -215,7 +215,7 @@ void RemoteExecutor::Abort()
 	if (m_hasStart && m_remoteService)
 	{
 		m_remoteService->FinishSession();
-		Syslogger(LOG_NOTICE) <<  m_remoteService->GetSessionInformation();
+		Syslogger(Syslogger::Notice) <<  m_remoteService->GetSessionInformation();
 	}
 	m_hasStart = false;
 	m_remoteService.reset();

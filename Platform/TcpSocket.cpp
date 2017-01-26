@@ -39,7 +39,7 @@ void SocketEngineCheck()
 					 WSADATA wsa;
 
 							  if ((ec = WSAStartup(MAKEWORD(2,0), &wsa)) != 0)
-								  Wuild::Syslogger(LOG_ERR) <<  "WIN32_SOCKET: winsock error: code " << ec;
+								  Wuild::Syslogger(Syslogger::Err) <<  "WIN32_SOCKET: winsock error: code " << ec;
 				  }
 		~WSA_RAII() { WSACleanup(); }
 	};
@@ -109,7 +109,7 @@ bool TcpSocket::Connect ()
 
 	if (m_impl->m_socket != INVALID_SOCKET)
 	{
-		Syslogger(m_logContext, LOG_ALERT) << "Trying to reopen existing socket!" ;
+		Syslogger(m_logContext, Syslogger::Alert) << "Trying to reopen existing socket!" ;
 		return false;
 	}
 
@@ -119,12 +119,16 @@ bool TcpSocket::Connect ()
 	m_impl->m_socket = socket(m_params.m_impl->ai->ai_family, m_params.m_impl->ai->ai_socktype, m_params.m_impl->ai->ai_protocol);
 	if (m_impl->m_socket == INVALID_SOCKET)
 	{
-		Syslogger(m_logContext, LOG_ERR) << "socket creation failed." ;
+		Syslogger(m_logContext, Syslogger::Err) << "socket creation failed." ;
 		Fail();
 		return false;
 	}
 
 	SetBufferSize();
+	if (!m_impl->SetNoSigPipe())
+	{
+		Syslogger(m_logContext, Syslogger::Warning) << "Failed to disable SIGPIPE signal." ;
+	}
 	if (!m_impl->SetBlocking(false))
 	{
 		Fail();
@@ -220,7 +224,7 @@ IDataSocket::ReadState TcpSocket::Read(ByteArrayHolder & buffer)
 		  const auto err = SocketGetLastError();
 		  if (SocketRWPending(err) )
 			  break;
-		  Syslogger(m_logContext, LOG_ERR) << "Disconnecting while Reading ("<< recieved << ") err=" << err;
+		  Syslogger(m_logContext, Syslogger::Err) << "Disconnecting while Reading ("<< recieved << ") err=" << err;
 		  Disconnect();
 		  return ReadState::Fail;
 	  }
@@ -250,7 +254,8 @@ TcpSocket::WriteState TcpSocket::Write(const ByteArrayHolder & buffer, size_t ma
 		if (SocketRWPending(err))
 			return WriteState::TryAgain;
 
-		Syslogger(m_logContext, LOG_ERR) << "Disconnecting while Writing, ("<< written << ") err=" << err;
+		const int EPIPE_code = 32;
+		Syslogger(m_logContext, err == EPIPE_code ? Syslogger::Info : Syslogger::Err) << "Disconnecting while Writing, (" << written << ") err=" << err;
 		Disconnect();
 		return WriteState::Fail;
 	}
@@ -319,7 +324,7 @@ void TcpSocket::SetBufferSize()
 	{
 		if (!m_impl->SetRecieveBuffer(m_params.m_recommendedRecieveBufferSize))
 		{
-			Syslogger(m_logContext, LOG_INFO) << "Failed to set recieve socket buffer size:" << m_params.m_recommendedRecieveBufferSize;
+			Syslogger(m_logContext, Syslogger::Info) << "Failed to set recieve socket buffer size:" << m_params.m_recommendedRecieveBufferSize;
 		}
 		m_recieveBufferSize = m_impl->GetRecieveBuffer();
 	}
@@ -328,7 +333,7 @@ void TcpSocket::SetBufferSize()
 	{
 		if (!m_impl->SetSendBuffer(m_params.m_recommendedSendBufferSize))
 		{
-			Syslogger(m_logContext, LOG_INFO) << "Failed to set send socket buffer size:" << m_params.m_recommendedSendBufferSize;
+			Syslogger(m_logContext, Syslogger::Info) << "Failed to set send socket buffer size:" << m_params.m_recommendedSendBufferSize;
 		}
 		m_sendBufferSize = m_impl->GetSendBuffer();
 	}
@@ -340,14 +345,14 @@ bool TcpSocketPrivate::SetBlocking(bool blocking)
 	u_long flags = blocking ? 0 : 1;
 	if(ioctlsocket( m_socket, FIONBIO, &flags ) != NO_ERROR)
 	{
-		Syslogger(LOG_ERR) << "ioctlsocket(FIONBIO O_NONBLOCK) failed." ;
+		Syslogger(Syslogger::Err) << "ioctlsocket(FIONBIO O_NONBLOCK) failed." ;
 		return false;
 	}
 #else
 	long flags = fcntl( m_socket, F_GETFL, 0 );
 	if (flags < 0)
 	{
-		Syslogger(LOG_ERR) << "fcntl(F_GETFL) failed." ;
+		Syslogger(Syslogger::Err) << "fcntl(F_GETFL) failed." ;
 		return false;
 	}
 	if (!blocking)
@@ -357,7 +362,7 @@ bool TcpSocketPrivate::SetBlocking(bool blocking)
 
 	if(fcntl( m_socket, F_SETFL, flags ) < 0)
 	{
-		Syslogger(LOG_ERR) << "fcntl(F_SETFL O_NONBLOCK) failed." ;
+		Syslogger(Syslogger::Err) << "fcntl(F_SETFL O_NONBLOCK) failed." ;
 		return false;
 	}
 #endif
@@ -395,5 +400,11 @@ uint32_t TcpSocketPrivate::GetSendBuffer()
 		return g_defaultBufferSize;
 
 	return static_cast<uint32_t>(valopt);
+}
+
+bool TcpSocketPrivate::SetNoSigPipe()
+{
+	int value = 1;
+	return setsockopt(m_socket, SOL_SOCKET, SO_NOSIGPIPE, &value, sizeof(value)) == 0;
 }
 }

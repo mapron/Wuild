@@ -43,7 +43,7 @@ bool CoordinatorClient::SetConfig(const CoordinatorClient::Config &config)
 	std::ostringstream os;
 	if (!config.Validate(&os))
 	{
-		Syslogger(LOG_ERR) << os.str();
+		Syslogger(Syslogger::Err) << os.str();
 		return false;
 	}
 	m_config = config;

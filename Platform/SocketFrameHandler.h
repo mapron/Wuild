@@ -69,6 +69,8 @@ struct SocketFrameHandlerSettings
 	bool           m_hasLineTest     = true;                      //!< Test frames
 	bool           m_hasConnOptions  = true;                      //!< Send connect options after connection established.
 	bool           m_hasChannelTypes = true;                      //!< Use frame type marker in stream. Without that, all frames should have SocketFrame::s_minimalUserFrameId id.
+
+	int            m_writeFailureLogLevel = Syslogger::Err;
 };
 
 /**

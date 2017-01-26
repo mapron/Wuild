@@ -28,7 +28,7 @@ public:
 		using namespace Wuild;
 		LocalExecutorResult::Ptr res(new LocalExecutorResult("Stub output OK", true));
 		res->m_executionTime.SetUS(1000);
-		Syslogger(LOG_INFO) << "AddTask ";
+		Syslogger(Syslogger::Info) << "AddTask ";
 		task->m_callback(res);
 	}
 	size_t GetQueueSize() const override
@@ -56,7 +56,7 @@ int main(int argc, char** argv)
 	   return 1;
 
 	app.m_loggerConfig.m_outputTimeoffsets = true;
-   // app.m_loggerConfig.m_maxLogLevel = LOG_DEBUG;
+   // app.m_loggerConfig.m_maxLogLevel = Syslogger::Debug;
 	app.InitLogging(app.m_loggerConfig);
 
 	ILocalExecutor::Ptr executor(new LocalExecutorTest());
@@ -121,7 +121,7 @@ int main(int argc, char** argv)
 
 	TimePoint start(true);
 	rcClient.SetRemoteAvailableCallback([&start, &totalCount, &rcClient, &callback, &callbackFail]() {
-		 Syslogger(LOG_INFO) <<  "Init client taken: " << start.GetElapsedTime().GetUS() << " us.";
+		 Syslogger(Syslogger::Info) <<  "Init client taken: " << start.GetElapsedTime().GetUS() << " us.";
 		 totalCount++; rcClient.InvokeTool(ToolInvocation().SetId(g_testTool) , callback);
 		 totalCount++; rcClient.InvokeTool(ToolInvocation().SetId(g_testTool2), callbackFail);
 	});

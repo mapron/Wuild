@@ -21,17 +21,6 @@
 #include <sstream>
 #include <map>
 
-#ifndef LOG_EMERG
-#define LOG_EMERG 0
-#define LOG_ALERT 1
-#define LOG_CRIT 2
-#define LOG_ERR 3
-#define LOG_WARNING 4
-#define LOG_NOTICE 5
-#define LOG_INFO 6
-#define LOG_DEBUG 7
-#endif
-
 namespace Wuild
 {
 /// Logging implementation
@@ -40,7 +29,7 @@ class ILoggerBackend
 public:
 	virtual ~ILoggerBackend() = default;
 
-	/// Returns true if log should be flushed. LOG_EMERG <= loglevel <=  LOG_DEBUG
+	/// Returns true if log should be flushed. Syslogger::Emerg <= loglevel <=  Syslogger::Debug
 	virtual bool LogEnabled(int logLevel) const = 0;
 
 	/// Outputs log message to log backend.
@@ -51,6 +40,7 @@ public:
 class Syslogger
 {
 public:
+	enum LogLevel { Emerg, Alert, Crit, Err, Warning, Notice, Info, Debug };
 
 	 /// Change default logging behaviour.
 	static void SetLoggerBackend(std::unique_ptr<ILoggerBackend> && backend);
@@ -68,10 +58,10 @@ public:
 		Binary (const unsigned char* data, int size);
 	};
 	/// Creates logger. If loglevel is flushable by backend, stream will be created.
-	Syslogger (int logLevel = LOG_DEBUG);
+	Syslogger (int logLevel = Syslogger::Debug);
 
 	/// Convenience constructor for outputting context. Context string will be enclosed in braces, if not empty.
-	Syslogger (const std::string & context, int logLevel = LOG_DEBUG);
+	Syslogger (const std::string & context, int logLevel = Syslogger::Debug);
 
 	/// Flushes all output to backend.
 	~Syslogger();

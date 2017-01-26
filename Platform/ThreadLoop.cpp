@@ -62,11 +62,11 @@ void ThreadLoop::Exec(ThreadLoop::QuantFunction quant, int64_t sleepUS)
 		}
 		catch (std::exception& ex)
 		{
-			Syslogger(LOG_ERR) << "std::exception caught in ThreadLoop::Exec " << ex.what();
+			Syslogger(Syslogger::Err) << "std::exception caught in ThreadLoop::Exec " << ex.what();
 		}
 		catch (...)
 		{
-			Syslogger(LOG_CRIT) << "Exception caught in ThreadLoop::mainCycle.";
+			Syslogger(Syslogger::Crit) << "Exception caught in ThreadLoop::mainCycle.";
 		}
 
 	});

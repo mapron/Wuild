@@ -78,7 +78,7 @@ public:
 			{
 				if (it->m_expirationMoment < now)
 				{
-					Syslogger(LOG_ERR) << "Task expired: " << SocketFrame::Ptr(it->m_toolRequest);
+					Syslogger(Syslogger::Err) << "Task expired: " << SocketFrame::Ptr(it->m_toolRequest);
 					if (it->m_callback)
 					{
 						RemoteToolClient::TaskExecutionInfo info;
@@ -112,7 +112,7 @@ public:
 		{
 			m_balancer.FinishTask(clientIndex);
 			const std::string outputFilename =  task.m_invocation.GetOutput();
-			Syslogger(LOG_INFO) << "RECIEVING [" << task.m_taskIndex << "]:" << outputFilename;
+			Syslogger(Syslogger::Info) << "RECIEVING [" << task.m_taskIndex << "]:" << outputFilename;
 			RemoteToolClient::TaskExecutionInfo info;
 			if (state == SocketFrameHandler::ReplyState::Timeout)
 			{
@@ -175,7 +175,7 @@ bool RemoteToolClient::SetConfig(const RemoteToolClient::Config &config)
 	std::ostringstream os;
 	if (!config.Validate(&os))
 	{
-		Syslogger(LOG_ERR) << os.str();
+		Syslogger(Syslogger::Err) << os.str();
 		return false;
 	}
 	m_config = config;
@@ -282,7 +282,7 @@ void RemoteToolClient::InvokeTool(const ToolInvocation & invocation, InvokeCallb
 	wrap.m_attemptsRemain = m_config.m_invocationAttempts;
 	wrap.m_requestTimeout = m_config.m_requestTimeout;
 
-	Syslogger(LOG_INFO) << "QueueFrame [" << wrap.m_taskIndex << "] -> " << invocation.GetArgsString(false)
+	Syslogger(Syslogger::Info) << "QueueFrame [" << wrap.m_taskIndex << "] -> " << invocation.GetArgsString(false)
 						<< ", balancerFree:" <<m_impl->m_balancer.GetFreeThreads()
 						<< ", pending:" << m_impl->m_pendingTasks;
 
@@ -314,7 +314,7 @@ void RemoteToolClient::AvailableCheck()
 			m_remoteAvailableCallback();
 		const auto free  = m_impl->m_balancer.GetFreeThreads();
 		const auto total = m_impl->m_balancer.GetTotalThreads();
-		Syslogger(LOG_NOTICE) << "Recieved info from coordinator: total remote threads=" << total << ", free=" << free;
+		Syslogger(Syslogger::Notice) << "Recieved info from coordinator: total remote threads=" << total << ", free=" << free;
 	}
 }
 
