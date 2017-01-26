@@ -24,7 +24,7 @@ public:
 	int m_listenPort = 0;
 	std::string m_toolId;
 	int m_threadCount = 1;
-	TimePoint m_proxyClientTimeout = 60.0;
+	TimePoint m_proxyClientTimeout = 240.0;
 	bool Validate(std::ostream * errStream = nullptr) const override;
 };
 }
