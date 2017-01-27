@@ -39,7 +39,7 @@ void SocketEngineCheck()
 					 WSADATA wsa;
 
 							  if ((ec = WSAStartup(MAKEWORD(2,0), &wsa)) != 0)
-								  Wuild::Syslogger(Syslogger::Err) <<  "WIN32_SOCKET: winsock error: code " << ec;
+								  Wuild::Syslogger(Wuild::Syslogger::Err) <<  "WIN32_SOCKET: winsock error: code " << ec;
 				  }
 		~WSA_RAII() { WSACleanup(); }
 	};
@@ -404,7 +404,11 @@ uint32_t TcpSocketPrivate::GetSendBuffer()
 
 bool TcpSocketPrivate::SetNoSigPipe()
 {
+#ifdef __APPLE__
 	int value = 1;
 	return setsockopt(m_socket, SOL_SOCKET, SO_NOSIGPIPE, &value, sizeof(value)) == 0;
+#else
+	return true;
+#endif
 }
 }
