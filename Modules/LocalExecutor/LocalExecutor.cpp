@@ -141,11 +141,11 @@ void LocalExecutor::Quant()
 		task->m_callback(result);
 	}
 
-	if (m_subprocs->running_.size() < m_maxSubProcesses)
+	while (m_subprocs->running_.size() < m_maxSubProcesses)
 	{
 		auto task = GetNextTask();
 		if (task)
-		{
+		{		
 			do
 			{
 				ToolInvocation inv = task->m_invocation;
@@ -189,6 +189,10 @@ void LocalExecutor::Quant()
 				}
 				m_subprocToTask[addsubproc] = task;
 			} while(false);
+		}
+		else
+		{
+			break;
 		}
 	}
 

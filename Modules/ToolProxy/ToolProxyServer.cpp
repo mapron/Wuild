@@ -22,7 +22,6 @@ namespace Wuild
 ToolProxyServer::ToolProxyServer(ILocalExecutor::Ptr executor, RemoteToolClient &rcClient)
 	: m_executor(executor), m_rcClient(rcClient)
 {
-	m_executor->SetThreadCount(m_config.m_threadCount);
 }
 
 ToolProxyServer::~ToolProxyServer()
@@ -45,6 +44,7 @@ bool ToolProxyServer::SetConfig(const ToolProxyServer::Config &config)
 
 void ToolProxyServer::Start()
 {
+	m_executor->SetThreadCount(m_config.m_threadCount);
 	m_server.reset(new SocketFrameService( m_config.m_listenPort ));
 	m_server->RegisterFrameReader(SocketFrameReaderTemplate<ToolProxyRequest>::Create([this](const ToolProxyRequest& inputMessage, SocketFrameHandler::OutputCallback outputCallback){
 
