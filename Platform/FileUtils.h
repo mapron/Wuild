@@ -53,7 +53,7 @@ public:
 	bool ReadGzipped(ByteArrayHolder & data, int level = 1);
 
 	/// Write deflated memory data to file on disk uncompressed.
-	bool WriteGzipped( const ByteArrayHolder & data);
+	bool WriteGzipped( const ByteArrayHolder & data, bool createTmpCopy = false);
 
 	/// Read whole file into buffer
 	bool ReadFile(ByteArrayHolder & data);

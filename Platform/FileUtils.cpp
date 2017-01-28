@@ -24,11 +24,11 @@
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
 #define u8string string
-#define CODE_ARG(arg)
+using fserr = boost::system::error_code;
 #else
 #include <experimental/filesystem>
 namespace fs = std::experimental::filesystem;
-#define CODE_ARG(arg) , arg
+using fserr = std::error_code;
 #endif
 
 #ifdef _MSC_VER
@@ -251,9 +251,12 @@ bool FileInfo::ReadGzipped( ByteArrayHolder &data, int level)
 	return result;
 }
 
-bool FileInfo::WriteGzipped( const ByteArrayHolder & data)
+bool FileInfo::WriteGzipped(const ByteArrayHolder & data, bool createTmpCopy)
 {
-	FILE * f = fopen(GetPath().c_str(), "wb");
+	const std::string originalPath = GetPath();
+	const std::string writePath = createTmpCopy ? originalPath + ".tmp" : originalPath;
+	this->Remove();
+	FILE * f = fopen(writePath.c_str(), "wb");
 	if (!f)
 	{
 		Syslogger(Syslogger::Err) << "Failed to open for write " << GetPath();
@@ -270,6 +273,19 @@ bool FileInfo::WriteGzipped( const ByteArrayHolder & data)
 	{
 		Syslogger(Syslogger::Err) << "Failed to close " << GetPath();
 		return false;
+	}
+	if (!result)
+		return result;
+
+	if (createTmpCopy)
+	{
+		fserr code;
+		fs::rename(writePath, originalPath, code);
+		if (code)
+		{
+			Syslogger(Syslogger::Err) << "Failed to rename " << GetPath();
+			return false;
+		}
 	}
 	return result;
 }
@@ -315,8 +331,8 @@ bool FileInfo::WriteFile(const ByteArrayHolder &data)
 
 bool FileInfo::Exists()
 {
-	std::error_code code;
-	return fs::exists(m_impl->m_path CODE_ARG(code));
+	fserr code;
+	return fs::exists(m_impl->m_path, code);
 }
 
 size_t FileInfo::FileSize()
@@ -324,21 +340,21 @@ size_t FileInfo::FileSize()
 	if (!Exists())
 		return 0;
 
-	std::error_code code;
-	return fs::file_size(m_impl->m_path CODE_ARG(code));
+	fserr code;
+	return fs::file_size(m_impl->m_path, code);
 }
 
 void FileInfo::Remove()
 {
-	std::error_code code;
-	if (fs::exists(m_impl->m_path CODE_ARG(code)))
-		fs::remove(m_impl->m_path CODE_ARG(code));
+	fserr code;
+	if (fs::exists(m_impl->m_path, code))
+		fs::remove(m_impl->m_path, code);
 }
 
 void FileInfo::Mkdirs()
 {
-	std::error_code code;
-	fs::create_directories(m_impl->m_path CODE_ARG(code));
+	fserr code;
+	fs::create_directories(m_impl->m_path, code);
 }
 
 StringVector FileInfo::GetDirFiles(bool sortByName)

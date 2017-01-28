@@ -134,7 +134,7 @@ public:
 
 				if (info.m_result && !outputFilename.empty())
 				{
-					info.m_result = FileInfo(outputFilename).WriteGzipped(result->m_fileData);
+					info.m_result = FileInfo(outputFilename).WriteGzipped(result->m_fileData, true);
 				}
 			}
 			m_parent->UpdateSessionInfo(info);
