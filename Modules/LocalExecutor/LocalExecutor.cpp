@@ -145,7 +145,7 @@ void LocalExecutor::Quant()
 	{
 		auto task = GetNextTask();
 		if (task)
-		{		
+		{
 			do
 			{
 				ToolInvocation inv = task->m_invocation;
@@ -166,7 +166,7 @@ void LocalExecutor::Quant()
 					task->m_outputFile.SetPath(tmpPrefix + outputFile.GetFullname());
 					task->m_outputFile.Remove();
 
-					if (! task->m_inputFile.WriteGzipped(task->m_inputData) )
+					if (! task->m_inputFile.WriteGzipped(task->m_inputData, true) )
 					{
 						break;
 					}

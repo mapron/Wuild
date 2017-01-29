@@ -14,6 +14,7 @@
 #include "FileUtils.h"
 
 #include <Syslogger.h>
+#include <ThreadUtils.h>
 
 #include <zlib.h>
 #include <assert.h>
@@ -46,8 +47,12 @@ using fserr = std::error_code;
 #include <unistd.h>
 #endif
 
-
-#define CHUNK 16384
+namespace {
+static const size_t CHUNK = 16384;
+// TODO: on windows, recieving ERROR_SHARING_VIOLATION when attempting to rename temporary file.
+static const size_t g_renameAttempts = 50;
+static const int64_t g_renameUsleep = 100000;
+}
 
 /* Compress from file source to file dest until EOF on source.
    def() returns Z_OK on success, Z_MEM_ERROR if memory could not be
@@ -256,34 +261,49 @@ bool FileInfo::WriteGzipped(const ByteArrayHolder & data, bool createTmpCopy)
 	const std::string originalPath = GetPath();
 	const std::string writePath = createTmpCopy ? originalPath + ".tmp" : originalPath;
 	this->Remove();
-	FILE * f = fopen(writePath.c_str(), "wb");
-	if (!f)
-	{
-		Syslogger(Syslogger::Err) << "Failed to open for write " << GetPath();
-		return false;
-	}
 	bool result = true;
-	if (inf(data.ref(), f) != Z_OK)
 	{
-		Syslogger(Syslogger::Err) << "Failed to unzip data " << GetPath() << ", size = " << data.size();
-		result = false;
+		auto deleter = [&result, &writePath](FILE* f){
+			if (f)
+			{
+				if (fclose(f) != 0)
+				{
+					Syslogger(Syslogger::Err) << "Failed to close " << writePath;
+					result = false;
+				}
+			}
+		};
+		std::unique_ptr<FILE, decltype(deleter)> f(fopen(writePath.c_str(), "wb"), deleter);
+		if (!f)
+		{
+			Syslogger(Syslogger::Err) << "Failed to open for write " << GetPath();
+			return false;
+		}
+
+		if (inf(data.ref(), f.get()) != Z_OK)
+		{
+			Syslogger(Syslogger::Err) << "Failed to unzip data " << GetPath() << ", size = " << data.size();
+			return false;
+		}
 	}
 
-	if (fclose(f) == EOF)
-	{
-		Syslogger(Syslogger::Err) << "Failed to close " << GetPath();
-		return false;
-	}
 	if (!result)
 		return result;
 
 	if (createTmpCopy)
 	{
 		fserr code;
-		fs::rename(writePath, originalPath, code);
+		for (size_t attempt = 0; attempt < g_renameAttempts; ++attempt)
+		{
+			fs::rename(writePath, originalPath, code);
+			if (!code)
+				break;
+			usleep(g_renameUsleep);
+		}
+
 		if (code)
 		{
-			Syslogger(Syslogger::Err) << "Failed to rename " << GetPath();
+			Syslogger(Syslogger::Err) << "Failed to rename " << GetPath() << " code:" << code;
 			return false;
 		}
 	}
