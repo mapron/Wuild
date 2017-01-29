@@ -126,6 +126,11 @@ void LocalExecutor::Quant()
 
 		result->m_executionTime = task->m_executionStart.GetElapsedTime();
 
+		if (result->m_stdOut.size() < 1000 && result->m_stdOut.find_first_of('\n') == result->m_stdOut.size()-1)
+		{   // cl.exe always outputs input name to stderr.
+			result->m_stdOut.clear();
+		}
+
 		std::ostringstream compressionInfo;
 		if (result->m_result && task->m_readOutput)
 		{
