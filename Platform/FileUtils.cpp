@@ -303,6 +303,7 @@ bool FileInfo::WriteGzipped(const ByteArrayHolder & data, bool createTmpCopy)
 
 		if (code)
 		{
+			fs::remove(writePath, code);
 			Syslogger(Syslogger::Err) << "Failed to rename " << GetPath() << " code:" << code;
 			return false;
 		}
