@@ -53,7 +53,7 @@ void GccCommandLineParser::UpdateInfo()
 			{
 				skipNext = true;
 			}
-			if (arg == "-MF" || arg == "-MT" || arg == "-isysroot" || arg == "-isystem" || arg == "-iframework")
+			if (arg == "-MF" || arg == "-MT" || arg == "-isysroot" || arg == "-isystem" || arg == "-iframework" || arg == "--serialize-diagnostics" || arg == "-arch")
 				skipNext = true;
 
 			continue;
@@ -126,7 +126,7 @@ void GccCommandLineParser::RemovePrepocessorFlags()
 			if (arg[1] == 'I' || arg[1] == 'D' || arg[1] == 'F' )
 				continue;
 
-			if (arg == "-isysroot" || arg == "-iframework" || arg == "-isystem" )
+			if (arg == "-isysroot" || arg == "-iframework" || arg == "-isystem" || arg == "--serialize-diagnostics")
 			{
 				skipNext = true;
 				continue;
