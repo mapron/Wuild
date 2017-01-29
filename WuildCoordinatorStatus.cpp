@@ -15,8 +15,10 @@
 
 #include <CoordinatorClient.h>
 #include <StringUtils.h>
+#include <TimePoint.h>
 
 #include <iostream>
+#include <set>
 
 int main(int argc, char** argv)
 {
@@ -34,23 +36,42 @@ int main(int argc, char** argv)
 
 	client.SetInfoArrivedCallback([](const CoordinatorInfo& info){
 		std::cout << "Coordinator connected tool servers: \n";
+
+		std::map<int64_t, int> sessionsUsed;
+		std::set<std::string> toolIds;
+		int running = 0, thread = 0, queued = 0;
+
 		for (const ToolServerInfo & toolServer : info.m_toolServers)
 		{
-			std::cout <<  toolServer.ToString(true, true) << "\n";
+			std::cout <<  toolServer.m_connectionHost << ":" << toolServer.m_connectionPort <<
+						  " load:" << toolServer.m_runningTasks << "/" << toolServer.m_totalThreads << "\n";
+			running += toolServer.m_runningTasks;
+			queued += toolServer.m_queuedTasks;
+			thread += toolServer.m_totalThreads;
+			for (const ToolServerInfo::ConnectedClientInfo & client : toolServer.m_connectedClients)
+			{
+				sessionsUsed[client.m_sessionId] += client.m_usedThreads ;
+			}
+			for (const std::string & t : toolServer.m_toolIds)
+				toolIds.insert(t);
 		}
 
-		std::cout << "\n Coordinator current sessions: \n";
-		for (const ToolServerSessionInfo & session : info.m_activeSessions)
+		std::cout <<  "\nTotal load:" << running << "/" << thread << ", queue: " << queued << "\n";
+
+		if (!sessionsUsed.empty())
 		{
-			std::cout <<  session.ToString(true, true) << "\n";
+			std::cout << "\nRunning sessions:\n";
+			for (const auto & s : sessionsUsed)
+			{
+				TimePoint stamp; stamp.SetUS(s.first); stamp.ToLocal();
+				std::cout << "Started " << stamp.ToString() << ", used: " << s.second << "\n";
+			}
 		}
 
-		std::cout << "\n Coordinator latest finished sessions: \n";
-		for (const ToolServerSessionInfo & session : info.m_latestSessions)
-		{
-			std::cout <<  session.ToString(false, true) << "\n";
-		}
-
+		std::cout << "\nAvailable tools: ";
+		for (const auto & t : toolIds)
+			std::cout << t << ", ";
+		std::cout << "\n";
 		Application::Interrupt(0);
 	});
 
