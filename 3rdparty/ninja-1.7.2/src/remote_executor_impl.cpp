@@ -23,7 +23,6 @@ RemoteExecutor::RemoteExecutor(ConfiguredApplication &app) : m_app(app)
 	if (!m_app.GetInvocationRewriterConfig(compilerConfig, silent))
 		return;
 
-	RemoteToolClient::Config remoteToolConfig;
 	if (!m_app.GetRemoteToolClientConfig(m_remoteToolConfig, silent))
 		return;
 

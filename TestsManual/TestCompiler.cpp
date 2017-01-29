@@ -47,8 +47,9 @@ int main(int argc, char** argv)
 	taskCC->m_callback = []( Wuild::LocalExecutorResult::Ptr result)
 	{
 		Syslogger() << "CC result = " << result->m_result;
+		std::replace(result->m_stdOut.begin(), result->m_stdOut.end(), '\r', ' ');
 		if (result->m_result && !result->m_stdOut.empty())
-			Syslogger() << result->m_stdOut;
+			Syslogger(Syslogger::Notice) << result->m_stdOut;
 		if (!result->m_result)
 			Syslogger(Syslogger::Err) << result->m_stdOut;
 
