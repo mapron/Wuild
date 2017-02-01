@@ -384,7 +384,8 @@ StringVector FileInfo::GetDirFiles(bool sortByName)
 	for(const fs::directory_entry& it : fs::directory_iterator(m_impl->m_path))
 	{
 		 const fs::path& p = it.path();
-		 res.push_back( p.filename().u8string() );
+		 if (fs::is_regular_file(p))
+			res.push_back( p.filename().u8string() );
 	}
 	if (sortByName)
 		std::sort(res.begin(), res.end());

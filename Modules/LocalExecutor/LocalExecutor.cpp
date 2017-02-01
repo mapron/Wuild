@@ -106,45 +106,6 @@ LocalExecutorTask::Ptr LocalExecutor::GetNextTask()
 void LocalExecutor::Quant()
 {
 	CheckSubprocs();
-	if (!m_subprocs->running_.empty())
-	{
-		 m_subprocs->DoWork();
-	}
-
-	Subprocess* subproc;
-	while ((subproc = m_subprocs->NextFinished()))
-	{
-		LocalExecutorResult::Ptr result(new LocalExecutorResult());
-		result->m_result = subproc->Finish() == ExitSuccess;
-		result->m_stdOut = subproc->GetOutput();
-
-		auto taskIter = m_subprocToTask.find(subproc);
-		assert(taskIter != m_subprocToTask.end());
-		LocalExecutorTask::Ptr task = taskIter->second;
-		m_subprocToTask.erase(taskIter);
-		delete subproc;
-
-		result->m_executionTime = task->m_executionStart.GetElapsedTime();
-
-		if (result->m_stdOut.size() < 1000 && result->m_stdOut.find_first_of('\n') == result->m_stdOut.size()-1)
-		{   // cl.exe always outputs input name to stderr.
-			result->m_stdOut.clear();
-		}
-
-		std::ostringstream compressionInfo;
-		if (result->m_result && task->m_readOutput)
-		{
-			result->m_result = task->m_outputFile.ReadGzipped(result->m_outputData);
-			compressionInfo << " [" << task->m_outputFile.FileSize() << " / " << result->m_outputData.size() << "]";
-
-			if (!result->m_result)
-				result->m_stdOut = "Failed to read file " + task->m_outputFile.GetPath();
-		}
-		Syslogger(Syslogger::Notice) << task->GetShortErrorInfo() << " -> " << task->m_outputFile.GetPath() << compressionInfo.str();
-
-		assert(bool(task->m_callback));
-		task->m_callback(result);
-	}
 
 	while (m_subprocs->running_.size() < m_maxSubProcesses)
 	{
@@ -201,6 +162,46 @@ void LocalExecutor::Quant()
 		}
 	}
 
+	if (!m_subprocs->running_.empty())
+	{
+		Subprocess* subproc;
+		while ((subproc = m_subprocs->NextFinished()) == nullptr) {
+		  bool interrupted = m_subprocs->DoWork();
+		  if (interrupted)
+			return;
+		}
+
+		LocalExecutorResult::Ptr result(new LocalExecutorResult());
+		result->m_result = subproc->Finish() == ExitSuccess;
+		result->m_stdOut = subproc->GetOutput();
+
+		auto taskIter = m_subprocToTask.find(subproc);
+		assert(taskIter != m_subprocToTask.end());
+		LocalExecutorTask::Ptr task = taskIter->second;
+		m_subprocToTask.erase(taskIter);
+		delete subproc;
+
+		result->m_executionTime = task->m_executionStart.GetElapsedTime();
+
+		if (result->m_stdOut.size() < 1000 && result->m_stdOut.find_first_of('\n') == result->m_stdOut.size()-1)
+		{   // cl.exe always outputs input name to stderr.
+			result->m_stdOut.clear();
+		}
+
+		std::ostringstream compressionInfo;
+		if (result->m_result && task->m_readOutput)
+		{
+			result->m_result = task->m_outputFile.ReadGzipped(result->m_outputData);
+			compressionInfo << " [" << task->m_outputFile.FileSize() << " / " << result->m_outputData.size() << "]";
+
+			if (!result->m_result)
+				result->m_stdOut = "Failed to read file " + task->m_outputFile.GetPath();
+		}
+		Syslogger(Syslogger::Notice) << task->GetShortErrorInfo() << " -> " << task->m_outputFile.GetPath() << compressionInfo.str();
+
+		assert(bool(task->m_callback));
+		task->m_callback(result);
+	}
 }
 
 }
