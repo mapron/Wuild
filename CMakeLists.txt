@@ -22,7 +22,7 @@ set(LZ4_STREAM_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/lz4_stream)
 
 
 #configure options
-option( USE_ZLIB_COMPRESSION "" OFF )
+option( USE_ZLIB_COMPRESSION "" ON )
 option( USE_LZ4_COMPRESSION "" ON )
 option( USE_SYSTEM_ZLIB "Use system zlib library." ON )
 SET( BOOST_INCLUDEDIR "" CACHE PATH "Boost path to includes")
@@ -30,7 +30,7 @@ SET( BOOST_LIBRARYDIR "" CACHE PATH "Boost path to compiled libs")
 
 #platform configuration.
 if (USE_ZLIB_COMPRESSION)
-	set(COMPRESSION_LIBS -lz)
+	list(APPEND COMPRESSION_LIBS -lz)
 endif()
 if (MSVC)
 	set(USE_SYSTEM_ZLIB OFF)
@@ -109,19 +109,16 @@ endfunction()
 # Source code targets.
 if (NOT USE_SYSTEM_ZLIB AND USE_ZLIB_COMPRESSION)
 	AddTarget(NAME zlib_static ROOT ${ZLIB_ROOT}/ CSRC *.c)
-	set(COMPRESSION_LIBS zlib_static)
+	list(APPEND COMPRESSION_LIBS zlib_static)
 endif()
 if (USE_ZLIB_COMPRESSION)
-	set(COMPRESSION_DEFINES -DUSE_ZLIB)
+	list(APPEND COMPRESSION_DEFINES -DUSE_ZLIB)
 endif()
 if (USE_LZ4_COMPRESSION)
 	AddTarget(NAME lz4_static ROOT ${LZ4_ROOT}/ CSRC *.c)
 	AddTarget(NAME lz4_stream ROOT ${LZ4_STREAM_ROOT}/ CSRC *.cpp DEPS lz4_static)
-	set(COMPRESSION_LIBS lz4_stream lz4_static)
-	set(COMPRESSION_DEFINES -DUSE_LZ4)
-endif()
-if (NOT COMPRESSION_DEFINES)
-	message(SEND_ERROR "Select compression library.")
+	list(APPEND COMPRESSION_LIBS lz4_stream lz4_static)
+	list(APPEND COMPRESSION_DEFINES -DUSE_LZ4)
 endif()
 
 set(ninja_lib_src

@@ -16,6 +16,7 @@
 #include <ToolInvocation.h>
 #include <TimePoint.h>
 #include <CommonTypes.h>
+#include <FileUtils.h>
 
 /// Declaration of channel structures for RemoteToolServer and RemoteToolClient
 namespace Wuild
@@ -24,7 +25,7 @@ namespace Wuild
 class RemoteToolRequest : public SocketFrameExt
 {
 public:
-	static const uint32_t s_version = 1;
+	static const uint32_t s_version = 2;
 	static const uint8_t s_frameTypeId = s_minimalUserFrameId + 1;
 	using Ptr = std::shared_ptr<RemoteToolRequest>;
 
@@ -32,6 +33,7 @@ public:
 	uint64_t            m_sessionId;
 	ToolInvocation      m_invocation;
 	ByteArrayHolder     m_fileData;
+	CompressionInfo		m_compression;
 
 	uint8_t             FrameTypeId() const override { return s_frameTypeId;}
 
@@ -44,12 +46,13 @@ public:
 class RemoteToolResponse : public SocketFrameExt
 {
 public:
-	static const uint32_t s_version = 1;
+	static const uint32_t s_version = 2;
 	static const uint8_t s_frameTypeId = s_minimalUserFrameId + 2;
 	using Ptr = std::shared_ptr<RemoteToolResponse>;
 
 	bool                m_result = true;
 	ByteArrayHolder     m_fileData;
+	CompressionInfo		m_compression;
 	std::string         m_stdOut;
 	TimePoint           m_executionTime;
 

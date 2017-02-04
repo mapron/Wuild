@@ -13,8 +13,9 @@
 
 #pragma once
 #include "IConfig.h"
-
 #include "CoordinatorClientConfig.h"
+
+#include <FileUtils.h>
 
 namespace Wuild
 {
@@ -26,6 +27,7 @@ public:
 	int m_listenPort = 0;
 	int m_threadCount = 1;
 	CoordinatorClientConfig m_coordinator;
+	CompressionInfo m_compression;
 	bool Validate(std::ostream * errStream = nullptr) const override;
 };
 }

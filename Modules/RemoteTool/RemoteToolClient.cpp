@@ -135,7 +135,7 @@ public:
 
 				if (info.m_result && !outputFilename.empty())
 				{
-					info.m_result = FileInfo(outputFilename).WriteCompressed(result->m_fileData, true);
+					info.m_result = FileInfo(outputFilename).WriteCompressed(result->m_fileData, result->m_compression);
 				}
 			}
 			m_parent->UpdateSessionInfo(info);
@@ -261,7 +261,7 @@ void RemoteToolClient::InvokeTool(const ToolInvocation & invocation, InvokeCallb
 {
 	const std::string inputFilename  = invocation.GetInput();
 	ByteArrayHolder inputData;
-	if (!inputFilename.empty() && !FileInfo(inputFilename).ReadCompressed(inputData))
+	if (!inputFilename.empty() && !FileInfo(inputFilename).ReadCompressed(inputData, m_config.m_compression))
 	{
 		callback(RemoteToolClient::TaskExecutionInfo("failed to read " + inputFilename));
 		return;
@@ -270,6 +270,7 @@ void RemoteToolClient::InvokeTool(const ToolInvocation & invocation, InvokeCallb
 	RemoteToolRequest::Ptr toolRequest(new RemoteToolRequest());
 	toolRequest->m_invocation = m_invocationRewriter->PrepareRemote(invocation);
 	toolRequest->m_fileData = inputData;
+	toolRequest->m_compression = m_config.m_compression;
 	toolRequest->m_sessionId = m_sessionId;
 	toolRequest->m_clientId = m_config.m_clientId;
 

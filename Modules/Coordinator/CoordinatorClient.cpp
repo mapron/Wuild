@@ -89,7 +89,7 @@ void CoordinatorClient::Start()
 		}
 	});
 
-	m_client->SetTcpChannel(m_config.m_coordinatorHost, m_config.m_coordinatorPort);
+	m_client->SetTcpChannel(m_config.m_coordinatorHost[0], m_config.m_coordinatorPort);
 
 	m_client->Start();
 

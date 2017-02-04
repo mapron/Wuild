@@ -62,7 +62,7 @@ int main(int argc, char** argv)
 	ILocalExecutor::Ptr executor(new LocalExecutorTest());
 
 	CoordinatorClient::Config coordClientConfig;
-	coordClientConfig.m_coordinatorHost = "localhost";
+	coordClientConfig.m_coordinatorHost = StringVector{"localhost"};
 	coordClientConfig.m_coordinatorPort = g_coordinatorTestPort;
 	coordClientConfig.m_sendInfoInterval = TimePoint(1.0);
 	coordClientConfig.m_logContext = "coordinator:toolServer";

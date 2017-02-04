@@ -20,6 +20,14 @@
 
 namespace Wuild {
 
+enum class CompressionType { None, LZ4, Gzip };
+
+struct CompressionInfo
+{
+	CompressionType m_type = CompressionType::None;
+	int m_level = 5;
+};
+
 class FileInfoPrivate;
 /// Holds information about file on a disk.
 class FileInfo
@@ -56,10 +64,10 @@ public:
 	std::string GetPlatformShortName() const;
 
 	/// Read file from disk and compress its contents in memory.
-	bool ReadCompressed(ByteArrayHolder & data);
+	bool ReadCompressed(ByteArrayHolder & data, CompressionInfo compressionInfo);
 
 	/// Write deflated memory data to file on disk uncompressed.
-	bool WriteCompressed( const ByteArrayHolder & data, bool createTmpCopy = true);
+	bool WriteCompressed( const ByteArrayHolder & data, CompressionInfo compressionInfo, bool createTmpCopy = true);
 
 	/// Read whole file into buffer
 	bool ReadFile(ByteArrayHolder & data);

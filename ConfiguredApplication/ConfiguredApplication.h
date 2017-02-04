@@ -73,6 +73,7 @@ private:
 	void ReadRemoteToolServerConfig();
 	void ReadCoordinatorClientConfig(CoordinatorClientConfig & config, const std::string & groupName);
 	void ReadCoordinatorServerConfig();
+	void ReadCompressionConfig(CompressionInfo & compressionInfo, const std::string & groupName);
 	void ReadToolProxyServerConfig();
 };
 }

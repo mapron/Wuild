@@ -95,13 +95,16 @@ void RemoteToolServer::Start()
 			LocalExecutorTask::Ptr taskCC(new LocalExecutorTask());
 			taskCC->m_invocation = inputMessage.m_invocation;
 			taskCC->m_inputData = std::move(inputMessage.m_fileData);
-			taskCC->m_callback = [outputCallback, this, sessionId](LocalExecutorResult::Ptr result)
+			taskCC->m_compressionInput = inputMessage.m_compression;
+			auto compressionOut = taskCC->m_compressionOutput = m_config.m_compression;
+			taskCC->m_callback = [outputCallback, this, sessionId, compressionOut](LocalExecutorResult::Ptr result)
 			{
 				FinishTask(sessionId, false);
 				RemoteToolResponse::Ptr response(new RemoteToolResponse());
 				response->m_result = result->m_result;
 				response->m_stdOut = result->m_stdOut;
 				response->m_fileData = result->m_outputData;
+				response->m_compression = compressionOut;
 				response->m_executionTime = result->m_executionTime;
 				outputCallback(response);
 			};

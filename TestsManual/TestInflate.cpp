@@ -28,6 +28,9 @@ int main(int argc, char ** argv)
 	using namespace Wuild;
 	ConfiguredApplication app(argc, argv, "TestInflate");
 
+	CompressionInfo info;
+	info.m_type = CompressionType::LZ4;
+
 	ByteArrayHolder uncompressed, uncompressed2;
 	FillRandomBuffer(uncompressed.ref(), 1000000);
 	auto tmp = Application::Instance().GetTempDir();
@@ -42,14 +45,14 @@ int main(int argc, char ** argv)
 	TEST_ASSERT(uncompressed.ref() == uncompressed2.ref());
 
 	ByteArrayHolder compressed;
-	f1.ReadCompressed(compressed);
+	f1.ReadCompressed(compressed, info);
 	f2.WriteFile(compressed);          //f2 contains compressed data
 
 	ByteArrayHolder compressed2;
 	f2.ReadFile(compressed2);
 
 	TEST_ASSERT(compressed.ref() == compressed2.ref());
-	bool res = f3.WriteCompressed(compressed2);
+	bool res = f3.WriteCompressed(compressed2, info);
 
 	TEST_ASSERT(res);
 	auto f1size = f1.GetFileSize();

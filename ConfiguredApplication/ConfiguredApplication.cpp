@@ -228,7 +228,7 @@ std::string ConfiguredApplication::DumpAllConfigValues() const
 void ConfiguredApplication::ReadCoordinatorClientConfig(CoordinatorClientConfig &config, const std::string &groupName)
 {
 	config.m_coordinatorPort = m_config->GetInt(groupName, "coordinatorPort");
-	config.m_coordinatorHost = m_config->GetString(groupName, "coordinatorHost");
+	config.m_coordinatorHost = m_config->GetStringList(groupName, "coordinatorHost");
 	config.m_enabled = m_config->GetBool(groupName, "coordinatorEnabled", true);
 	int sendInfoIntervalMS = m_config->GetInt(groupName, "sendInfoIntervalMS", 15000);
 	config.m_sendInfoInterval = TimePoint(sendInfoIntervalMS / 1000.);
@@ -304,6 +304,7 @@ void ConfiguredApplication::ReadRemoteToolClientConfig()
 		m_remoteToolClientConfig.m_requestTimeout = TimePoint(requestTimeoutMS / 1000.);
 
 	ReadCoordinatorClientConfig(m_remoteToolClientConfig.m_coordinator, defaultGroup);
+	ReadCompressionConfig(m_remoteToolClientConfig.m_compression, defaultGroup);
 }
 
 void ConfiguredApplication::ReadRemoteToolServerConfig()
@@ -314,12 +315,27 @@ void ConfiguredApplication::ReadRemoteToolServerConfig()
 	m_remoteToolServerConfig.m_threadCount  = m_config->GetInt(defaultGroup,    "threadCount");
 	m_remoteToolServerConfig.m_serverName   = m_config->GetString(defaultGroup, "serverName");
 	ReadCoordinatorClientConfig(m_remoteToolServerConfig.m_coordinator, defaultGroup);
+	ReadCompressionConfig(m_remoteToolServerConfig.m_compression, defaultGroup);
 }
 
 void ConfiguredApplication::ReadCoordinatorServerConfig()
 {
 	const std::string defaultGroup("coordinator");
 	m_coordinatorServerConfig.m_listenPort = m_config->GetInt(defaultGroup, "listenPort");
+}
+
+void ConfiguredApplication::ReadCompressionConfig(CompressionInfo &compressionInfo, const std::string &groupName)
+{
+	auto type = m_config->GetString(groupName,    "compressionType", "LZ4");
+	if (type == "None")
+		compressionInfo.m_type = CompressionType::None;
+	else if (type == "LZ4")
+		compressionInfo.m_type = CompressionType::LZ4;
+	else if (type == "Gzip")
+		compressionInfo.m_type = CompressionType::Gzip;
+	else
+		Syslogger(Syslogger::Err) << "Invalid compression type:" << type;
+	compressionInfo.m_level =  m_config->GetInt(groupName,    "compressionLevel", 5);
 }
 
 void ConfiguredApplication::ReadToolProxyServerConfig()

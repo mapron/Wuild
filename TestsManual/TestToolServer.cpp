@@ -18,6 +18,7 @@
 #include <LocalExecutor.h>
 
 const int g_toolsServerTestPort = 12345;
+const Wuild::CompressionType g_compType = Wuild::CompressionType::LZ4;
 
 int main(int argc, char** argv)
 {
@@ -46,6 +47,7 @@ int main(int argc, char** argv)
 	toolServerConfig.m_listenHost = "localhost";
 	toolServerConfig.m_listenPort = g_toolsServerTestPort;
 	toolServerConfig.m_coordinator.m_enabled = false;
+	toolServerConfig.m_compression.m_type = g_compType;
 
 	RemoteToolServer rcServer(localExecutor);
 	if (!rcServer.SetConfig(toolServerConfig))
@@ -62,6 +64,7 @@ int main(int argc, char** argv)
 	rcClient.AddClient(toolServerInfo);
 	RemoteToolClient::Config clientConfig;
 	clientConfig.m_coordinator.m_enabled = false;
+	clientConfig.m_compression.m_type = g_compType;
 	rcClient.SetConfig(clientConfig);
 	rcClient.Start();
 

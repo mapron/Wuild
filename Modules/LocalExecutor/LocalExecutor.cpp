@@ -132,7 +132,7 @@ void LocalExecutor::Quant()
 					task->m_outputFile.SetPath(tmpPrefix + outputFile.GetFullname());
 					task->m_outputFile.Remove();
 
-					if (! task->m_inputFile.WriteCompressed(task->m_inputData, true) )
+					if (! task->m_inputFile.WriteCompressed(task->m_inputData, task->m_compressionInput) )
 					{
 						break;
 					}
@@ -191,7 +191,7 @@ void LocalExecutor::Quant()
 		std::ostringstream compressionInfo;
 		if (result->m_result && task->m_readOutput)
 		{
-			result->m_result = task->m_outputFile.ReadCompressed(result->m_outputData);
+			result->m_result = task->m_outputFile.ReadCompressed(result->m_outputData, task->m_compressionOutput);
 			compressionInfo << " [" << task->m_outputFile.GetFileSize() << " / " << result->m_outputData.size() << "]";
 
 			if (!result->m_result)

@@ -50,6 +50,24 @@ inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator << (const 
 	return *this;
 }
 
+template<>
+inline ByteOrderDataStreamReader& ByteOrderDataStreamReader::operator >> (CompressionInfo & info)
+{
+	uint32_t level, compType;
+	*this >> compType >> level;
+	info.m_type = static_cast<CompressionType>(compType);
+	info.m_level = static_cast<int>(level);
+	return *this;
+}
+
+template<>
+inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator << (const CompressionInfo & info)
+{
+	*this << static_cast<uint32_t>(info.m_type);
+	*this << static_cast<uint32_t>(info.m_level);
+	return *this;
+}
+
 void RemoteToolRequest::LogTo(std::ostream &os) const
 {
 	SocketFrame::LogTo(os);
@@ -65,6 +83,7 @@ SocketFrame::State RemoteToolRequest::ReadInternal(ByteOrderDataStreamReader &st
 	stream >> m_fileData;
 	stream >> m_invocation.m_args;
 	stream >> m_invocation.m_id.m_toolId;
+	stream >> m_compression;
 	return stOk;
 }
 
@@ -75,6 +94,7 @@ SocketFrame::State RemoteToolRequest::WriteInternal(ByteOrderDataStreamWriter &s
 	stream << m_fileData;
 	stream << m_invocation.m_args;
 	stream << m_invocation.m_id.m_toolId;
+	stream << m_compression;
 	return stOk;
 }
 
@@ -93,6 +113,7 @@ SocketFrame::State RemoteToolResponse::ReadInternal(ByteOrderDataStreamReader &s
 	stream >> m_fileData;
 	stream >> m_stdOut;
 	stream >> m_executionTime;
+	stream >> m_compression;
 	return stOk;
 }
 
@@ -102,6 +123,7 @@ SocketFrame::State RemoteToolResponse::WriteInternal(ByteOrderDataStreamWriter &
 	stream << m_fileData;
 	stream << m_stdOut;
 	stream << m_executionTime;
+	stream << m_compression;
 	return stOk;
 }
 

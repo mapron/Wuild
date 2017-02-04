@@ -319,40 +319,68 @@ struct ByteArrayHolderBufReader : std::streambuf
 };
 
 
-bool FileInfo::ReadCompressed( ByteArrayHolder &data)
+bool FileInfo::ReadCompressed(ByteArrayHolder &data, CompressionInfo compressionInfo)
 {
 	std::ifstream inFile;
 	inFile.open(GetPath().c_str(), std::ios::binary | std::ios::in);
 	if (!inFile)
 		return false;
-	//bool result = true;
+
+	if (false) {}
 #ifdef USE_ZLIB
-	const int level = 1;
-	auto result = def(inFile, data.ref(), level);
-	if (result != Z_OK)
+	else if (compressionInfo.m_type == CompressionType::Gzip)
 	{
-		Syslogger(Syslogger::Err) << "Gzip read failed:" << result;
-		return false;
+		auto result = def(inFile, data.ref(), compressionInfo.m_level);
+		if (result != Z_OK)
+		{
+			Syslogger(Syslogger::Err) << "Gzip read failed:" << result;
+			return false;
+		}
 	}
 #endif
 #ifdef USE_LZ4
-	try
+	else if (compressionInfo.m_type == CompressionType::LZ4)
 	{
-		ByteArrayHolderBufWriter outBuffer(data);
-		std::ostream outBufferStream(&outBuffer);
-		LZ4OutputStream lz4_out_stream(outBufferStream);
+		try
+		{
+			ByteArrayHolderBufWriter outBuffer(data);
+			std::ostream outBufferStream(&outBuffer);
+			LZ4OutputStream lz4_out_stream(outBufferStream);
 
-		std::copy(std::istreambuf_iterator<char>(inFile),
-				  std::istreambuf_iterator<char>(),
-				  std::ostreambuf_iterator<char>(lz4_out_stream));
-		lz4_out_stream.close();
-	}
-	catch(std::exception &e)
-	{
-		Syslogger(Syslogger::Err) << "Error on reading:" << e.what();
-		return false;
+			std::copy(std::istreambuf_iterator<char>(inFile),
+					  std::istreambuf_iterator<char>(),
+					  std::ostreambuf_iterator<char>(lz4_out_stream));
+			lz4_out_stream.close();
+		}
+		catch(std::exception &e)
+		{
+			Syslogger(Syslogger::Err) << "Error on reading:" << e.what();
+			return false;
+		}
 	}
 #endif
+	else if (compressionInfo.m_type == CompressionType::None)
+	{
+		try
+		{
+			ByteArrayHolderBufWriter outBuffer(data);
+			std::ostream outBufferStream(&outBuffer);
+
+			std::copy(std::istreambuf_iterator<char>(inFile),
+					  std::istreambuf_iterator<char>(),
+					  std::ostreambuf_iterator<char>(outBufferStream));
+		}
+		catch(std::exception &e)
+		{
+			Syslogger(Syslogger::Err) << "Error on reading:" << e.what();
+			return false;
+		}
+	}
+	else
+	{
+		Syslogger(Syslogger::Err) << "Unsupported compression type:" << static_cast<int>(compressionInfo.m_type);
+		return false;
+	}
 
 	if (Syslogger::IsLogLevelEnabled(Syslogger::Debug))
 		Syslogger() << "Compressed " << this->GetPath() << ": " << this->GetFileSize() << " -> " << data.size();
@@ -360,7 +388,7 @@ bool FileInfo::ReadCompressed( ByteArrayHolder &data)
 	return true;
 }
 
-bool FileInfo::WriteCompressed(const ByteArrayHolder & data, bool createTmpCopy)
+bool FileInfo::WriteCompressed(const ByteArrayHolder & data, CompressionInfo compressionInfo, bool createTmpCopy)
 {
 	const std::string originalPath = GetPath();
 	const std::string writePath = createTmpCopy ? originalPath + ".tmp" : originalPath;
@@ -374,33 +402,60 @@ bool FileInfo::WriteCompressed(const ByteArrayHolder & data, bool createTmpCopy)
 			Syslogger(Syslogger::Err) << "Failed to open for write " << GetPath();
 			return false;
 		}
+		if (false) {}
 #ifdef USE_ZLIB
-		auto infResult = inf(data.ref(), outFile);
-		if (infResult != Z_OK)
+		else if (compressionInfo.m_type == CompressionType::Gzip)
 		{
-			Syslogger(Syslogger::Err) << "Failed to unzip data " << GetPath() << ", size = " << data.size() << ", result=" << infResult;
-			return false;
+			auto infResult = inf(data.ref(), outFile);
+			if (infResult != Z_OK)
+			{
+				Syslogger(Syslogger::Err) << "Failed to unzip data " << GetPath() << ", size = " << data.size() << ", result=" << infResult;
+				return false;
+			}
 		}
 #endif
-
 #ifdef USE_LZ4
-		try
+		else if (compressionInfo.m_type == CompressionType::LZ4)
 		{
-			ByteArrayHolderBufReader buffer(data);
-			std::istream bufferStream(&buffer);
-			LZ4InputStream lz4_in_stream(bufferStream);
+			try
+			{
+				ByteArrayHolderBufReader buffer(data);
+				std::istream bufferStream(&buffer);
+				LZ4InputStream lz4_in_stream(bufferStream);
 
-			std::copy(std::istreambuf_iterator<char>(lz4_in_stream),
-					  std::istreambuf_iterator<char>(),
-					  std::ostreambuf_iterator<char>(outFile));
-		}
-		catch (std::exception & e)
-		{
-			Syslogger(Syslogger::Err) << "Error on writing:" << e.what();
-			return false;
+				std::copy(std::istreambuf_iterator<char>(lz4_in_stream),
+						  std::istreambuf_iterator<char>(),
+						  std::ostreambuf_iterator<char>(outFile));
+			}
+			catch (std::exception & e)
+			{
+				Syslogger(Syslogger::Err) << "Error on writing:" << e.what();
+				return false;
+			}
 		}
 #endif
+		else if (compressionInfo.m_type == CompressionType::None)
+		{
+			try
+			{
+				ByteArrayHolderBufReader buffer(data);
+				std::istream bufferStream(&buffer);
 
+				std::copy(std::istreambuf_iterator<char>(bufferStream),
+						  std::istreambuf_iterator<char>(),
+						  std::ostreambuf_iterator<char>(outFile));
+			}
+			catch (std::exception & e)
+			{
+				Syslogger(Syslogger::Err) << "Error on writing:" << e.what();
+				return false;
+			}
+		}
+		else
+		{
+			Syslogger(Syslogger::Err) << "Unsupported compression type:" << static_cast<int>(compressionInfo.m_type);
+			return false;
+		}
 		outFile.close();
 		if (outFile.fail())
 		{
