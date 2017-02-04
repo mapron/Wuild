@@ -132,7 +132,7 @@ void LocalExecutor::Quant()
 					task->m_outputFile.SetPath(tmpPrefix + outputFile.GetFullname());
 					task->m_outputFile.Remove();
 
-					if (! task->m_inputFile.WriteGzipped(task->m_inputData, true) )
+					if (! task->m_inputFile.WriteCompressed(task->m_inputData, true) )
 					{
 						break;
 					}
@@ -191,7 +191,7 @@ void LocalExecutor::Quant()
 		std::ostringstream compressionInfo;
 		if (result->m_result && task->m_readOutput)
 		{
-			result->m_result = task->m_outputFile.ReadGzipped(result->m_outputData);
+			result->m_result = task->m_outputFile.ReadCompressed(result->m_outputData);
 			compressionInfo << " [" << task->m_outputFile.FileSize() << " / " << result->m_outputData.size() << "]";
 
 			if (!result->m_result)

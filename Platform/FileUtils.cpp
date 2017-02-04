@@ -16,7 +16,9 @@
 #include <Syslogger.h>
 #include <ThreadUtils.h>
 
+#ifdef USE_ZLIB
 #include <zlib.h>
+#endif
 #include <assert.h>
 #include <stdio.h>
 #include <algorithm>
@@ -55,6 +57,7 @@ static const size_t g_renameAttempts = 50;
 static const int64_t g_renameUsleep = 100000;
 }
 
+#ifdef USE_ZLIB
 /* Compress from file source to file dest until EOF on source.
    def() returns Z_OK on success, Z_MEM_ERROR if memory could not be
    allocated for processing, Z_STREAM_ERROR if an invalid compression
@@ -173,6 +176,7 @@ static int inf(const std::vector<uint8_t> & source, std::ofstream & dest)
 	(void)inflateEnd(&strm);
 	return ret == Z_STREAM_END ? Z_OK : Z_DATA_ERROR;
 }
+#endif
 
 namespace Wuild {
 
@@ -280,20 +284,23 @@ std::string FileInfo::GetPlatformShortName() const
 }
 
 
-bool FileInfo::ReadGzipped( ByteArrayHolder &data, int level)
+bool FileInfo::ReadCompressed( ByteArrayHolder &data)
 {
 	FILE * f = fopen(GetPath().c_str(), "rb");
 	if (!f)
 		return false;
 	bool result = true;
+#ifdef USE_ZLIB
+	const int level = 9;
 	if (def(f, data.ref(), level) != Z_OK)
 		result = false;
+#endif
 
 	fclose(f);
 	return result;
 }
 
-bool FileInfo::WriteGzipped(const ByteArrayHolder & data, bool createTmpCopy)
+bool FileInfo::WriteCompressed(const ByteArrayHolder & data, bool createTmpCopy)
 {
 	const std::string originalPath = GetPath();
 	const std::string writePath = createTmpCopy ? originalPath + ".tmp" : originalPath;
@@ -307,18 +314,21 @@ bool FileInfo::WriteGzipped(const ByteArrayHolder & data, bool createTmpCopy)
 			Syslogger(Syslogger::Err) << "Failed to open for write " << GetPath();
 			return false;
 		}
+#ifdef USE_ZLIB
 		auto infResult = inf(data.ref(), outFile);
+		if (infResult != Z_OK)
+		{
+			Syslogger(Syslogger::Err) << "Failed to unzip data " << GetPath() << ", size = " << data.size() << ", result=" << infResult;
+			return false;
+		}
+#endif
 		outFile.close();
 		if (outFile.fail())
 		{
 			Syslogger(Syslogger::Err) << "Failed to close " << writePath;
 			return false;
 		}
-		if (infResult != Z_OK)
-		{
-			Syslogger(Syslogger::Err) << "Failed to unzip data " << GetPath() << ", size = " << data.size() << ", result=" << infResult;
-			return false;
-		}
+
 	}
 
 	if (createTmpCopy)

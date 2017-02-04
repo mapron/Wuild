@@ -56,10 +56,10 @@ public:
 	std::string GetPlatformShortName() const;
 
 	/// Read file from disk and compress its contents in memory.
-	bool ReadGzipped(ByteArrayHolder & data, int level = 1);
+	bool ReadCompressed(ByteArrayHolder & data);
 
 	/// Write deflated memory data to file on disk uncompressed.
-	bool WriteGzipped( const ByteArrayHolder & data, bool createTmpCopy = false);
+	bool WriteCompressed( const ByteArrayHolder & data, bool createTmpCopy = true);
 
 	/// Read whole file into buffer
 	bool ReadFile(ByteArrayHolder & data);

@@ -41,14 +41,14 @@ int main(int argc, char ** argv)
 	TEST_ASSERT(uncompressed.ref() == uncompressed2.ref());
 
 	ByteArrayHolder compressed;
-	f1.ReadGzipped(compressed);
+	f1.ReadCompressed(compressed);
 	f2.WriteFile(compressed);          //f2 contains compressed data
 
 	ByteArrayHolder compressed2;
 	f2.ReadFile(compressed2);
 
 	TEST_ASSERT(compressed.ref() == compressed2.ref());
-	bool res = f3.WriteGzipped(compressed2);
+	bool res = f3.WriteCompressed(compressed2);
 
 	TEST_ASSERT(res);
 	auto f1size = f1.FileSize();

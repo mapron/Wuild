@@ -19,12 +19,15 @@ set(NINJA_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/ninja-1.7.2/src)
 set(ZLIB_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/zlib-1.2.8)
 
 #configure options
+option( USE_ZLIB_COMPRESSION "" ON )
 option( USE_SYSTEM_ZLIB "Use system zlib library." ON )
 SET( BOOST_INCLUDEDIR "" CACHE PATH "Boost path to includes")
 SET( BOOST_LIBRARYDIR "" CACHE PATH "Boost path to compiled libs")
 
 #platform configuration.
-set(ZLIB_LIBS -lz)
+if (USE_ZLIB_COMPRESSION)
+	set(ZLIB_LIBS -lz)
+endif()
 if (MSVC)
 	set(USE_SYSTEM_ZLIB OFF)
 	add_definitions(-D_CRT_SECURE_NO_WARNINGS -DNOMINMAX /wd4267 /wd4244)
@@ -97,9 +100,12 @@ function(AddTarget)
 endfunction()
 
 # Source code targets.
-if (NOT USE_SYSTEM_ZLIB)
+if (NOT USE_SYSTEM_ZLIB AND USE_ZLIB_COMPRESSION)
 	AddTarget(NAME zlib_static ROOT ${ZLIB_ROOT}/ CSRC *.c)
 	set(ZLIB_LIBS zlib_static)
+endif()
+if (USE_ZLIB_COMPRESSION)
+	set(ZLIB_DEFINES -DUSE_ZLIB)
 endif()
 
 set(ninja_lib_src
@@ -147,7 +153,7 @@ AddTarget(NAME Platform CSRC *.cpp *.h
 	INCLUDES
 	${BOOST_INCLUDEDIR}
 	OPTIONS
-	 ${HAS_BOOST}
+	 ${HAS_BOOST} ${ZLIB_DEFINES}
 	DEPS
 	${ZLIB_LIBS}
 	${Boost_FILESYSTEM_LIBRARY}

@@ -135,7 +135,7 @@ public:
 
 				if (info.m_result && !outputFilename.empty())
 				{
-					info.m_result = FileInfo(outputFilename).WriteGzipped(result->m_fileData, true);
+					info.m_result = FileInfo(outputFilename).WriteCompressed(result->m_fileData, true);
 				}
 			}
 			m_parent->UpdateSessionInfo(info);
@@ -261,7 +261,7 @@ void RemoteToolClient::InvokeTool(const ToolInvocation & invocation, InvokeCallb
 {
 	const std::string inputFilename  = invocation.GetInput();
 	ByteArrayHolder inputData;
-	if (!inputFilename.empty() && !FileInfo(inputFilename).ReadGzipped(inputData))
+	if (!inputFilename.empty() && !FileInfo(inputFilename).ReadCompressed(inputData))
 	{
 		callback(RemoteToolClient::TaskExecutionInfo("failed to read " + inputFilename));
 		return;
