@@ -71,7 +71,7 @@ public:
 	bool Exists();
 
 	/// Returns file size in bytes for existent file, or 0 otherwise.
-	size_t FileSize();
+	size_t GetFileSize();
 
 	/// Removes file. No error produced on failure.
 	void Remove();

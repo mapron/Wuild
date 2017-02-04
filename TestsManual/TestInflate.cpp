@@ -20,7 +20,7 @@ void FillRandomBuffer(std::vector<uint8_t> & data, size_t size)
 {
 	data.resize(size);
 	for (size_t i =0; i< size; ++i)
-		data[i] = static_cast<uint8_t>((rand() %2) + '0' );
+		data[i] = static_cast<uint8_t>((rand() %2)  );
 }
 
 int main(int argc, char ** argv)
@@ -29,7 +29,7 @@ int main(int argc, char ** argv)
 	ConfiguredApplication app(argc, argv, "TestInflate");
 
 	ByteArrayHolder uncompressed, uncompressed2;
-	FillRandomBuffer(uncompressed.ref(), 10000);
+	FillRandomBuffer(uncompressed.ref(), 1000000);
 	auto tmp = Application::Instance().GetTempDir();
 	Syslogger(Syslogger::Notice) << "tmp=" << tmp;
 	TemporaryFile f1(tmp + "/test1");
@@ -52,12 +52,15 @@ int main(int argc, char ** argv)
 	bool res = f3.WriteCompressed(compressed2);
 
 	TEST_ASSERT(res);
-	auto f1size = f1.FileSize();
-	auto f3size = f3.FileSize();
+	auto f1size = f1.GetFileSize();
+	auto f3size = f3.GetFileSize();
 	TEST_ASSERT(f1size == f3size);
 
 	ByteArrayHolder uncompressed3;
 	f3.ReadFile(uncompressed3);        // f3 contains original data
+
+	//for (size_t i =0; i< uncompressed.size() && i < uncompressed3.size(); ++i)
+	//	TEST_ASSERT(uncompressed.data()[i] == uncompressed3.data()[i])
 
 	TEST_ASSERT(uncompressed.ref() == uncompressed3.ref());
 	std::cout << "OK\n";

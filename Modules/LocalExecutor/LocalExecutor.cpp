@@ -192,7 +192,7 @@ void LocalExecutor::Quant()
 		if (result->m_result && task->m_readOutput)
 		{
 			result->m_result = task->m_outputFile.ReadCompressed(result->m_outputData);
-			compressionInfo << " [" << task->m_outputFile.FileSize() << " / " << result->m_outputData.size() << "]";
+			compressionInfo << " [" << task->m_outputFile.GetFileSize() << " / " << result->m_outputData.size() << "]";
 
 			if (!result->m_result)
 				result->m_stdOut = "Failed to read file " + task->m_outputFile.GetPath();

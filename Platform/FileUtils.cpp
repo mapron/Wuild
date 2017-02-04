@@ -72,7 +72,7 @@ static const size_t ringBufferBytes   = 1024 * 256 + messageMaxBytes;
    level is supplied, Z_VERSION_ERROR if the version of zlib.h and the
    version of the library linked do not match, or Z_ERRNO if there is
    an error reading or writing the files. */
-static int def(FILE *source, std::vector<uint8_t> & dest, int level)
+static int def(std::ifstream & source, std::vector<uint8_t> & dest, int level)
 {
 	int ret, flush;
 	unsigned have;
@@ -90,12 +90,13 @@ static int def(FILE *source, std::vector<uint8_t> & dest, int level)
 
 	/* compress until end of file */
 	do {
-		strm.avail_in = fread(in, 1, CHUNK, source);
-		if (ferror(source)) {
+		source.read((char*)in, CHUNK);
+		strm.avail_in = static_cast<uInt>(source.gcount());
+		if (source.fail() && !source.eof()) {
 			(void)deflateEnd(&strm);
 			return Z_ERRNO;
 		}
-		flush = feof(source) ? Z_FINISH : Z_NO_FLUSH;
+		flush = source.eof() ? Z_FINISH : Z_NO_FLUSH;
 		strm.next_in = in;
 
 		/* run deflate() on input until output buffer not full, finish
@@ -292,12 +293,12 @@ std::string FileInfo::GetPlatformShortName() const
 }
 
 
-struct seqbuf : std::basic_streambuf<char, typename std::char_traits<char>> {
+struct ByteArrayHolderBufWriter : std::basic_streambuf<char, typename std::char_traits<char>> {
 	 typedef std::basic_streambuf<char, typename std::char_traits<char>> base_type;
 	 typedef typename base_type::int_type int_type;
 	 typedef typename base_type::traits_type traits_type;
 
-	seqbuf(ByteArrayHolder& holder) : m_holder(holder) {}
+	ByteArrayHolderBufWriter(ByteArrayHolder& holder) : m_holder(holder) {}
 
 	 virtual int_type overflow(int_type ch) {
 		 if(traits_type::eq_int_type(ch, traits_type::eof()))
@@ -310,6 +311,13 @@ protected:
 	ByteArrayHolder & m_holder;
 };
 
+struct ByteArrayHolderBufReader : std::streambuf
+{
+	ByteArrayHolderBufReader(const ByteArrayHolder & data) {
+		this->setg((char*)data.data(), (char*)data.data(), (char*)data.data() + data.size());
+	}
+};
+
 
 bool FileInfo::ReadCompressed( ByteArrayHolder &data)
 {
@@ -317,32 +325,40 @@ bool FileInfo::ReadCompressed( ByteArrayHolder &data)
 	inFile.open(GetPath().c_str(), std::ios::binary | std::ios::in);
 	if (!inFile)
 		return false;
-	bool result = true;
+	//bool result = true;
 #ifdef USE_ZLIB
 	const int level = 1;
-	if (def(f, data.ref(), level) != Z_OK)
-		result = false;
+	auto result = def(inFile, data.ref(), level);
+	if (result != Z_OK)
+	{
+		Syslogger(Syslogger::Err) << "Gzip read failed:" << result;
+		return false;
+	}
 #endif
 #ifdef USE_LZ4
-	seqbuf outBuffer(data);
-	std::ostream outBufferStream(&outBuffer);
-	LZ4OutputStream lz4_out_stream(outBufferStream);
+	try
+	{
+		ByteArrayHolderBufWriter outBuffer(data);
+		std::ostream outBufferStream(&outBuffer);
+		LZ4OutputStream lz4_out_stream(outBufferStream);
 
-	std::copy(std::istreambuf_iterator<char>(inFile),
-			  std::istreambuf_iterator<char>(),
-			  std::ostreambuf_iterator<char>(lz4_out_stream));
-	lz4_out_stream.close();
+		std::copy(std::istreambuf_iterator<char>(inFile),
+				  std::istreambuf_iterator<char>(),
+				  std::ostreambuf_iterator<char>(lz4_out_stream));
+		lz4_out_stream.close();
+	}
+	catch(std::exception &e)
+	{
+		Syslogger(Syslogger::Err) << "Error on reading:" << e.what();
+		return false;
+	}
 #endif
 
-	return result;
-}
+	if (Syslogger::IsLogLevelEnabled(Syslogger::Debug))
+		Syslogger() << "Compressed " << this->GetPath() << ": " << this->GetFileSize() << " -> " << data.size();
 
-struct ByteArrayHolderBuf : std::streambuf
-{
-	ByteArrayHolderBuf(const ByteArrayHolder & data) {
-		this->setg((char*)data.data(), (char*)data.data(), (char*)data.data() + data.size());
-	}
-};
+	return true;
+}
 
 bool FileInfo::WriteCompressed(const ByteArrayHolder & data, bool createTmpCopy)
 {
@@ -368,14 +384,21 @@ bool FileInfo::WriteCompressed(const ByteArrayHolder & data, bool createTmpCopy)
 #endif
 
 #ifdef USE_LZ4
-		ByteArrayHolderBuf buffer(data);
-		std::istream bufferStream(&buffer);
-		LZ4InputStream lz4_in_stream(bufferStream);
+		try
+		{
+			ByteArrayHolderBufReader buffer(data);
+			std::istream bufferStream(&buffer);
+			LZ4InputStream lz4_in_stream(bufferStream);
 
-		std::copy(std::istreambuf_iterator<char>(lz4_in_stream),
-				  std::istreambuf_iterator<char>(),
-				  std::ostreambuf_iterator<char>(outFile));
-
+			std::copy(std::istreambuf_iterator<char>(lz4_in_stream),
+					  std::istreambuf_iterator<char>(),
+					  std::ostreambuf_iterator<char>(outFile));
+		}
+		catch (std::exception & e)
+		{
+			Syslogger(Syslogger::Err) << "Error on writing:" << e.what();
+			return false;
+		}
 #endif
 
 		outFile.close();
@@ -384,7 +407,6 @@ bool FileInfo::WriteCompressed(const ByteArrayHolder & data, bool createTmpCopy)
 			Syslogger(Syslogger::Err) << "Failed to close " << writePath;
 			return false;
 		}
-
 	}
 
 	if (createTmpCopy)
@@ -400,7 +422,7 @@ bool FileInfo::WriteCompressed(const ByteArrayHolder & data, bool createTmpCopy)
 		}
 		if (attempt > 0)
 		{
-			Syslogger(Syslogger::Info) << (attempt+1) << " attempts used to write " << GetPath() << " data.";
+			Syslogger(Syslogger::Info) << (attempt + 1) << " attempts used to write " << GetPath() << " data.";
 		}
 
 		if (code)
@@ -410,6 +432,8 @@ bool FileInfo::WriteCompressed(const ByteArrayHolder & data, bool createTmpCopy)
 			return false;
 		}
 	}
+	if (Syslogger::IsLogLevelEnabled(Syslogger::Debug))
+		Syslogger() << "Decompressed " << this->GetPath() << ": " << data.size() << " -> " << this->GetFileSize();
 	return true;
 }
 
@@ -458,7 +482,7 @@ bool FileInfo::Exists()
 	return fs::exists(m_impl->m_path, code);
 }
 
-size_t FileInfo::FileSize()
+size_t FileInfo::GetFileSize()
 {
 	if (!Exists())
 		return 0;
