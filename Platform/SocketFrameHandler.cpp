@@ -74,21 +74,7 @@ void SocketFrameHandler::Stop(bool wait)
 bool SocketFrameHandler::Quant()
 {
 	ConnectionState connectionState = this->CheckAndCreateConnection() ? ConnectionState::Ok : ConnectionState::Failed;
-	if (connectionState != m_prevConnectionState)
-	{
-		if (m_stateNotifier)
-			m_stateNotifier(connectionState == ConnectionState::Ok);
-		if (m_prevConnectionState != ConnectionState::Pending && connectionState == ConnectionState::Failed)
-		{
-			m_replyManager.ClearAndSendError();
-		}
-		if (connectionState == ConnectionState::Ok)
-		{
-			m_lastSucceessfulRead = TimePoint(true);
-		}
-		m_prevConnectionState = connectionState;
-		UpdateLogContext();
-	}
+	SetConnectionState(connectionState);
 	if (connectionState != ConnectionState::Ok)
 		return m_retryConnectOnFail;
 
@@ -100,6 +86,7 @@ bool SocketFrameHandler::Quant()
 	{
 		Syslogger(m_logContext, Syslogger::Info) << "read/write frames return false, " << ( m_retryConnectOnFail ? "waiting." : "stopping.");
 		DisconnectChannel();
+		SetConnectionState(ConnectionState::Failed);
 		if (m_retryConnectOnFail)
 			usleep(m_settings.m_afterDisconnectWait.GetUS());
 		return m_retryConnectOnFail;
@@ -189,6 +176,25 @@ void SocketFrameHandler::UpdateLogContext()
 }
 
 // protected:
+
+void SocketFrameHandler::SetConnectionState(SocketFrameHandler::ConnectionState connectionState)
+{
+	if (connectionState == m_prevConnectionState)
+		return;
+
+	if (m_stateNotifier)
+		m_stateNotifier(connectionState == ConnectionState::Ok);
+	if (m_prevConnectionState != ConnectionState::Pending && connectionState == ConnectionState::Failed)
+	{
+		m_replyManager.ClearAndSendError();
+	}
+	if (connectionState == ConnectionState::Ok)
+	{
+		m_lastSucceessfulRead = TimePoint(true);
+	}
+	m_prevConnectionState = connectionState;
+	UpdateLogContext();
+}
 
 bool SocketFrameHandler::ReadFrames()
 {

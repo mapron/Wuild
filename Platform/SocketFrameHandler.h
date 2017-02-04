@@ -177,6 +177,7 @@ protected:
 	};
 
 protected:
+	void						SetConnectionState(ConnectionState connectionState);
 	bool                        ReadFrames();
 	ConsumeState                ConsumeReadBuffer();
 	ConsumeState                ConsumeFrameBuffer();

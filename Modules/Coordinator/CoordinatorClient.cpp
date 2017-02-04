@@ -83,7 +83,10 @@ void CoordinatorClient::Start()
 	m_client->SetChannelNotifier([this](bool state){
 		m_clientState = state;
 		if (!state)
+		{
 			m_needRequestData = true;
+			m_needSendToolServerInfo = true;
+		}
 	});
 
 	m_client->SetTcpChannel(m_config.m_coordinatorHost, m_config.m_coordinatorPort);
