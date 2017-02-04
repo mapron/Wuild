@@ -19,10 +19,18 @@
 #include <Application.h>
 #include <StringUtils.h>
 #include <Syslogger.h>
+#include <FileUtils.h>
 
 namespace
 {
 	const std::string g_commandLinePrefix = "--wuild-";
+	const std::string g_defaultConfigSubfolder =
+		#ifndef _WIN32
+			".Wuild/"
+		#else
+			""
+		#endif
+			;
 	const std::string g_defaultConfig = "Wuild.ini";
 	const std::string g_envConfig = "WUILD_CONFIG";
 }
@@ -59,6 +67,13 @@ ConfiguredApplication::ConfiguredApplication(int argc, char **argv, const std::s
 	{
 		unexistendConfigIsError = false;
 		configPath = Application::Instance().GetHomeDir() + "/" + g_defaultConfig;
+		const std::string fullConfigPath = Application::Instance().GetHomeDir() + "/" + g_defaultConfigSubfolder + g_defaultConfig;
+		if (!g_defaultConfigSubfolder.empty() && FileInfo(configPath).Exists())
+		{
+			Syslogger(Syslogger::Warning) << "Path '" << configPath << "' is deprecated, use '" << fullConfigPath << "' instead.";
+		}
+		if (FileInfo(fullConfigPath).Exists())
+			configPath = fullConfigPath;
 	}
 	if (!config.ReadIniFile(configPath) && unexistendConfigIsError)
 	{
@@ -66,8 +81,6 @@ ConfiguredApplication::ConfiguredApplication(int argc, char **argv, const std::s
 	}
 	// if global variable is set in inifile, override in again with commandline
 	config.ReadCommandLine(inputArgs, g_commandLinePrefix);
-
-
 
 	ReadLoggingConfig();
 	ReadInvocationRewriterConfig();
@@ -112,13 +125,13 @@ bool ConfiguredApplication::InitLogging(const LoggerConfig &loggerConfig)
 			break;
 	#endif
 			//fallthrough
-        case LoggerConfig::LogType::Cout:
-        case LoggerConfig::LogType::Cerr:
-            backend.reset(new LoggerBackendConsole(loggerConfig.m_maxLogLevel,
+		case LoggerConfig::LogType::Cout:
+		case LoggerConfig::LogType::Cerr:
+			backend.reset(new LoggerBackendConsole(loggerConfig.m_maxLogLevel,
 												loggerConfig.m_outputLoglevel,
 												loggerConfig.m_outputTimestamp,
-                                                loggerConfig.m_outputTimeoffsets,
-                                                loggerConfig.m_logType == LoggerConfig::LogType::Cerr));
+												loggerConfig.m_outputTimeoffsets,
+												loggerConfig.m_logType == LoggerConfig::LogType::Cerr));
 		break;
 		case LoggerConfig::LogType::Files:
 			backend.reset(new LoggerBackendFiles(loggerConfig.m_maxLogLevel,
@@ -240,8 +253,8 @@ void ConfiguredApplication::ReadLoggingConfig()
 
 	if (m_config->GetBool(m_defaultGroupName, "logToSyslog"))
 		m_loggerConfig.m_logType = LoggerConfig::LogType::Syslog;
-    else if (m_config->GetBool(m_defaultGroupName, "logToCerr"))
-        m_loggerConfig.m_logType = LoggerConfig::LogType::Cerr;
+	else if (m_config->GetBool(m_defaultGroupName, "logToCerr"))
+		m_loggerConfig.m_logType = LoggerConfig::LogType::Cerr;
 }
 
 void ConfiguredApplication::ReadInvocationRewriterConfig()
