@@ -20,6 +20,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <algorithm>
+#include <fstream>
 
 #ifdef HAS_BOOST
 #include <boost/filesystem.hpp>
@@ -113,7 +114,7 @@ static int def(FILE *source, std::vector<uint8_t> & dest, int level)
    invalid or incomplete, Z_VERSION_ERROR if the version of zlib.h and
    the version of the library linked do not match, or Z_ERRNO if there
    is an error reading or writing the files. */
-static int inf(const std::vector<uint8_t> & source, FILE *dest)
+static int inf(const std::vector<uint8_t> & source, std::ofstream & dest)
 {
 	int ret;
 	unsigned have;
@@ -122,7 +123,6 @@ static int inf(const std::vector<uint8_t> & source, FILE *dest)
 	unsigned char out[CHUNK];
 	size_t remainSize = source.size();
 	const uint8_t* sourceData = source.data();
-	size_t written;
 
 	/* allocate inflate state */
 	strm.zalloc = Z_NULL;
@@ -159,8 +159,8 @@ static int inf(const std::vector<uint8_t> & source, FILE *dest)
 				return ret;
 			}
 			have = CHUNK - strm.avail_out;
-			written = fwrite(out, 1, have, dest);
-			if (written != have || ferror(dest)) {
+			dest.write((const char*)(out), have);
+			if ( dest.fail() ) {
 				(void)inflateEnd(&strm);
 				return Z_ERRNO;
 			}
@@ -298,34 +298,28 @@ bool FileInfo::WriteGzipped(const ByteArrayHolder & data, bool createTmpCopy)
 	const std::string originalPath = GetPath();
 	const std::string writePath = createTmpCopy ? originalPath + ".tmp" : originalPath;
 	this->Remove();
-	bool result = true;
+
 	{
-		auto deleter = [&result, &writePath](FILE* f){
-			if (f)
-			{
-				if (fclose(f) != 0)
-				{
-					Syslogger(Syslogger::Err) << "Failed to close " << writePath;
-					result = false;
-				}
-			}
-		};
-		std::unique_ptr<FILE, decltype(deleter)> f(fopen(writePath.c_str(), "wb"), deleter);
-		if (!f)
+		std::ofstream outFile;
+		outFile.open(writePath, std::ios::binary | std::ios::out);
+		if (!outFile)
 		{
 			Syslogger(Syslogger::Err) << "Failed to open for write " << GetPath();
 			return false;
 		}
-		auto infResult = inf(data.ref(), f.get());
+		auto infResult = inf(data.ref(), outFile);
+		outFile.close();
+		if (outFile.fail())
+		{
+			Syslogger(Syslogger::Err) << "Failed to close " << writePath;
+			return false;
+		}
 		if (infResult != Z_OK)
 		{
 			Syslogger(Syslogger::Err) << "Failed to unzip data " << GetPath() << ", size = " << data.size() << ", result=" << infResult;
 			return false;
 		}
 	}
-
-	if (!result)
-		return result;
 
 	if (createTmpCopy)
 	{
@@ -350,7 +344,7 @@ bool FileInfo::WriteGzipped(const ByteArrayHolder & data, bool createTmpCopy)
 			return false;
 		}
 	}
-	return result;
+	return true;
 }
 
 bool FileInfo::ReadFile(ByteArrayHolder &data)

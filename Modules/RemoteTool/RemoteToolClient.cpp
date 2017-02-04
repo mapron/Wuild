@@ -38,6 +38,7 @@ public:
 	TimePoint m_start;
 	int64_t m_taskIndex = 0;
 	ToolInvocation m_invocation;
+	std::string m_originalFilename;
 	RemoteToolRequest::Ptr m_toolRequest;
 	RemoteToolClient::InvokeCallback m_callback;
 	TimePoint m_expirationMoment;
@@ -111,7 +112,7 @@ public:
 		auto frameCallback = [this, task, clientIndex](SocketFrame::Ptr responseFrame, SocketFrameHandler::ReplyState state)
 		{
 			m_balancer.FinishTask(clientIndex);
-			const std::string outputFilename =  task.m_invocation.GetOutput();
+			const std::string outputFilename =  task.m_originalFilename;
 			Syslogger(Syslogger::Info) << "RECIEVING [" << task.m_taskIndex << "]:" << outputFilename;
 			RemoteToolClient::TaskExecutionInfo info;
 			if (state == SocketFrameHandler::ReplyState::Timeout)
@@ -277,6 +278,7 @@ void RemoteToolClient::InvokeTool(const ToolInvocation & invocation, InvokeCallb
 	wrap.m_toolRequest = toolRequest;
 	wrap.m_taskIndex = m_taskIndex++;
 	wrap.m_invocation = toolRequest->m_invocation;
+	wrap.m_originalFilename = invocation.GetOutput();
 	wrap.m_callback = callback;
 	wrap.m_expirationMoment = wrap.m_start + m_config.m_queueTimeout;
 	wrap.m_attemptsRemain = m_config.m_invocationAttempts;
