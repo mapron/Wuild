@@ -20,7 +20,7 @@ void FillRandomBuffer(std::vector<uint8_t> & data, size_t size)
 {
 	data.resize(size);
 	for (size_t i =0; i< size; ++i)
-		data[i] = static_cast<uint8_t>(rand() %256 );
+		data[i] = static_cast<uint8_t>((rand() %2) + '0' );
 }
 
 int main(int argc, char ** argv)
@@ -29,8 +29,9 @@ int main(int argc, char ** argv)
 	ConfiguredApplication app(argc, argv, "TestInflate");
 
 	ByteArrayHolder uncompressed, uncompressed2;
-	FillRandomBuffer(uncompressed.ref(), 100000);
+	FillRandomBuffer(uncompressed.ref(), 10000);
 	auto tmp = Application::Instance().GetTempDir();
+	Syslogger(Syslogger::Notice) << "tmp=" << tmp;
 	TemporaryFile f1(tmp + "/test1");
 	TemporaryFile f2(tmp + "/test2");
 	TemporaryFile f3(tmp + "/test3");

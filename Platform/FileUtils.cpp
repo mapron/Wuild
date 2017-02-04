@@ -19,10 +19,14 @@
 #ifdef USE_ZLIB
 #include <zlib.h>
 #endif
+#ifdef USE_LZ4
+#include <lz4_stream.h>
+#endif
 #include <assert.h>
 #include <stdio.h>
 #include <algorithm>
 #include <fstream>
+#include <streambuf>
 
 #ifdef HAS_BOOST
 #include <boost/filesystem.hpp>
@@ -55,6 +59,10 @@ static const size_t CHUNK = 16384;
 // TODO: on windows, recieving ERROR_SHARING_VIOLATION when attempting to rename temporary file.
 static const size_t g_renameAttempts = 50;
 static const int64_t g_renameUsleep = 100000;
+
+
+static const size_t messageMaxBytes   = 1024;
+static const size_t ringBufferBytes   = 1024 * 256 + messageMaxBytes;
 }
 
 #ifdef USE_ZLIB
@@ -284,21 +292,57 @@ std::string FileInfo::GetPlatformShortName() const
 }
 
 
+struct seqbuf : std::basic_streambuf<char, typename std::char_traits<char>> {
+	 typedef std::basic_streambuf<char, typename std::char_traits<char>> base_type;
+	 typedef typename base_type::int_type int_type;
+	 typedef typename base_type::traits_type traits_type;
+
+	seqbuf(ByteArrayHolder& holder) : m_holder(holder) {}
+
+	 virtual int_type overflow(int_type ch) {
+		 if(traits_type::eq_int_type(ch, traits_type::eof()))
+			 return traits_type::eof();
+		 m_holder.ref().push_back(traits_type::to_char_type(ch));
+		 return ch;
+	 }
+
+protected:
+	ByteArrayHolder & m_holder;
+};
+
+
 bool FileInfo::ReadCompressed( ByteArrayHolder &data)
 {
-	FILE * f = fopen(GetPath().c_str(), "rb");
-	if (!f)
+	std::ifstream inFile;
+	inFile.open(GetPath().c_str(), std::ios::binary | std::ios::in);
+	if (!inFile)
 		return false;
 	bool result = true;
 #ifdef USE_ZLIB
-	const int level = 9;
+	const int level = 1;
 	if (def(f, data.ref(), level) != Z_OK)
 		result = false;
 #endif
+#ifdef USE_LZ4
+	seqbuf outBuffer(data);
+	std::ostream outBufferStream(&outBuffer);
+	LZ4OutputStream lz4_out_stream(outBufferStream);
 
-	fclose(f);
+	std::copy(std::istreambuf_iterator<char>(inFile),
+			  std::istreambuf_iterator<char>(),
+			  std::ostreambuf_iterator<char>(lz4_out_stream));
+	lz4_out_stream.close();
+#endif
+
 	return result;
 }
+
+struct ByteArrayHolderBuf : std::streambuf
+{
+	ByteArrayHolderBuf(const ByteArrayHolder & data) {
+		this->setg((char*)data.data(), (char*)data.data(), (char*)data.data() + data.size());
+	}
+};
 
 bool FileInfo::WriteCompressed(const ByteArrayHolder & data, bool createTmpCopy)
 {
@@ -322,6 +366,18 @@ bool FileInfo::WriteCompressed(const ByteArrayHolder & data, bool createTmpCopy)
 			return false;
 		}
 #endif
+
+#ifdef USE_LZ4
+		ByteArrayHolderBuf buffer(data);
+		std::istream bufferStream(&buffer);
+		LZ4InputStream lz4_in_stream(bufferStream);
+
+		std::copy(std::istreambuf_iterator<char>(lz4_in_stream),
+				  std::istreambuf_iterator<char>(),
+				  std::ostreambuf_iterator<char>(outFile));
+
+#endif
+
 		outFile.close();
 		if (outFile.fail())
 		{
@@ -440,7 +496,7 @@ StringVector FileInfo::GetDirFiles(bool sortByName)
 
 TemporaryFile::~TemporaryFile()
 {
-	this->Remove();
+	//this->Remove();
 }
 
 std::string GetCWD()

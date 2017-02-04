@@ -17,16 +17,20 @@ project(Wuild)
 # main paths.
 set(NINJA_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/ninja-1.7.2/src)
 set(ZLIB_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/zlib-1.2.8)
+set(LZ4_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/lz4-1.7.3)
+set(LZ4_STREAM_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/lz4_stream)
+
 
 #configure options
-option( USE_ZLIB_COMPRESSION "" ON )
+option( USE_ZLIB_COMPRESSION "" OFF )
+option( USE_LZ4_COMPRESSION "" ON )
 option( USE_SYSTEM_ZLIB "Use system zlib library." ON )
 SET( BOOST_INCLUDEDIR "" CACHE PATH "Boost path to includes")
 SET( BOOST_LIBRARYDIR "" CACHE PATH "Boost path to compiled libs")
 
 #platform configuration.
 if (USE_ZLIB_COMPRESSION)
-	set(ZLIB_LIBS -lz)
+	set(COMPRESSION_LIBS -lz)
 endif()
 if (MSVC)
 	set(USE_SYSTEM_ZLIB OFF)
@@ -69,7 +73,7 @@ endif()
 function(AddTarget)
 	set(options APP)
 	set(oneValueArgs NAME ROOT SUBDIR)
-	set(multiValueArgs CSRC INCLUDES DEPS EXCLUDE OPTIONS)
+	set(multiValueArgs CSRC INCLUDES DEPS EXCLUDE OPTIONS DEFINES)
 	cmake_parse_arguments(AddTarget "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )
 	set(_sources)
 	if (NOT AddTarget_ROOT)
@@ -97,15 +101,27 @@ function(AddTarget)
 	foreach (opt ${AddTarget_OPTIONS})
 		target_compile_options(${AddTarget_NAME} PRIVATE ${opt})
 	endforeach()
+	foreach (opt ${AddTarget_DEFINES})
+		target_compile_definitions(${AddTarget_NAME} PRIVATE ${opt})
+	endforeach()
 endfunction()
 
 # Source code targets.
 if (NOT USE_SYSTEM_ZLIB AND USE_ZLIB_COMPRESSION)
 	AddTarget(NAME zlib_static ROOT ${ZLIB_ROOT}/ CSRC *.c)
-	set(ZLIB_LIBS zlib_static)
+	set(COMPRESSION_LIBS zlib_static)
 endif()
 if (USE_ZLIB_COMPRESSION)
-	set(ZLIB_DEFINES -DUSE_ZLIB)
+	set(COMPRESSION_DEFINES -DUSE_ZLIB)
+endif()
+if (USE_LZ4_COMPRESSION)
+	AddTarget(NAME lz4_static ROOT ${LZ4_ROOT}/ CSRC *.c)
+	AddTarget(NAME lz4_stream ROOT ${LZ4_STREAM_ROOT}/ CSRC *.cpp DEPS lz4_static)
+	set(COMPRESSION_LIBS lz4_stream lz4_static)
+	set(COMPRESSION_DEFINES -DUSE_LZ4)
+endif()
+if (NOT COMPRESSION_DEFINES)
+	message(SEND_ERROR "Select compression library.")
 endif()
 
 set(ninja_lib_src
@@ -152,10 +168,10 @@ AddTarget(NAME ninja_lib ROOT ${NINJA_ROOT}/ CSRC ${ninja_lib_src} *.h
 AddTarget(NAME Platform CSRC *.cpp *.h
 	INCLUDES
 	${BOOST_INCLUDEDIR}
-	OPTIONS
-	 ${HAS_BOOST} ${ZLIB_DEFINES}
+	DEFINES
+	 ${HAS_BOOST} ${COMPRESSION_DEFINES}
 	DEPS
-	${ZLIB_LIBS}
+	${COMPRESSION_LIBS}
 	${Boost_FILESYSTEM_LIBRARY}
 	${Boost_SYSTEM_LIBRARY}
 	)
