@@ -14,6 +14,7 @@
 #include "InvocationRewriterConfig.h"
 
 #include <iostream>
+#include <sstream>
 
 namespace Wuild
 {
@@ -46,6 +47,19 @@ bool InvocationRewriterConfig::Validate(std::ostream *errStream) const
 		}
 	}
 	return true;
+}
+
+std::string InvocationRewriterConfig::Dump() const
+{
+	std::ostringstream os;
+	for (const Tool & tool : m_tools)
+	{
+		os << tool.m_id << ": ";
+		for (const auto & name : tool.m_names)
+			os << name << ", ";
+		os << "\n";
+	}
+	return os.str();
 }
 
 }

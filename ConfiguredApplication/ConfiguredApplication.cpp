@@ -281,9 +281,10 @@ void ConfiguredApplication::ReadInvocationRewriterConfig()
 			unit.m_type = InvocationRewriterConfig::ToolchainType::MSVC;
 		for (auto executable: m_config->GetStringList(defaultGroup, id))
 		{
-#ifdef _WIN32
-   std::replace(executable.begin(), executable.end(), '\\', '/');
-#endif
+			executable = FileInfo::ToPlatformPath(executable);
+			const std::string shortName = FileInfo(executable).GetPlatformShortName();
+			if (shortName != executable)
+				unit.m_names.push_back(shortName);
 			unit.m_names.push_back(executable);
 		}
 

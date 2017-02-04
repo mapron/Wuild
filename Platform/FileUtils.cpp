@@ -182,6 +182,15 @@ public:
 	fs::path m_path;
 };
 
+std::string FileInfo::ToPlatformPath(std::string path)
+{
+#ifdef _WIN32
+   std::replace(path.begin(), path.end(), '/', '\\');
+   std::transform(path.begin(), path.end(), path.begin(), [](char c) { return ::tolower(c);});
+#endif
+   return path;
+}
+
 FileInfo::FileInfo(const FileInfo &rh)
 	: m_impl(new FileInfoPrivate(*rh.m_impl))
 {
@@ -240,6 +249,34 @@ std::string FileInfo::GetFullExtension() const
 	const auto name = this->GetFullname();
 	const auto dot = name.find('.');
 	return name.substr( dot );
+}
+
+std::string FileInfo::GetPlatformShortName() const
+{
+#ifdef _WIN32
+	std::string result = GetPath();
+	fserr code;
+	result = fs::canonical(result, code).u8string();
+	long length = 0;
+
+	// First obtain the size needed by passing NULL and 0.
+	length = GetShortPathNameA(result.c_str(), nullptr, 0);
+	if (length == 0)
+		return result;
+
+	// Dynamically allocate the correct size
+	// (terminating null char was included in length)
+	std::vector<char> buffer(length + 1);
+
+	// Now simply call again using same long path.
+	length = GetShortPathNameA(result.c_str(), buffer.data(), length);
+	if (length == 0)
+		return result;
+
+	return ToPlatformPath(std::string(buffer.data(), length));
+#else
+	return GetPath();
+#endif
 }
 
 

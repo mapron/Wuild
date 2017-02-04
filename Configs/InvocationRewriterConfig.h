@@ -33,5 +33,6 @@ public:
 	std::string GetFirstToolId() const;
 	std::string GetFirstToolName() const;
 	bool Validate(std::ostream * errStream = nullptr) const override;
+	std::string Dump() const;
 };
 }

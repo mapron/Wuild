@@ -165,11 +165,7 @@ InvocationRewriter::ToolInfo InvocationRewriter::CompileInfoById(const ToolInvoc
 
 InvocationRewriter::ToolInfo InvocationRewriter::CompileInfoByExecutable(const std::string &executable) const
 {
-   std::string exec = executable;
-#ifdef _WIN32
-   std::replace(exec.begin(), exec.end(), '\\', '/');
-#endif
-
+	const std::string exec = FileInfo::ToPlatformPath(executable);
 	InvocationRewriter::ToolInfo info;
 	for (const Config::Tool & unit : m_config.m_tools)
 	{

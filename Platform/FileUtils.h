@@ -26,6 +26,9 @@ class FileInfo
 {
 	std::unique_ptr<FileInfoPrivate> m_impl;
 public:
+	static std::string ToPlatformPath(std::string path);
+
+public:
 	FileInfo(const FileInfo& rh);
 	FileInfo & operator = (const FileInfo & rh);
 	FileInfo(const std::string & filename = std::string());
@@ -48,6 +51,9 @@ public:
 
 	/// All extensions as string, including first dot (if present)
 	std::string GetFullExtension() const;
+
+	/// Return short path on Win, full Path on other platfroms.
+	std::string GetPlatformShortName() const;
 
 	/// Read file from disk and compress its contents in memory.
 	bool ReadGzipped(ByteArrayHolder & data, int level = 1);

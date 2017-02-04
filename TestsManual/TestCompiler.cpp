@@ -27,6 +27,9 @@ int main(int argc, char** argv)
 	if (!CreateInvocationRewriter(app))
 	   return 1;
 
+	//Syslogger() << app.DumpAllConfigValues();
+	Syslogger() << app.m_invocationRewriterConfig.Dump();
+
 	const auto args = CreateTestProgramInvocation();
 
 	auto localExecutor = LocalExecutor::Create(TestConfiguration::s_invocationRewriter, app.m_tempDir);

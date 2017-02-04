@@ -13,9 +13,10 @@
 
 #include "AbstractConfig.h"
 
-#include "FileUtils.h"
-#include "StringUtils.h"
-#include "Application.h"
+#include <FileUtils.h>
+#include <StringUtils.h>
+#include <Application.h>
+#include <Syslogger.h>
 
 #include <algorithm>
 #include <functional>
@@ -23,6 +24,7 @@
 #include <locale>
 #include <fstream>
 #include <sstream>
+#include <regex>
 
 namespace
 {
@@ -74,6 +76,7 @@ bool AbstractConfig::ReadIniFile(const std::string &filename)
 	if (!fin)
 		return false;
 	std::string line;
+	const std::regex varregex { R"regex(\$\w+)regex" };
 	while(fin){
 		 std::getline(fin, line);
 		 line = StringUtils::Trim(line);
@@ -85,17 +88,39 @@ bool AbstractConfig::ReadIniFile(const std::string &filename)
 				currentGroup = line.substr(1, line.size()-2); // hope we have closing ].
 				continue;
 			}
-			for (const auto & varPair : variables)
+
+			// Replace all $VarName in line. First, trying our variable map; second, try environment variable.
+			size_t offset = 0;
+			std::smatch match;
+			while (std::regex_search(line.cbegin() + offset, line.cend(), match, varregex))
 			{
-			   size_t startPos = line.find(varPair.first);
-			   if(startPos == std::string::npos)
-				   continue;
-			   line.replace(startPos, varPair.first.length(), varPair.second);
+				auto wholeMatchPosition = match.position(0);
+				const std::string varName = match[0].str().substr(1);
+				std::string replacement = "???";
+				const auto varIt = variables.find(varName);
+				if (varIt != variables.cend())
+				{
+					replacement = varIt->second;
+				}
+				else
+				{
+					auto envValue = getenv(varName.c_str());
+					if (envValue)
+						replacement = envValue;
+					else
+						Syslogger(Syslogger::Err) << "Invalid variable '" << varName << "' found in config.";
+				}
+
+				const auto start = line.cbegin() + offset + wholeMatchPosition;
+				line.replace(start, start + match[0].length(), replacement);
+
+				offset += wholeMatchPosition + replacement.length();
 			}
+
 			size_t assignPos = line.find(g_assign);
 			if (assignPos != std::string::npos)
 			{
-				const auto varname = '$' + StringUtils::Trim(line.substr(0, assignPos));
+				const auto varname = StringUtils::Trim(line.substr(0, assignPos));
 				const auto value = StringUtils::Trim(line.substr(assignPos + g_assign.size()));
 				variables[varname] = value;
 				continue;
