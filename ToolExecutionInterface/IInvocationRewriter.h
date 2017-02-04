@@ -41,7 +41,8 @@ public:
 	/// Split invocation on two steps. If succeeded, returns true.
 	virtual bool SplitInvocation(const ToolInvocation & original,
 								 ToolInvocation & preprocessor,
-								 ToolInvocation & compilation) = 0;
+								 ToolInvocation & compilation,
+								 std::string * remoteToolId = nullptr) = 0;
 
 	/// Normalizes invocation struct, making possible to replace input/output files. Substitute toolId if possible.
 	virtual ToolInvocation CompleteInvocation(const ToolInvocation & original) = 0;

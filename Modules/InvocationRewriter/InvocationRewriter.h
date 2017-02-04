@@ -36,7 +36,8 @@ public:
 
 	bool SplitInvocation(const ToolInvocation & original,
 						 ToolInvocation & preprocessor,
-						 ToolInvocation & compilation) override;
+						 ToolInvocation & compilation,
+						 std::string * remoteToolId = nullptr) override;
 
    ToolInvocation CompleteInvocation(const ToolInvocation & original) override;
 
@@ -53,6 +54,7 @@ private:
 		ICommandLineParser::Ptr m_parser;
 		ToolInvocation::Id m_id;
 		Config::Tool m_tool;
+		std::string m_remoteId;
 		bool m_valid = false;
 	};
 	ToolInfo CompileInfoById(const ToolInvocation::Id & id) const;

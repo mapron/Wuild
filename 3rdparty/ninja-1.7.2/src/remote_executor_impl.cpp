@@ -86,10 +86,8 @@ bool RemoteExecutor::PreprocessCode(const std::vector<std::string> &originalRule
 	original.m_id.m_toolExecutable = srcExecutable;
 	original.m_args = args;
 	original.m_ignoredArgs = ignoredArgs;
-	if (!m_invocationRewriter->SplitInvocation(original, pp, cc))
+	if (!m_invocationRewriter->SplitInvocation(original, pp, cc, &toolId))
 		return false;
-
-	toolId = pp.m_id.m_toolId;
 
 	preprocessRule.push_back(srcExecutable + "  ");
 	preprocessRule.insert(preprocessRule.end(), pp.m_args.begin(), pp.m_args.end());

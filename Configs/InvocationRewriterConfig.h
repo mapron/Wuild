@@ -25,6 +25,7 @@ public:
 		std::string m_id;
 		std::string m_removeRemote;
 		std::string m_appendRemote;
+		std::string m_remoteAlias;
 		ToolchainType m_type = ToolchainType::GCC;
 		std::vector<std::string> m_names;
 	};

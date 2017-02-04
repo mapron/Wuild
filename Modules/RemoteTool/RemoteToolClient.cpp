@@ -276,13 +276,14 @@ void RemoteToolClient::InvokeTool(const ToolInvocation & invocation, InvokeCallb
 	wrap.m_start = TimePoint(true);
 	wrap.m_toolRequest = toolRequest;
 	wrap.m_taskIndex = m_taskIndex++;
-	wrap.m_invocation = invocation;
+	wrap.m_invocation = toolRequest->m_invocation;
 	wrap.m_callback = callback;
 	wrap.m_expirationMoment = wrap.m_start + m_config.m_queueTimeout;
 	wrap.m_attemptsRemain = m_config.m_invocationAttempts;
 	wrap.m_requestTimeout = m_config.m_requestTimeout;
 
-	Syslogger(Syslogger::Info) << "QueueFrame [" << wrap.m_taskIndex << "] -> " << invocation.GetArgsString(false)
+	Syslogger(Syslogger::Info) << "QueueFrame [" << wrap.m_taskIndex << "] -> " << toolRequest->m_invocation.m_id.m_toolId
+							   << " " << toolRequest->m_invocation.GetArgsString(false)
 						<< ", balancerFree:" <<m_impl->m_balancer.GetFreeThreads()
 						<< ", pending:" << m_impl->m_pendingTasks;
 

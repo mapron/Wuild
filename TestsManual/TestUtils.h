@@ -37,7 +37,8 @@ public:
 
 	bool SplitInvocation(const ToolInvocation & ,
 				 ToolInvocation &,
-				 ToolInvocation &) override { return false;}
+				 ToolInvocation &,
+				  std::string *) override { return false;}
 
 	ToolInvocation CompleteInvocation(const ToolInvocation & original) override { return original; }
 	ToolInvocation PrepareRemote(const ToolInvocation & original) override { return original; }

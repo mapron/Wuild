@@ -19,6 +19,7 @@
 #include <CommonTypes.h>
 #include <FileUtils.h>
 #include <StringUtils.h>
+#include <Syslogger.h>
 #include <algorithm>
 
 namespace Wuild
@@ -38,7 +39,7 @@ const IInvocationRewriter::Config &InvocationRewriter::GetConfig() const
 	return m_config;
 }
 
-bool InvocationRewriter::SplitInvocation(const ToolInvocation & original, ToolInvocation &preprocessor, ToolInvocation &compilation)
+bool InvocationRewriter::SplitInvocation(const ToolInvocation & original, ToolInvocation &preprocessor, ToolInvocation &compilation, std::string * remoteToolId)
 {
 	ToolInfo toolInfo = CompileInfoById(original.m_id);
 	if (!toolInfo.m_parser)
@@ -48,6 +49,8 @@ bool InvocationRewriter::SplitInvocation(const ToolInvocation & original, ToolIn
 	if (origComplete.m_type != ToolInvocation::InvokeType::Compile)
 		return false;
 
+	if (remoteToolId)
+		*remoteToolId = toolInfo.m_remoteId;
 	toolInfo.m_parser->SetToolInvocation(origComplete);
 	toolInfo.m_parser->SetInvokeType(ToolInvocation::InvokeType::Preprocess);
 	toolInfo.m_parser->RemovePDB();
@@ -149,6 +152,7 @@ ToolInvocation InvocationRewriter::PrepareRemote(const ToolInvocation &original)
 					newArgs.push_back(arg);
 			newArgs.swap(inv.m_args);
 		}
+		inv.m_id.m_toolId = info.m_remoteId;
 	}
 	inv.SetInput (FileInfo(inv.GetInput() ).GetFullname());
 	inv.SetOutput(FileInfo(inv.GetOutput()).GetFullname());
@@ -200,6 +204,11 @@ InvocationRewriter::ToolInfo InvocationRewriter::CompileInfoByUnit(const IInvoca
 		info.m_parser.reset(new MsvcCommandLineParser());
 	if (info.m_parser)
 		info.m_valid = true;
+	info.m_remoteId = info.m_id.m_toolId;
+	if (!unit.m_remoteAlias.empty())
+	{
+		info.m_remoteId = unit.m_remoteAlias;
+	}
 	return info;
 }
 

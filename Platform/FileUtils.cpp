@@ -316,10 +316,10 @@ bool FileInfo::WriteGzipped(const ByteArrayHolder & data, bool createTmpCopy)
 			Syslogger(Syslogger::Err) << "Failed to open for write " << GetPath();
 			return false;
 		}
-
-		if (inf(data.ref(), f.get()) != Z_OK)
+		auto infResult = inf(data.ref(), f.get());
+		if (infResult != Z_OK)
 		{
-			Syslogger(Syslogger::Err) << "Failed to unzip data " << GetPath() << ", size = " << data.size();
+			Syslogger(Syslogger::Err) << "Failed to unzip data " << GetPath() << ", size = " << data.size() << ", result=" << infResult;
 			return false;
 		}
 	}
@@ -330,12 +330,17 @@ bool FileInfo::WriteGzipped(const ByteArrayHolder & data, bool createTmpCopy)
 	if (createTmpCopy)
 	{
 		fserr code;
-		for (size_t attempt = 0; attempt < g_renameAttempts; ++attempt)
+		size_t attempt;
+		for (attempt = 0; attempt < g_renameAttempts; ++attempt)
 		{
 			fs::rename(writePath, originalPath, code);
 			if (!code)
 				break;
 			usleep(g_renameUsleep);
+		}
+		if (attempt > 0)
+		{
+			Syslogger(Syslogger::Info) << (attempt+1) << " attempts used to write " << GetPath() << " data.";
 		}
 
 		if (code)
