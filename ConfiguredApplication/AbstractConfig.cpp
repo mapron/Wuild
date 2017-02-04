@@ -111,7 +111,7 @@ bool AbstractConfig::ReadIniFile(const std::string &filename)
 						Syslogger(Syslogger::Err) << "Invalid variable '" << varName << "' found in config.";
 				}
 
-				const auto start = line.cbegin() + offset + wholeMatchPosition;
+                const auto start = line.begin() + offset + wholeMatchPosition;
 				line.replace(start, start + match[0].length(), replacement);
 
 				offset += wholeMatchPosition + replacement.length();
