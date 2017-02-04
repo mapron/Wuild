@@ -190,7 +190,7 @@ int RemoteToolClient::GetFreeRemoteThreads() const
 void RemoteToolClient::Start(const StringVector & requiredToolIds)
 {
 	m_started = true;
-	m_start = TimePoint(true);
+	m_start = m_lastFinish = TimePoint(true);
 	m_sessionInfo = ToolServerSessionInfo();
 	m_sessionInfo.m_sessionId = m_sessionId = m_start.GetUS();
 	m_sessionInfo.m_clientId = m_config.m_clientId;
@@ -212,7 +212,7 @@ void RemoteToolClient::FinishSession()
 	if (!m_started)
 		return;
 	m_started = false;
-	m_sessionInfo.m_elapsedTime = m_start.GetElapsedTime();
+	m_sessionInfo.m_elapsedTime = m_lastFinish - m_start;
 	m_impl->m_coordinator.SendToolServerSessionInfo(m_sessionInfo, true);
 }
 
@@ -293,6 +293,7 @@ void RemoteToolClient::InvokeTool(const ToolInvocation & invocation, InvokeCallb
 void RemoteToolClient::UpdateSessionInfo(const RemoteToolClient::TaskExecutionInfo &executionResult)
 {
 	std::lock_guard<std::mutex> lock(m_sessionInfoMutex);
+	m_lastFinish = TimePoint(true);
 	m_sessionInfo.m_tasksCount ++;
 	if (!executionResult.m_result)
 		m_sessionInfo.m_failuresCount++;
