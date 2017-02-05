@@ -13,20 +13,13 @@
 
 #pragma once
 #include "CommonTypes.h"
+#include "Compression.h"
 
 #include <stdint.h>
 #include <vector>
 #include <string>
 
 namespace Wuild {
-
-enum class CompressionType { None, LZ4, Gzip };
-
-struct CompressionInfo
-{
-	CompressionType m_type = CompressionType::None;
-	int m_level = 5;
-};
 
 class FileInfoPrivate;
 /// Holds information about file on a disk.

@@ -29,9 +29,6 @@ SET( BOOST_INCLUDEDIR "" CACHE PATH "Boost path to includes")
 SET( BOOST_LIBRARYDIR "" CACHE PATH "Boost path to compiled libs")
 
 #platform configuration.
-if (USE_ZLIB_COMPRESSION)
-	list(APPEND COMPRESSION_LIBS -lz)
-endif()
 if (MSVC)
 	set(USE_SYSTEM_ZLIB OFF)
 	add_definitions(-D_CRT_SECURE_NO_WARNINGS -DNOMINMAX /wd4267 /wd4244)
@@ -106,12 +103,14 @@ function(AddTarget)
 	endforeach()
 endfunction()
 
-# Source code targets.
-if (NOT USE_SYSTEM_ZLIB AND USE_ZLIB_COMPRESSION)
-	AddTarget(NAME zlib_static ROOT ${ZLIB_ROOT}/ CSRC *.c)
-	list(APPEND COMPRESSION_LIBS zlib_static)
-endif()
+# Compression targets
 if (USE_ZLIB_COMPRESSION)
+	if (USE_SYSTEM_ZLIB)
+		list(APPEND COMPRESSION_LIBS -lz)
+	else()
+		AddTarget(NAME zlib_static ROOT ${ZLIB_ROOT}/ CSRC *.c)
+		list(APPEND COMPRESSION_LIBS zlib_static)
+	endif()
 	list(APPEND COMPRESSION_DEFINES -DUSE_ZLIB)
 endif()
 if (USE_LZ4_COMPRESSION)
@@ -121,6 +120,7 @@ if (USE_LZ4_COMPRESSION)
 	list(APPEND COMPRESSION_DEFINES -DUSE_LZ4)
 endif()
 
+# Source code targets.
 set(ninja_lib_src
   #  browse.cc
 	build.cc
