@@ -45,22 +45,44 @@ public:
 	void SetToolServerInfo(const ToolServerInfo & info);
 	void SendToolServerSessionInfo(const ToolServerSessionInfo & sessionInfo, bool isFinished);
 
+	void StopExtraClients(const std::string& hostExcept);
+
 protected:
-	void Quant();
+
 	InfoArrivedCallback m_infoArrivedCallback;
 
-	std::unique_ptr<SocketFrameHandler> m_client;
+	struct CoordWorker
+	{
+		CoordinatorClient * m_coordClient = nullptr;
+		std::shared_ptr<SocketFrameHandler> m_client;
+		std::atomic_bool m_clientState { false };
 
-	TimePoint m_lastSend;
-	ThreadLoop m_thread;
-	std::atomic_bool m_clientState { false };
+		std::atomic_bool m_needSendToolServerInfo {true};
+		std::atomic_bool m_needRequestData {true};
+		TimePoint m_lastSend;
+
+		ThreadLoop m_thread;
+		std::string m_host;
+
+		ToolServerInfo m_toolServerInfo;
+		std::mutex m_toolServerInfoMutex;
+
+		void SetToolServerInfo(const ToolServerInfo & info);
+
+		void Quant();
+		void Start(const std::string& host, int port);
+		void Stop();
+		~CoordWorker();
+	};
+
+	std::deque<std::shared_ptr<CoordWorker>> m_workers;
 
 	CoordinatorInfo m_coord;
-	ToolServerInfo m_toolServerInfo;
-	std::atomic_bool m_needSendToolServerInfo {true};
-	std::atomic_bool m_needRequestData {true};
+	ToolServerInfo m_lastInfo;
+
 	std::mutex m_coordMutex;
-	std::mutex m_toolServerInfoMutex;
+
+	std::atomic_bool m_exclusiveModeSet {false};
 
 	Config m_config;
 };

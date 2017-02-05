@@ -29,6 +29,7 @@ public:
 
 public:
 	ThreadLoop();
+	ThreadLoop(ThreadLoop&& rh);
 	~ThreadLoop();
 
 	/// thread is performing action (and was not stopped)

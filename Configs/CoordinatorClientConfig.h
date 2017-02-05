@@ -21,11 +21,14 @@ namespace Wuild
 class CoordinatorClientConfig : public IConfig
 {
 public:
+	enum class Redundance { All, Any };
+
 	std::string m_logContext;
 	bool m_enabled = true;
 	StringVector m_coordinatorHost;
 	int m_coordinatorPort = 0;
 	TimePoint m_sendInfoInterval;
+	Redundance m_redundance = Redundance::All;
 
 	bool Validate(std::ostream * errStream = nullptr) const override;
 };

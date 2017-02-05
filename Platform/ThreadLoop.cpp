@@ -37,6 +37,11 @@ ThreadLoop::ThreadLoop()
 
 }
 
+ThreadLoop::ThreadLoop(ThreadLoop &&rh)
+	: m_impl(std::move(rh.m_impl))
+{
+}
+
 ThreadLoop::~ThreadLoop()
 {
 	Stop();
@@ -74,6 +79,8 @@ void ThreadLoop::Exec(ThreadLoop::QuantFunction quant, int64_t sleepUS)
 
 void ThreadLoop::Stop(bool wait)
 {
+	if (!m_impl)
+		return;
 	m_impl->m_condition = false;
 	if (wait && m_impl->m_thread.joinable())
 		m_impl->m_thread.join();

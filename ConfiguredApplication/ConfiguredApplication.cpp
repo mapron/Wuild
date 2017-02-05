@@ -304,6 +304,7 @@ void ConfiguredApplication::ReadRemoteToolClientConfig()
 		m_remoteToolClientConfig.m_requestTimeout = TimePoint(requestTimeoutMS / 1000.);
 
 	ReadCoordinatorClientConfig(m_remoteToolClientConfig.m_coordinator, defaultGroup);
+	m_remoteToolClientConfig.m_coordinator.m_redundance = CoordinatorClientConfig::Redundance::Any;
 	ReadCompressionConfig(m_remoteToolClientConfig.m_compression, defaultGroup);
 }
 
