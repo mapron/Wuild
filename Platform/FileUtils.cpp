@@ -329,7 +329,7 @@ StringVector FileInfo::GetDirFiles(bool sortByName)
 
 TemporaryFile::~TemporaryFile()
 {
-	//this->Remove();
+	this->Remove();
 }
 
 std::string GetCWD()
