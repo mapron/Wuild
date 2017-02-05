@@ -259,6 +259,7 @@ void RemoteToolClient::AddClient(const ToolServerInfo &info, bool start)
 
 void RemoteToolClient::InvokeTool(const ToolInvocation & invocation, InvokeCallback callback)
 {
+	TimePoint start(true);
 	const std::string inputFilename  = invocation.GetInput();
 	ByteArrayHolder inputData;
 	if (!inputFilename.empty() && !FileInfo(inputFilename).ReadCompressed(inputData, m_config.m_compression))
@@ -275,7 +276,7 @@ void RemoteToolClient::InvokeTool(const ToolInvocation & invocation, InvokeCallb
 	toolRequest->m_clientId = m_config.m_clientId;
 
 	RemoteToolRequestWrap wrap;
-	wrap.m_start = TimePoint(true);
+	wrap.m_start = start;
 	wrap.m_toolRequest = toolRequest;
 	wrap.m_taskIndex = m_taskIndex++;
 	wrap.m_invocation = toolRequest->m_invocation;
