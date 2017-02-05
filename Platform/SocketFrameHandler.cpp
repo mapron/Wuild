@@ -280,6 +280,9 @@ SocketFrameHandler::ConsumeState SocketFrameHandler::ConsumeReadBuffer()
 	if (m_settings.m_hasChannelTypes)
 		mtype = SocketFrameHandler::ServiceMessageType(inputStream.ReadScalar<uint8_t>());
 
+	if (m_readBuffer.GetRemainRead() < 0)
+		return ConsumeState::Incomplete;
+
 	if (m_settings.m_hasAcknowledges && mtype == ServiceMessageType::Ack)
 	{
 		uint32_t size = 0;
@@ -323,8 +326,8 @@ SocketFrameHandler::ConsumeState SocketFrameHandler::ConsumeReadBuffer()
 
 		m_pendingReadType = mtype;
 
-		size_t frameLength = m_readBuffer.GetRemainRead();
-		if (!frameLength)
+		ptrdiff_t frameLength = m_readBuffer.GetRemainRead();
+		if (frameLength <= 0)
 			return ConsumeState::Incomplete;
 		if (m_settings.m_hasChannelTypes)
 		{
@@ -344,8 +347,8 @@ SocketFrameHandler::ConsumeState SocketFrameHandler::ConsumeReadBuffer()
 
 		auto * framePos = m_frameDataBuffer.PosWrite(frameLength);
 		assert(framePos);
-		inputStream.ReadBlock(framePos, frameLength);
-		m_frameDataBuffer.MarkWrite(frameLength);
+		if (inputStream.ReadBlock(framePos, frameLength))
+			m_frameDataBuffer.MarkWrite(frameLength);
 	}
 	return ConsumeState::Ok;
 }
