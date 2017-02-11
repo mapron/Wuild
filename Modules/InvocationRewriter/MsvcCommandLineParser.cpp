@@ -45,6 +45,10 @@ void MsvcCommandLineParser::UpdateInfo()
 				m_invocation.m_type = ToolInvocation::InvokeType::Preprocess;
 				m_invokeTypeIndex = realArgs.size();
 			}
+			if ((arg[1] == 'D' || arg[1] == 'I') && arg.size() == 2) // /D DEFINE  /I path
+			{
+				ignoreNext = true;
+			}
 
 			if (arg[1] == 'F' )
 			{
@@ -145,12 +149,24 @@ void MsvcCommandLineParser::RemovePDB()
 void MsvcCommandLineParser::RemovePrepocessorFlags()
 {
 	StringVector newArgs;
+	bool skipNext = false;
 	for (const auto & arg : m_invocation.m_args)
 	{
+		if (skipNext)
+		{
+			skipNext = false;
+			continue;
+		}
 		if (arg[0] == '-' || arg[0] == '/')
 		{
 			if (arg[1] == 'I' || arg[1] == 'D' || arg.substr(1) == "showIncludes")
-			   continue;
+			{
+				if (arg.size() == 2)
+				{
+					skipNext = true;
+				}
+				continue;
+			}
 		}
 		newArgs.push_back(arg);
 	}
