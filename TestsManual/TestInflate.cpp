@@ -23,6 +23,9 @@ void FillRandomBuffer(std::vector<uint8_t> & data, size_t size)
 		data[i] = static_cast<uint8_t>((rand() %2)  );
 }
 
+/*
+ * Autotest for LZ4 compression.
+ */
 int main(int argc, char ** argv)
 {
 	using namespace Wuild;

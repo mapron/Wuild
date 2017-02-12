@@ -20,6 +20,10 @@
 const int g_toolsServerTestPort = 12345;
 const Wuild::CompressionType g_compType = Wuild::CompressionType::LZ4;
 
+/*
+ * This test should be invoked just as normal compiler; first toolId used.
+ * Test checks compiler configuration + checks network layer, but does not use coordinator or toolserver config.
+ */
 int main(int argc, char** argv)
 {
 	using namespace Wuild;

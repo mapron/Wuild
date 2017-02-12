@@ -21,6 +21,9 @@
 namespace Wuild
 {
 
+/**
+ * Tool invocation: arguments plus current working dir.
+ */
 class ToolProxyRequest : public SocketFrameExt
 {
 public:
@@ -39,6 +42,9 @@ public:
 
 };
 
+/**
+ * Tool invocation result: success code and std output.
+ */
 class ToolProxyResponse : public SocketFrameExt
 {
 public:

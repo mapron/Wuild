@@ -49,6 +49,9 @@ public:
 const int g_toolsServerTestPort = 12345;
 const int g_coordinatorTestPort = 12346;
 
+/*
+ * Autotest for coordinator communication. Arguments not required.
+ */
 int main(int argc, char** argv)
 {
 	ConfiguredApplication app(argc, argv, "TestCoordinator");

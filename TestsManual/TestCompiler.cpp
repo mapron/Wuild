@@ -20,6 +20,10 @@
 
 #include <iostream>
 
+/*
+ * Test Wuild compiler configuration.
+ * Arguments is not required, test creates test invocation for first toolchain in config file.
+ */
 int main(int argc, char** argv)
 {
 	using namespace Wuild;

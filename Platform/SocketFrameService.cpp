@@ -95,6 +95,8 @@ void SocketFrameService::Stop()
 void SocketFrameService::Quant()
 {
 	std::lock_guard<std::mutex> lock(m_workersLock);
+
+	// first, check for dead workers and erase them
 	auto workerIt = m_workers.begin();
 	while (workerIt != m_workers.end())
 	{
@@ -112,9 +114,10 @@ void SocketFrameService::Quant()
 		++workerIt;
 	}
 
+	// second, proceed all pending connections.
 	for (IDataListener::Ptr & listenter : m_listenters)
 	{
-		auto client = listenter->GetPendingConnection();
+		auto client = listenter->GetPendingConnection(); //TODO: while?
 		if (client)
 		{
 			Syslogger(m_logContext) << "SocketFrameService::quant() adding new worker ";

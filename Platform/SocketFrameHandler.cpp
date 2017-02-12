@@ -73,6 +73,8 @@ void SocketFrameHandler::Stop(bool wait)
 
 bool SocketFrameHandler::Quant()
 {
+	// Each quant, we check connection, if we ok, then read and write frames data.
+	// If false returned, thread will interrupted.
 	ConnectionState connectionState = this->CheckAndCreateConnection() ? ConnectionState::Ok : ConnectionState::Failed;
 	SetConnectionState(connectionState);
 	if (connectionState != ConnectionState::Ok)
@@ -198,6 +200,7 @@ void SocketFrameHandler::SetConnectionState(SocketFrameHandler::ConnectionState 
 
 bool SocketFrameHandler::ReadFrames()
 {
+	// first, try to read some data from socket
 	const size_t currentSize = m_readBuffer.GetHolder().size();
 	const auto readState = m_channel->Read(m_readBuffer.GetHolder());
 
@@ -213,14 +216,13 @@ bool SocketFrameHandler::ReadFrames()
 
 	m_readBuffer.SetSize(newSize);
 
-
 	m_doTestActivity = true;
 	m_readBuffer.ResetRead();
 
 	m_outputAcknowledgesSize += newSize - currentSize;
 	bool validInput = true;
 
-
+	// if some new data arrived, try to extract segments from it:
 	do
 	{
 		ConsumeState state = ConsumeReadBuffer();
@@ -238,6 +240,7 @@ bool SocketFrameHandler::ReadFrames()
 
 	m_frameDataBuffer.ResetRead();
 
+	// if we have read frame data, try to parse it (and process apllication frames):
 	do
 	{
 		if (!validInput || m_pendingReadType == ServiceMessageType::None)
@@ -253,28 +256,27 @@ bool SocketFrameHandler::ReadFrames()
 			break;
 
 		m_frameDataBuffer.RemoveFromStart(m_frameDataBuffer.GetOffsetRead());
-	}while(m_frameDataBuffer.GetSize());
+	} while (m_frameDataBuffer.GetSize());
 
 	if (!m_frameDataBuffer.GetSize())
 	{
 		m_pendingReadType = ServiceMessageType::None;
 	}
 
+	// if error occured, clean all buffers.
 	if (!validInput)
 	{
-		// removing all read data.
 		m_readBuffer.Clear();
 		m_frameDataBuffer.Clear();
 		m_pendingReadType = ServiceMessageType::None;
 	}
-
-	//Syslogger(m_logContext, Syslogger::Info) << "Read taken:" << m_lastSucceessfulRead.GetElapsedTime().ToProfilingTime();
 
 	return true;
 }
 
 SocketFrameHandler::ConsumeState SocketFrameHandler::ConsumeReadBuffer()
 {
+	// create stream for reading
 	ByteOrderDataStreamReader inputStream(&m_readBuffer, m_settings.m_byteOrder);
 	ServiceMessageType mtype = ServiceMessageType::User;
 	if (m_settings.m_hasChannelTypes)
@@ -283,6 +285,7 @@ SocketFrameHandler::ConsumeState SocketFrameHandler::ConsumeReadBuffer()
 	if (m_readBuffer.GetRemainRead() < 0)
 		return ConsumeState::Incomplete;
 
+	// check for some service types: acknowledge, line test and connection options:
 	if (m_settings.m_hasAcknowledges && mtype == ServiceMessageType::Ack)
 	{
 		uint32_t size = 0;
@@ -313,6 +316,7 @@ SocketFrameHandler::ConsumeState SocketFrameHandler::ConsumeReadBuffer()
 		}
 		Syslogger(m_logContext)<< "Recieved buffer size = " << bufferSize << ", MaxUnAck=" << m_maxUnAcknowledgedSize  <<  ", remote time is " << m_remoteTimeDiffToPast.ToString() << " in past compare to me. (" << m_remoteTimeDiffToPast.GetUS() << " us)";
 	}
+	// othrewise, we have application frame. Move its data to framebuffer.
 	else
 	{
 		if (m_pendingReadType != ServiceMessageType::None && m_pendingReadType != mtype)
@@ -345,16 +349,19 @@ SocketFrameHandler::ConsumeState SocketFrameHandler::ConsumeReadBuffer()
 			frameLength = size;
 		}
 
+		// we could overread at this point, check this.
 		auto * framePos = m_frameDataBuffer.PosWrite(frameLength);
 		assert(framePos);
 		if (inputStream.ReadBlock(framePos, frameLength))
 			m_frameDataBuffer.MarkWrite(frameLength);
 	}
+
 	return ConsumeState::Ok;
 }
 
 SocketFrameHandler::ConsumeState SocketFrameHandler::ConsumeFrameBuffer()
 {
+	// determine application frame type and create appropriate reader for it.
 	uint8_t mtypei = static_cast<uint8_t>(m_pendingReadType);
 	SocketFrame::Ptr incoming(m_frameReaders[mtypei]->FrameFactory());
 	SocketFrame::State framestate;
@@ -379,6 +386,7 @@ SocketFrameHandler::ConsumeState SocketFrameHandler::ConsumeFrameBuffer()
 	}
 	else if (framestate == SocketFrame::stOk)
 	{
+		// handle read frame
 		PreprocessFrame(incoming);
 		return ConsumeState::Ok;
 	}
@@ -387,7 +395,7 @@ SocketFrameHandler::ConsumeState SocketFrameHandler::ConsumeFrameBuffer()
 
 bool SocketFrameHandler::WriteFrames()
 {
-	TimePoint startWrite(true);
+	// check temeouted ACKs (TODO: move code?)
 	if (m_settings.m_hasAcknowledges && m_bytesWaitingAcknowledge >= m_maxUnAcknowledgedSize)
 	{
 		if (m_acknowledgeTimer.GetElapsedTime() > m_settings.m_acknowledgeTimeout)
@@ -402,7 +410,7 @@ bool SocketFrameHandler::WriteFrames()
 		}
 		return true;
 	}
-
+	// write ack if needed
 	if (m_settings.m_hasAcknowledges && m_outputAcknowledgesSize > m_settings.m_acknowledgeMinimalReadSize)
 	{
 		ByteOrderDataStreamWriter streamWriter(m_settings.m_byteOrder);
@@ -412,6 +420,7 @@ bool SocketFrameHandler::WriteFrames()
 		m_outputSegments.push_front(streamWriter.GetBuffer().GetHolder()); // acknowledges has high priority, so pushing them to front!
 	}
 
+	// check and write line test byte
 	if (IsOutputBufferEmpty()
 		&& m_settings.m_hasLineTest
 		&& m_lastTestActivity.GetElapsedTime() > m_settings.m_lineTestInterval
@@ -422,6 +431,7 @@ bool SocketFrameHandler::WriteFrames()
 		m_outputSegments.push_back(streamWriter.GetBuffer().GetHolder());
 	}
 
+	// send connection options
 	if (m_setConnectionOptionsNeedSend)
 	{
 		m_setConnectionOptionsNeedSend = false;
@@ -433,6 +443,7 @@ bool SocketFrameHandler::WriteFrames()
 		m_outputSegments.push_back(streamWriter.GetBuffer().GetHolder());
 	}
 
+	// get all outpgoing frames and serialize them into channel segments
 	while (!m_framesQueueOutput.empty())
 	{
 		SocketFrame::Ptr frontMsg;
@@ -444,9 +455,10 @@ bool SocketFrameHandler::WriteFrames()
 		frontMsg->Write(streamWriter);
 
 		const auto typeId = frontMsg->FrameTypeId();
-		ByteArrayHolder buffer = streamWriter.GetBuffer().GetHolder();
+		const ByteArrayHolder & buffer = streamWriter.GetBuffer().GetHolder();
 
 		//Syslogger(m_logContext, Syslogger::Info) << "buffer -> " << streamWriter.GetBuffer().ToHex();
+
 		/// splitting onto segments.
 		for (size_t offset = 0; offset < buffer.size(); offset += m_settings.m_segmentSize)
 		{
@@ -465,6 +477,7 @@ bool SocketFrameHandler::WriteFrames()
 		}
 	}
 
+	// write all outgoing segments to tcp socket
 	while (!m_outputSegments.empty())
 	{
 		ByteArrayHolder frontSegment = m_outputSegments.front();
@@ -502,7 +515,6 @@ bool SocketFrameHandler::WriteFrames()
 
 bool SocketFrameHandler::CheckConnection() const
 {
-
 	bool result = m_channel && (m_channel->IsConnected() || m_channel->IsPending());
 
 	bool wasActivity = m_settings.m_channelActivityTimeout <= TimePoint(0) || m_lastSucceessfulRead.GetElapsedTime() < m_settings.m_channelActivityTimeout;
@@ -538,6 +550,7 @@ bool SocketFrameHandler::IsOutputBufferEmpty()
 
 void SocketFrameHandler::PreprocessFrame(SocketFrame::Ptr incomingMessage)
 {
+	// if frame has reply callback, use it. Otherwise, call ProcessFrame on frameReader.
 	Syslogger(m_logContext, Syslogger::Info) << "incoming <- " << incomingMessage;
 	auto notifyCallback = m_replyManager.TakeNotifier(incomingMessage->m_replyToTransactionId);
 	if (notifyCallback)

@@ -21,6 +21,9 @@ namespace {
 	const size_t g_noIndex = std::numeric_limits<size_t>::max();
 }
 
+/*
+ * Simple autotest for balancer. Arguments not required.
+ */
 int main(int argc, char ** argv)
 {
 	using namespace Wuild;

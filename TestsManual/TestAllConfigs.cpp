@@ -17,6 +17,11 @@
 #include <LocalExecutor.h>
 #include <FileUtils.h>
 
+/*
+ * Test Wuild compiler and coordinator configuration. Acts just as first configured toolchain.
+ * Run this test as compiler invocation, for exemple
+ * TestAllConfigs -c test.cpp -o test.o
+ */
 int main(int argc, char** argv)
 {
 	using namespace Wuild;

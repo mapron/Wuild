@@ -20,6 +20,16 @@
 
 namespace Wuild
 {
+/**
+ * Balancer used to split request between several tool servers.
+ * Main goal: the request should gone to server with least load at this moment.
+ *
+ * To update client information, UpdateClient and SetClientActive is used.
+ *
+ * To recieve balancer most suitable client, call FindFreeClient.
+ * StartTask and FinishTask updates load cache.
+ * Get*Threads funcation used for overall statistics.
+ */
 class ToolBalancer
 {
 public:
@@ -57,7 +67,7 @@ protected:
 		uint16_t m_busyOthers = 0;
 		uint16_t m_busyTotal = 0;
 		int64_t m_clientLoad = 0;
-		int m_eachTaskWeight = 32768;
+		int m_eachTaskWeight = 32768; //TODO: priority? configaration?
 		void UpdateLoad(int64_t mySessionId);
 	};
 

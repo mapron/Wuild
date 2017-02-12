@@ -21,100 +21,101 @@ namespace Wuild
 /// Class describes time moment or time interval.
 class TimePoint
 {
-    int64_t m_us; //!< microseconds
+	int64_t m_us; //!< microseconds
 
 public:
-    static const int64_t ONE_SECOND = 1000000LL;
-    /// if now == true, then current timepoint is created.
-    TimePoint(bool now = false);
+	static const int64_t ONE_SECOND = 1000000LL;
+	/// if now == true, then current timepoint is created.
+	TimePoint(bool now = false);
 
-    /// Creates timepoint from number of seconds
-    TimePoint(int seconds);
+	/// Creates timepoint from number of seconds
+	TimePoint(int seconds);
 
-    /// Creates timepoint from number of seconds
-    TimePoint(double seconds);
+	/// Creates timepoint from number of seconds
+	TimePoint(double seconds);
 
-    /// Checks timempoint is valid.
-    inline operator bool () const { return m_us != 0; }
+	/// Checks timempoint is valid.
+	inline operator bool () const { return m_us != 0; }
 
-    /// Floored number of seconds in timepoint.
-    inline int64_t GetSeconds() const { return m_us / ONE_SECOND; }
+	/// Floored number of seconds in timepoint.
+	inline int64_t GetSeconds() const { return m_us / ONE_SECOND; }
 
-    /// Get microseconds
-    inline int64_t GetUS() const { return m_us; }
+	/// Get microseconds
+	inline int64_t GetUS() const { return m_us; }
 
-    /// Set microseconds
-    inline void SetUS(int64_t stamp) { m_us = stamp; }
+	/// Set microseconds
+	inline void SetUS(int64_t stamp) { m_us = stamp; }
 
-    /// Microseconds after a whole second.
-    inline int64_t GetFractionalUS() const { return m_us % ONE_SECOND; }
+	/// Microseconds after a whole second.
+	inline int64_t GetFractionalUS() const { return m_us % ONE_SECOND; }
 
-    /// Get time struct
-    std::tm GetTm() const;
+	/// Get time struct
+	std::tm GetTm() const;
 
-    /// Get time struct
-    void SetTm(const std::tm & t, int ms = 0);
+	/// Get time struct
+	void SetTm(const std::tm & t, int ms = 0);
 
-    /// Create timepoint from hms
-    void SetTime(int hour, int minute, int second, int ms = 0);
+	/// Create timepoint from hms
+	void SetTime(int hour, int minute, int second, int ms = 0);
 
-    /// Convert to timepoint using system local time (for user interaction).
-    TimePoint& ToLocal(); // Modify self
-    TimePoint& FromLocal(); // Modify self
+	/// Convert to timepoint using system local time (for user interaction).
+	TimePoint& ToLocal(); // Modify self
+	TimePoint& FromLocal(); // Modify self
 
-    /// Returns elapsed time from current value.
-    inline TimePoint GetElapsedTime (const TimePoint& to = TimePoint(true)) const {
-        return (to - *this);
-    }
+	/// Returns elapsed time from current value.
+	inline TimePoint GetElapsedTime (const TimePoint& to = TimePoint(true)) const {
+		return (to - *this);
+	}
 
-    /// Arithmetics
-    inline TimePoint operator - (const TimePoint& another) const
-    {
-        TimePoint ret = *this;
-        ret.m_us -= another.m_us;
-        return ret;
-    }
-    inline TimePoint operator + (const TimePoint& another) const
-    {
-        TimePoint ret = *this;
-        ret.m_us += another.m_us;
-        return ret;
-    }
+	/// Arithmetics
+	inline TimePoint operator - (const TimePoint& another) const
+	{
+		TimePoint ret = *this;
+		ret.m_us -= another.m_us;
+		return ret;
+	}
+	inline TimePoint operator + (const TimePoint& another) const
+	{
+		TimePoint ret = *this;
+		ret.m_us += another.m_us;
+		return ret;
+	}
 
-    inline bool operator >= (const TimePoint& another) const {
-        return this->m_us >= another.m_us;
-    }
-    inline bool operator <= (const TimePoint& another) const {
-        return this->m_us <= another.m_us;
-    }
-    inline bool operator > (const TimePoint& another) const {
-        return this->m_us > another.m_us;
-    }
-    inline bool operator < (const TimePoint& another) const {
-        return this->m_us < another.m_us;
-    }
-    inline TimePoint& operator += (const TimePoint& another) {
-        this->m_us += another.m_us;
-        return *this;
-    }
-    inline TimePoint& operator -= (const TimePoint& another) {
-        this->m_us -= another.m_us;
-        return *this;
-    }
-    inline TimePoint& operator *= (int mul) {
-        m_us = m_us * mul;
-        return *this;
-    }
-    inline TimePoint& operator /= (int mul) {
-        m_us = m_us / mul;
-        return *this;
-    }
+	inline bool operator >= (const TimePoint& another) const {
+		return this->m_us >= another.m_us;
+	}
+	inline bool operator <= (const TimePoint& another) const {
+		return this->m_us <= another.m_us;
+	}
+	inline bool operator > (const TimePoint& another) const {
+		return this->m_us > another.m_us;
+	}
+	inline bool operator < (const TimePoint& another) const {
+		return this->m_us < another.m_us;
+	}
+	inline TimePoint& operator += (const TimePoint& another) {
+		this->m_us += another.m_us;
+		return *this;
+	}
+	inline TimePoint& operator -= (const TimePoint& another) {
+		this->m_us -= another.m_us;
+		return *this;
+	}
+	inline TimePoint& operator *= (int mul) {
+		m_us = m_us * mul;
+		return *this;
+	}
+	inline TimePoint& operator /= (int mul) {
+		m_us = m_us / mul;
+		return *this;
+	}
 
-    /// Printable format, like [YYYY-MM-DD] hh:mm:ss[.zzz]
-    std::string ToString(bool printMS = true, bool printDate = false) const;
+	/// Printable format, like [YYYY-MM-DD] hh:mm:ss[.zzz]
+	std::string ToString(bool printMS = true, bool printDate = false) const;
+	/// Outputs microseconds, if interval less than two seconds.
 	std::string ToProfilingTime() const;
 
 private:
-    static int LocalOffsetSeconds();
+	static int LocalOffsetSeconds();
 };
 }

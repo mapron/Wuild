@@ -24,6 +24,15 @@
 namespace Wuild
 {
 class SocketFrameService;
+/**
+ * @brief Proxy for remote command execution
+ *
+ * -listen for local invocations;
+ * -communicate with coordinator;
+ * -split commands;
+ * -send requests to remote servers;
+ * -when request is done, result is sent to local proxy client.
+ */
 class ToolProxyServer
 {
 public:

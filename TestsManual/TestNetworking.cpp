@@ -93,41 +93,13 @@ public:
 };
 
 using namespace Wuild;
+namespace
+{
 const int segmentSize = 240;
-const int textRepeats = 1;
+const int textRepeats = 100000;
 const int bufferSize = 128900;
 const int testServicePort = 12345;
 const std::string testHost = "localhost";
-
-// if 7 passed as argument, debug logs activated
-int main(int argc, char** argv)
-{
-	using namespace Wuild;
-	ConfiguredApplication app(argc, argv, "TestNetworking");
-
-	ByteOrderBuffer buf;
-	ByteOrderDataStreamReader streamReader(&buf);
-	ByteOrderDataStreamWriter streamWriter(&buf);
-	uint32_t test = 42;
-	streamWriter << test;
-	assert(buf.GetSize() == 4);
-	buf.Reset();
-	streamReader >> test;
-	assert(test == 42);
-
-	TestService service;
-	service.setServer(testServicePort);
-	usleep(100000);
-	for (int i=0; i< 20; ++i)
-	{
-		service.addClient(testHost, testServicePort);
-	}
-   // service.addClient("localhost", testServicePort);
-
-	service.sendHello("Hello!", textRepeats);
-	service.start();
-
-	return ExecAppLoop(TestConfiguration::ExitHandler);
 }
 
 void TestService::setServer(int port)
@@ -169,7 +141,7 @@ void TestService::addClient(std::string ip, int port)
 		{
 			exitCode = 0;
 		}
-		//Application::Interrupt(exitCode);
+		Application::Interrupt(exitCode);
 	}));
 	h->SetLogContext("client");
 	h->SetTcpChannel( ip, port);
@@ -178,20 +150,6 @@ void TestService::addClient(std::string ip, int port)
 
 void TestService::sendHello(std::string hello, int repeats)
 {
-	/*TimePoint start(true);
-	while (start.GetElapsedTime() < m_waitForConnectedClientsTimeout)
-	{
-		if ( m_clients[0]->IsActive())
-			break;
-		usleep(10000);
-	}
-	if (! m_clients[0]->IsActive())
-	{
-		Syslogger(Syslogger::Err) << "Failed to find active connection.";
-		return;
-	}*/
-
-
 	for (auto client : m_clients)
 	{
 		TestFrame::Ptr frame(new TestFrame());
@@ -205,4 +163,37 @@ void TestService::start()
 {
 	for (auto & client : m_clients)
 		client->Start();
+}
+
+
+/*
+ * Test for network communication. Outputs "OK" on success.
+ */
+int main(int argc, char** argv)
+{
+	using namespace Wuild;
+	ConfiguredApplication app(argc, argv, "TestNetworking");
+
+	ByteOrderBuffer buf;
+	ByteOrderDataStreamReader streamReader(&buf);
+	ByteOrderDataStreamWriter streamWriter(&buf);
+	uint32_t test = 42;
+	streamWriter << test;
+	assert(buf.GetSize() == 4);
+	buf.Reset();
+	streamReader >> test;
+	assert(test == 42);
+
+	TestService service;
+	service.setServer(testServicePort);
+	usleep(100000);
+	for (int i=0; i < 3; ++i)
+	{
+		service.addClient(testHost, testServicePort);
+	}
+
+	service.sendHello("Hello!", textRepeats);
+	service.start();
+
+	return ExecAppLoop(TestConfiguration::ExitHandler);
 }

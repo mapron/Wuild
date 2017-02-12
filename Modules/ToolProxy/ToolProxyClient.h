@@ -24,6 +24,12 @@
 namespace Wuild
 {
 class SocketFrameHandler;
+/**
+ * @brief Local compiler emulator
+ *
+ * Translates local invocation to network request to tool rpoxy server.
+ * When request is done, outputs result of tool invocation to stderr.
+ */
 class ToolProxyClient
 {
 public:
@@ -37,6 +43,7 @@ public:
 
 	void Start();
 
+	/// Invoke local compile task. It's not splitted.
 	void RunTask(const StringVector & args);
 
 protected:
