@@ -47,6 +47,8 @@ using fserr = std::error_code;
 #include <direct.h>
 #else
 #include <unistd.h>
+#include <errno.h>
+inline int GetLastError() { return errno; }
 #endif
 
 namespace {
@@ -221,16 +223,52 @@ bool FileInfo::ReadFile(ByteArrayHolder &data)
 
 bool FileInfo::WriteFile(const ByteArrayHolder &data, bool createTmpCopy)
 {
-	const std::string originalPath = fs::absolute(m_impl->m_path).u8string();
+	fserr code;
+	const std::string originalPath = fs::canonical(fs::absolute(m_impl->m_path), code).make_preferred().u8string();
 	const std::string writePath = createTmpCopy ? originalPath + ".tmp" : originalPath;
 	this->Remove();
 
-	std::ofstream outFile;
 	try
 	{
+#ifndef _WIN32
+		std::ofstream outFile;
 		outFile.open(writePath, std::ios::binary | std::ios::out);
 		outFile.write((const char*)data.data(), data.size());
 		outFile.close();
+#else
+		auto fileHandle = CreateFileA((LPTSTR) writePath.c_str(), // file name
+							   GENERIC_WRITE,        // open for write
+							   0,                    // do not share
+							   NULL,                 // default security
+							   CREATE_ALWAYS,        // overwrite existing
+							   FILE_ATTRIBUTE_NORMAL,// normal file
+							   NULL);                // no template
+		if (fileHandle == INVALID_HANDLE_VALUE)
+			throw std::runtime_error("Failed to open file");
+
+		size_t bytesToWrite = data.size(); // <- lossy
+
+		size_t totalWritten = 0;
+		do {
+			auto blockSize = std::min(bytesToWrite, size_t(32 * 1024 * 1024));
+			DWORD bytesWritten;
+			if (!::WriteFile(fileHandle, data.data() + totalWritten, blockSize, &bytesWritten, NULL)) {
+				if (totalWritten == 0) {
+					// Note: Only return error if the first WriteFile failed.
+					throw std::runtime_error("Failed to write data");
+				}
+				break;
+			}
+			if (bytesWritten == 0)
+				break;
+			totalWritten += bytesWritten;
+			bytesToWrite -= bytesWritten;
+		} while (totalWritten < data.size());
+
+		if (!::CloseHandle(fileHandle))
+			throw std::runtime_error("Failed to close file");
+
+#endif
 	}
 	catch(std::exception &e)
 	{
@@ -243,8 +281,7 @@ bool FileInfo::WriteFile(const ByteArrayHolder &data, bool createTmpCopy)
 		fs::rename(writePath, originalPath, code);
 		if (code)
 		{
-			Syslogger(Syslogger::Err) << "Failed to rename " << writePath << " -> " << originalPath << " code:" << code << " :" << GetLastError();
-			fs::remove(writePath, code);
+			Syslogger(Syslogger::Err) << "Failed to rename " << writePath << " -> " << originalPath << " :" << GetLastError();
 			return false;
 		}
 	}
