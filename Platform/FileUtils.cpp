@@ -223,8 +223,7 @@ bool FileInfo::ReadFile(ByteArrayHolder &data)
 
 bool FileInfo::WriteFile(const ByteArrayHolder &data, bool createTmpCopy)
 {
-	fserr code;
-	const std::string originalPath = fs::canonical(fs::absolute(m_impl->m_path), code).make_preferred().u8string();
+	const std::string originalPath = fs::absolute(m_impl->m_path).u8string();
 	const std::string writePath = createTmpCopy ? originalPath + ".tmp" : originalPath;
 	this->Remove();
 
