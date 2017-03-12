@@ -34,4 +34,7 @@ void ReadCompressedData(std::ifstream & inFile, ByteArrayHolder & data, Compress
 /// Write deflated memory data to file on disk uncompressed. throws std::exception.
 void WriteCompressedData(std::ofstream & outFile, const ByteArrayHolder & data, CompressionInfo compressionInfo);
 
+void UncompressDataBuffer(const ByteArrayHolder & input, ByteArrayHolder & output, CompressionInfo compressionInfo);
+void CompressDataBuffer  (const ByteArrayHolder & input, ByteArrayHolder & output, CompressionInfo compressionInfo);
+
 }

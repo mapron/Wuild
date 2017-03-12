@@ -51,9 +51,6 @@ using fserr = std::error_code;
 
 namespace {
 static const size_t CHUNK = 16384;
-// TODO: on windows, recieving ERROR_SHARING_VIOLATION when attempting to rename temporary file.
-static const size_t g_renameAttempts = 50;
-static const int64_t g_renameUsleep = 100000;
 }
 
 
@@ -188,62 +185,17 @@ bool FileInfo::ReadCompressed(ByteArrayHolder &data, CompressionInfo compression
 
 bool FileInfo::WriteCompressed(const ByteArrayHolder & data, CompressionInfo compressionInfo, bool createTmpCopy)
 {
-	const std::string originalPath = GetPath();
-	const std::string writePath = createTmpCopy ? originalPath + ".tmp" : originalPath;
-	this->Remove();
-
+	ByteArrayHolder uncompData;
+	try
 	{
-		std::ofstream outFile;
-		outFile.open(writePath, std::ios::binary | std::ios::out);
-		if (!outFile)
-		{
-			Syslogger(Syslogger::Err) << "Failed to open for write " << writePath;
-			return false;
-		}
-		try
-		{
-			WriteCompressedData(outFile, data, compressionInfo);
-		}
-		catch(std::exception &e)
-		{
-			Syslogger(Syslogger::Err) << "Error on writing:" << e.what() << " for " << writePath ;
-			return false;
-		}
-
-		outFile.close();
-		if (outFile.fail())
-		{
-			Syslogger(Syslogger::Err) << "Failed to close " << writePath;
-			return false;
-		}
+		UncompressDataBuffer(data, uncompData, compressionInfo);
 	}
-
-	if (createTmpCopy)
+	catch(std::exception &e)
 	{
-		fserr code;
-		size_t attempt;
-		for (attempt = 0; attempt < g_renameAttempts; ++attempt)
-		{
-			fs::rename(writePath, originalPath, code);
-			if (!code)
-				break;
-			usleep(g_renameUsleep);
-		}
-		if (attempt > 0)
-		{
-			Syslogger(Syslogger::Info) << (attempt + 1) << " attempts used to write " << GetPath() << " data.";
-		}
-
-		if (code)
-		{
-			fs::remove(writePath, code);
-			Syslogger(Syslogger::Err) << "Failed to rename " << GetPath() << " code:" << code;
-			return false;
-		}
+		Syslogger(Syslogger::Err) << "Error on uncompress:" << e.what() << " for " << GetPath();
+		return false;
 	}
-	if (Syslogger::IsLogLevelEnabled(Syslogger::Debug))
-		Syslogger() << "Decompressed " << this->GetPath() << ": " << data.size() << " -> " << this->GetFileSize();
-	return true;
+	return this->WriteFile(uncompData, createTmpCopy);
 }
 
 bool FileInfo::ReadFile(ByteArrayHolder &data)
@@ -267,22 +219,36 @@ bool FileInfo::ReadFile(ByteArrayHolder &data)
 	return true;
 }
 
-bool FileInfo::WriteFile(const ByteArrayHolder &data)
+bool FileInfo::WriteFile(const ByteArrayHolder &data, bool createTmpCopy)
 {
-	FILE * f = fopen(GetPath().c_str(), "wb");
-	if (!f)
-	{
-		Syslogger(Syslogger::Err) << "Failed to write " << GetPath();
-		return false;
-	}
+	const std::string originalPath = fs::absolute(m_impl->m_path).u8string();
+	const std::string writePath = createTmpCopy ? originalPath + ".tmp" : originalPath;
+	this->Remove();
 
-	bool result = fwrite(data.data(), data.size(), 1, f) > 0;
-	if (fclose(f) == EOF)
+	std::ofstream outFile;
+	try
 	{
-		Syslogger(Syslogger::Err) << "Failed to close " << GetPath();
+		outFile.open(writePath, std::ios::binary | std::ios::out);
+		outFile.write((const char*)data.data(), data.size());
+		outFile.close();
+	}
+	catch(std::exception &e)
+	{
+		Syslogger(Syslogger::Err) << "Error on writing:" << e.what() << " for " << writePath ;
 		return false;
 	}
-	return result;
+	if (createTmpCopy)
+	{
+		fserr code;
+		fs::rename(writePath, originalPath, code);
+		if (code)
+		{
+			Syslogger(Syslogger::Err) << "Failed to rename " << writePath << " -> " << originalPath << " code:" << code << " :" << GetLastError();
+			fs::remove(writePath, code);
+			return false;
+		}
+	}
+	return true;
 }
 
 bool FileInfo::Exists()

@@ -21,6 +21,7 @@
 #endif
 
 #include <fstream>
+#include <sstream>
 
 namespace Wuild
 {
@@ -41,7 +42,7 @@ static const size_t ringBufferBytes   = 1024 * 256 + messageMaxBytes;
    level is supplied, Z_VERSION_ERROR if the version of zlib.h and the
    version of the library linked do not match, or Z_ERRNO if there is
    an error reading or writing the files. */
-static int def(std::ifstream & source, std::vector<uint8_t> & dest, int level)
+static int def(std::istream & source, std::vector<uint8_t> & dest, int level)
 {
 	int ret, flush;
 	unsigned have;
@@ -95,7 +96,7 @@ static int def(std::ifstream & source, std::vector<uint8_t> & dest, int level)
    invalid or incomplete, Z_VERSION_ERROR if the version of zlib.h and
    the version of the library linked do not match, or Z_ERRNO if there
    is an error reading or writing the files. */
-static int inf(const std::vector<uint8_t> & source, std::ofstream & dest)
+static int inf(const std::vector<uint8_t> & source, std::ostream & dest)
 {
 	int ret;
 	unsigned have;
@@ -255,6 +256,71 @@ void WriteCompressedData(std::ofstream & outFile, const ByteArrayHolder &data, C
 				  std::istreambuf_iterator<char>(),
 				  std::ostreambuf_iterator<char>(outFile));
 
+	}
+	else
+	{
+		throw std::runtime_error("Unsupported compression type:" + std::to_string( static_cast<int>(compressionInfo.m_type)));
+	}
+}
+
+void UncompressDataBuffer(const ByteArrayHolder & input, ByteArrayHolder & output, CompressionInfo compressionInfo)
+{
+	if (compressionInfo.m_type == CompressionType::Gzip)
+	{
+		ByteArrayHolderBufWriter outBuffer(output);
+		std::ostream outBufferStream(&outBuffer);
+		auto infResult = inf(input.ref(), outBufferStream);
+		if (infResult != Z_OK)
+			throw std::runtime_error("Gzip inflate failed:"  + std::to_string(infResult));
+	}
+	else if (compressionInfo.m_type == CompressionType::LZ4)
+	{
+		ByteArrayHolderBufWriter outBuffer(output);
+		std::ostream outBufferStream(&outBuffer);
+		ByteArrayHolderBufReader inBuffer(input);
+		std::istream inBufferStream(&inBuffer);
+		LZ4InputStream lz4inBufferStream(inBufferStream);
+
+		std::copy(std::istreambuf_iterator<char>(lz4inBufferStream),
+				  std::istreambuf_iterator<char>(),
+				  std::ostreambuf_iterator<char>(outBufferStream));
+	}
+	else if (compressionInfo.m_type == CompressionType::None)
+	{
+		output = input;
+	}
+	else
+	{
+		throw std::runtime_error("Unsupported compression type:" + std::to_string( static_cast<int>(compressionInfo.m_type)));
+	}
+}
+
+void CompressDataBuffer(const ByteArrayHolder & input, ByteArrayHolder & output, CompressionInfo compressionInfo)
+{
+	if (compressionInfo.m_type == CompressionType::Gzip)
+	{
+		ByteArrayHolderBufReader inBuffer(input);
+		std::istream inBufferStream(&inBuffer);
+		auto result = def(inBufferStream, output.ref(), compressionInfo.m_level);
+		if (result != Z_OK)
+			throw std::runtime_error("Gzip deflate failed:"  + std::to_string(result));
+	}
+	else if (compressionInfo.m_type == CompressionType::LZ4)
+	{
+		ByteArrayHolderBufReader inBuffer(input);
+		std::istream inBufferStream(&inBuffer);
+		ByteArrayHolderBufWriter outBuffer(output);
+		std::ostream outBufferStream(&outBuffer);
+		LZ4OutputStream lz4_out_stream(outBufferStream);
+
+		std::copy(std::istreambuf_iterator<char>(inBufferStream),
+				  std::istreambuf_iterator<char>(),
+				  std::ostreambuf_iterator<char>(lz4_out_stream));
+		lz4_out_stream.close();
+	}
+	else if (compressionInfo.m_type == CompressionType::None)
+	{
+		output = input;
 	}
 	else
 	{
