@@ -66,7 +66,7 @@ public:
 	bool ReadFile(ByteArrayHolder & data);
 
 	/// Write buffer to file
-	bool WriteFile(const ByteArrayHolder & data);
+	bool WriteFile(const ByteArrayHolder & data, bool createTmpCopy = true);
 
 	/// Check existence of file on disk.
 	bool Exists();
