@@ -219,6 +219,7 @@ protected:
 	bool mutable                m_doTestActivity = false;
 	bool mutable                m_setConnectionOptionsNeedSend = false;
 	TimePoint                   m_remoteTimeDiffToPast;
+	bool                        m_lineTestQueued = false;
 
 	std::string                 m_logContextAdditional;
 	std::string                 m_logContext;

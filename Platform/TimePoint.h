@@ -80,6 +80,18 @@ public:
 		ret.m_us += another.m_us;
 		return ret;
 	}
+	inline TimePoint operator * (int64_t mul) const
+	{
+		TimePoint ret = *this;
+		ret.m_us *= mul;
+		return ret;
+	}
+	inline TimePoint operator / (int64_t divd) const
+	{
+		TimePoint ret = *this;
+		ret.m_us /= divd;
+		return ret;
+	}
 
 	inline bool operator >= (const TimePoint& another) const {
 		return this->m_us >= another.m_us;
@@ -101,12 +113,12 @@ public:
 		this->m_us -= another.m_us;
 		return *this;
 	}
-	inline TimePoint& operator *= (int mul) {
-		m_us = m_us * mul;
+	inline TimePoint& operator *= (int64_t mul) {
+		m_us /= mul;
 		return *this;
 	}
-	inline TimePoint& operator /= (int mul) {
-		m_us = m_us / mul;
+	inline TimePoint& operator /= (int64_t divd) {
+		m_us /= divd;
 		return *this;
 	}
 
