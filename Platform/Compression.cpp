@@ -265,7 +265,9 @@ void WriteCompressedData(std::ofstream & outFile, const ByteArrayHolder &data, C
 
 void UncompressDataBuffer(const ByteArrayHolder & input, ByteArrayHolder & output, CompressionInfo compressionInfo)
 {
-	if (compressionInfo.m_type == CompressionType::Gzip)
+	if (false) {}
+#ifdef USE_ZLIB
+	else if(compressionInfo.m_type == CompressionType::Gzip)
 	{
 		ByteArrayHolderBufWriter outBuffer(output);
 		std::ostream outBufferStream(&outBuffer);
@@ -273,6 +275,8 @@ void UncompressDataBuffer(const ByteArrayHolder & input, ByteArrayHolder & outpu
 		if (infResult != Z_OK)
 			throw std::runtime_error("Gzip inflate failed:"  + std::to_string(infResult));
 	}
+#endif
+#ifdef USE_LZ4
 	else if (compressionInfo.m_type == CompressionType::LZ4)
 	{
 		ByteArrayHolderBufWriter outBuffer(output);
@@ -285,6 +289,7 @@ void UncompressDataBuffer(const ByteArrayHolder & input, ByteArrayHolder & outpu
 				  std::istreambuf_iterator<char>(),
 				  std::ostreambuf_iterator<char>(outBufferStream));
 	}
+#endif
 	else if (compressionInfo.m_type == CompressionType::None)
 	{
 		output = input;
@@ -297,7 +302,9 @@ void UncompressDataBuffer(const ByteArrayHolder & input, ByteArrayHolder & outpu
 
 void CompressDataBuffer(const ByteArrayHolder & input, ByteArrayHolder & output, CompressionInfo compressionInfo)
 {
-	if (compressionInfo.m_type == CompressionType::Gzip)
+	if (false) {}
+#ifdef USE_ZLIB
+	else if (compressionInfo.m_type == CompressionType::Gzip)
 	{
 		ByteArrayHolderBufReader inBuffer(input);
 		std::istream inBufferStream(&inBuffer);
@@ -305,6 +312,8 @@ void CompressDataBuffer(const ByteArrayHolder & input, ByteArrayHolder & output,
 		if (result != Z_OK)
 			throw std::runtime_error("Gzip deflate failed:"  + std::to_string(result));
 	}
+#endif
+#ifdef USE_LZ4
 	else if (compressionInfo.m_type == CompressionType::LZ4)
 	{
 		ByteArrayHolderBufReader inBuffer(input);
@@ -318,6 +327,7 @@ void CompressDataBuffer(const ByteArrayHolder & input, ByteArrayHolder & output,
 				  std::ostreambuf_iterator<char>(lz4_out_stream));
 		lz4_out_stream.close();
 	}
+#endif
 	else if (compressionInfo.m_type == CompressionType::None)
 	{
 		output = input;
