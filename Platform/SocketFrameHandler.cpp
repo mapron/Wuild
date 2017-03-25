@@ -484,7 +484,7 @@ bool SocketFrameHandler::WriteFrames()
 
 		const auto sizeForWrite = frontSegment.size();
 		const auto maxSize = m_maxUnAcknowledgedSize - m_bytesWaitingAcknowledge;
-		if (m_settings.m_hasAcknowledges && sizeForWrite > maxSize)
+		if (m_settings.m_hasAcknowledges && sizeForWrite > maxSize && sizeForWrite > 1) // allow writeing of test frame.
 			break;
 
 		auto writeResult = m_channel->Write(frontSegment, sizeForWrite);
