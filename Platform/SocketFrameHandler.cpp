@@ -424,10 +424,10 @@ bool SocketFrameHandler::WriteFrames()
 	if ( m_settings.m_hasLineTest
 		 && !m_lineTestQueued
 		 &&
-		 (IsOutputBufferEmpty()
+		 ((IsOutputBufferEmpty()
 			&& m_lastTestActivity.GetElapsedTime() > m_settings.m_lineTestInterval
 			&& m_framesQueueOutput.empty())
-		 || (m_lastTestActivity.GetElapsedTime() > (m_settings.m_lineTestInterval * int64_t(3)))
+		 || (m_lastTestActivity.GetElapsedTime() > (m_settings.m_lineTestInterval * int64_t(3))))
 		 )
 	{
 		ByteOrderDataStreamWriter streamWriter(m_settings.m_byteOrder);
