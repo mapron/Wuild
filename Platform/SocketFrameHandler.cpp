@@ -421,14 +421,19 @@ bool SocketFrameHandler::WriteFrames()
 	}
 
 	// check and write line test byte
-	if (IsOutputBufferEmpty()
-		&& m_settings.m_hasLineTest
-		&& m_lastTestActivity.GetElapsedTime() > m_settings.m_lineTestInterval
-		&& m_framesQueueOutput.empty())
+	if ( m_settings.m_hasLineTest
+		 && !m_lineTestQueued
+		 &&
+		 ((IsOutputBufferEmpty()
+			&& m_lastTestActivity.GetElapsedTime() > m_settings.m_lineTestInterval
+			&& m_framesQueueOutput.empty())
+		 || (m_lastTestActivity.GetElapsedTime() > (m_settings.m_lineTestInterval * int64_t(3))))
+		 )
 	{
 		ByteOrderDataStreamWriter streamWriter(m_settings.m_byteOrder);
 		streamWriter << uint8_t(ServiceMessageType::LineTest);
-		m_outputSegments.push_back(streamWriter.GetBuffer().GetHolder());
+		m_outputSegments.push_front(streamWriter.GetBuffer().GetHolder());
+		m_lineTestQueued = true;
 	}
 
 	// send connection options
@@ -501,6 +506,7 @@ bool SocketFrameHandler::WriteFrames()
 			return false;
 		}
 
+		m_lineTestQueued = false;
 		m_lastTestActivity = TimePoint(true);
 		if (m_settings.m_hasAcknowledges)
 		{
