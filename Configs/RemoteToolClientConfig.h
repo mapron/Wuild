@@ -24,7 +24,7 @@ class RemoteToolClientConfig : public IConfig
 public:
 	TimePoint m_queueTimeout = 10.0;
 	TimePoint m_requestTimeout = 240.0;
-	int m_invocationAttempts = 1;
+	int m_invocationAttempts = 2;
 	int m_minimalRemoteTasks = 10;
 	std::string m_clientId;
 	CoordinatorClientConfig m_coordinator;

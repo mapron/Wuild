@@ -115,13 +115,16 @@ public:
 			const std::string outputFilename =  task.m_originalFilename;
 			Syslogger(Syslogger::Info) << "RECIEVING [" << task.m_taskIndex << "]:" << outputFilename;
 			RemoteToolClient::TaskExecutionInfo info;
+			bool retry = false;
 			if (state == SocketFrameHandler::ReplyState::Timeout)
 			{
 				info.m_stdOutput = "Timeout expired.";
+				retry = true;
 			}
 			else if (state == SocketFrameHandler::ReplyState::Error)
 			{
 				info.m_stdOutput = "Internal error.";
+				retry = true;
 			}
 			else
 			{
@@ -139,7 +142,18 @@ public:
 				}
 			}
 			m_parent->UpdateSessionInfo(info);
-			task.m_callback(info);
+			if (task.m_attemptsRemain > 0 && retry)
+			{
+				Syslogger(Syslogger::Warning) << info.m_stdOutput << " Retrying (" << task.m_attemptsRemain << " attempts remain), args:" << task.m_invocation.GetArgsString(false);
+				auto taskCopy = task;
+				taskCopy.m_attemptsRemain--;
+				taskCopy.m_taskIndex = this->m_parent->m_taskIndex++;
+				this->QueueTask(taskCopy);
+			}
+			else
+			{
+				task.m_callback(info);
+			}
 		};
 		m_balancer.StartTask(clientIndex);
 		m_pendingTasks--;
