@@ -29,7 +29,13 @@
 
 bool Node::Stat(DiskInterface* disk_interface, string* err) {
   METRIC_RECORD("node stat");
-  return (mtime_ = disk_interface->Stat(path_, err)) != -1;
+  mtime_ = disk_interface->Stat(path_, err);
+  if (mtime_ <= 0 && buddy_node_)
+  {
+	  buddy_node_->Stat(disk_interface, err);
+	  mtime_ = buddy_node_->mtime();
+  }
+  return  mtime_ != -1;
 }
 
 bool DependencyScan::RecomputeDirty(Edge* edge, string* err) {
@@ -475,7 +481,7 @@ bool ImplicitDepLoader::LoadDepsFromLog(Edge* edge, string* err) {
   }
 
   // Deps are invalid if the output is newer than the deps.
-  if (output->mtime() > deps->mtime) {
+  if (output->mtime() > deps->mtime && !output->has_buddy()) {
 	EXPLAIN("stored deps info out of date for '%s' (%d vs %d)",
 			output->path().c_str(), deps->mtime, output->mtime());
 	return false;

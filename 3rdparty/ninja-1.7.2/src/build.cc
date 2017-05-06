@@ -873,6 +873,12 @@ bool Builder::FinishCommand(CommandRunner::Result* result, string* err, bool rem
 
   Edge* edge = result->edge;
 
+  if (edge->is_remote_ && result->success())
+  {
+	  for (Node * node : edge->inputs_)
+		disk_interface_->RemoveFile(node->path());
+  }
+
   // First try to extract dependencies from the result, if any.
   // This must happen first as it filters the command output (we want
   // to filter /showIncludes output, even on compile failure) and

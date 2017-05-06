@@ -108,6 +108,8 @@ void RewriteStateRules(State *state, IRemoteExecutor * const remoteExecutor)
 			const std::string ppPath = remoteExecutor->GetPreprocessedPath(sourcePath, objectPath);
 			Node *pp_node = state->GetNode(ppPath, node->slash_bits());
 
+			pp_node->set_buddy(in_egde->outputs_[0]);
+
 			Edge* edge_pp = state->AddEdge(replacement.pp);
 			Edge* edge_cc = state->AddEdge(replacement.cc);
 
