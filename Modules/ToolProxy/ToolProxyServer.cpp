@@ -74,7 +74,9 @@ void ToolProxyServer::Start()
 
 				if (rcClient.GetFreeRemoteThreads() > 0)
 				{
-					auto remoteCallback = [outputCallback]( const Wuild::RemoteToolClient::TaskExecutionInfo& info) {
+					auto inputFilename = taskCC->m_invocation.GetInput();
+					auto remoteCallback = [outputCallback, inputFilename]( const Wuild::RemoteToolClient::TaskExecutionInfo& info) {
+						FileInfo(inputFilename).Remove();
 						outputCallback(ToolProxyResponse::Ptr(new ToolProxyResponse(info.m_stdOutput, info.m_result)));
 					};
 					rcClient.InvokeTool(taskCC->m_invocation, remoteCallback);
