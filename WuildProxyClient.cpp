@@ -16,6 +16,8 @@
 #include <ToolProxyClient.h>
 #include <StringUtils.h>
 
+#include <iostream>
+
 int main(int argc, char** argv)
 {
 	using namespace Wuild;
@@ -32,7 +34,11 @@ int main(int argc, char** argv)
 	if (!proxyClient.SetConfig(proxyConfig))
 		return 1;
 
-	proxyClient.Start();
+	if (!proxyClient.Start())
+	{
+		std::cerr << "Failed to connect to WuildProxy!\n";
+		return 1;
+	}
 
 	proxyClient.RunTask(StringUtils::StringVectorFromArgv(argc, argv));
 

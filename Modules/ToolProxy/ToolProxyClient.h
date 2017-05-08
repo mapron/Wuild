@@ -20,6 +20,7 @@
 #include <functional>
 #include <atomic>
 #include <mutex>
+#include <condition_variable>
 
 namespace Wuild
 {
@@ -41,7 +42,7 @@ public:
 
 	bool SetConfig(const Config & config);
 
-	void Start();
+	bool Start(TimePoint connectionTimeout = TimePoint(1.0));
 
 	/// Invoke local compile task. It's not splitted.
 	void RunTask(const StringVector & args);
@@ -49,6 +50,10 @@ public:
 protected:
 	std::unique_ptr<SocketFrameHandler> m_client;
 	Config m_config;
+	std::atomic_bool m_connectionState {false};
+	std::condition_variable m_connectionStateCond;
+	std::mutex m_connectionStateMutex;
+
 };
 
 }

@@ -48,7 +48,7 @@ bool ToolProxyClient::SetConfig(const ToolProxyClient::Config &config)
 	return true;
 }
 
-void ToolProxyClient::Start()
+bool ToolProxyClient::Start(TimePoint connectionTimeout)
 {
 	SocketFrameHandlerSettings settings;
 	settings.m_writeFailureLogLevel = Syslogger::Info;
@@ -56,9 +56,19 @@ void ToolProxyClient::Start()
 	m_client->RegisterFrameReader(SocketFrameReaderTemplate<ToolProxyResponse>::Create());
 
 	m_client->SetTcpChannel("localhost", m_config.m_listenPort);
-
+	m_client->SetChannelNotifier([this](bool state){
+		std::unique_lock<std::mutex> lock(m_connectionStateMutex);
+		m_connectionState = state;
+		m_connectionStateCond.notify_one();
+	});
 	m_client->Start();
 
+	std::unique_lock<std::mutex> lock(m_connectionStateMutex);
+	m_connectionStateCond.wait_for(lock, std::chrono::microseconds(connectionTimeout.GetUS()), [this]{
+		return !!m_connectionState;
+	});
+
+	return m_connectionState;
 }
 
 void ToolProxyClient::RunTask(const StringVector &args)
