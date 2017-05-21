@@ -16,6 +16,7 @@
 #include <CoordinatorServer.h>
 #include <RemoteToolServer.h>
 #include <RemoteToolClient.h>
+#include <ThreadUtils.h>
 
 const std::string g_testTool = "testTool", g_testTool2 = "testTool2";
 using namespace Wuild;
@@ -28,6 +29,8 @@ public:
 		using namespace Wuild;
 		LocalExecutorResult::Ptr res(new LocalExecutorResult("Stub output OK", true));
 		res->m_executionTime.SetUS(1000);
+		if (task->m_invocation.m_id.m_toolId == g_testTool2)
+			usleep(2000000);
 		Syslogger(Syslogger::Info) << "AddTask ";
 		task->m_callback(res);
 	}
@@ -41,7 +44,7 @@ public:
 	}
 	virtual StringVector GetToolIds() const  override
 	{
-		return StringVector(1, g_testTool);
+		return StringVector({g_testTool, g_testTool2});
 	}
 	void SetThreadCount(int) override {}
 };
@@ -83,9 +86,10 @@ int main(int argc, char** argv)
 
 	RemoteToolClient::Config clientConfig;
 	clientConfig.m_coordinator = coordClientConfig;
-	clientConfig.m_invocationAttempts = 1;
+	clientConfig.m_invocationAttempts = 3;
 	clientConfig.m_minimalRemoteTasks = 1;
 	clientConfig.m_queueTimeout = TimePoint(2.0);
+	clientConfig.m_requestTimeout = TimePoint(1.0);
 
 	RemoteToolServer rcServer(executor);
 	if (!rcServer.SetConfig(toolServerConfig))

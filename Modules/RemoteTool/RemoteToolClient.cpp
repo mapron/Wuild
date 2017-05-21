@@ -79,7 +79,8 @@ public:
 			{
 				if (it->m_expirationMoment < now)
 				{
-					Syslogger(Syslogger::Err) << "Task expired: " << SocketFrame::Ptr(it->m_toolRequest);
+					Syslogger(Syslogger::Err) << "Task expired: " << SocketFrame::Ptr(it->m_toolRequest)
+											  << " expiration moment:" << it->m_expirationMoment.ToString() << ", now:" << now.ToString();
 					if (it->m_callback)
 					{
 						RemoteToolClient::TaskExecutionInfo info;
@@ -148,6 +149,7 @@ public:
 				auto taskCopy = task;
 				taskCopy.m_attemptsRemain--;
 				taskCopy.m_taskIndex = this->m_parent->m_taskIndex++;
+				taskCopy.m_expirationMoment = TimePoint(true) + m_parent->m_config.m_queueTimeout;
 				this->QueueTask(taskCopy);
 			}
 			else
