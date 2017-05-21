@@ -354,6 +354,8 @@ SocketFrameHandler::ConsumeState SocketFrameHandler::ConsumeReadBuffer()
 		assert(framePos);
 		if (inputStream.ReadBlock(framePos, frameLength))
 			m_frameDataBuffer.MarkWrite(frameLength);
+		else
+			m_frameDataBuffer.SetSize(m_frameDataBuffer.GetSize() - frameLength);
 	}
 
 	return ConsumeState::Ok;
