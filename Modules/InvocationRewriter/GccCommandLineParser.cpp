@@ -53,7 +53,7 @@ void GccCommandLineParser::UpdateInfo()
 			{
 				skipNext = true;
 			}
-			if (arg == "-MF" || arg == "-MT" || arg == "-isysroot" || arg == "-isystem" || arg == "-iframework" || arg == "--serialize-diagnostics" || arg == "-arch")
+			if (arg == "-MF" || arg == "-MT" || arg == "-isysroot" || arg == "-target" || arg == "-isystem" || arg == "-iframework" || arg == "--serialize-diagnostics" || arg == "-arch")
 				skipNext = true;
 
 			continue;
