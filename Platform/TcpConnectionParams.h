@@ -13,6 +13,7 @@
 
 #pragma once
 #include <memory>
+
 #include "TimePoint.h"
 
 namespace Wuild
@@ -43,6 +44,7 @@ struct TcpConnectionParams
 	size_t    m_recommendedRecieveBufferSize = 4 * 1024;  //!< Buffer size is recommended for socket. If socket has lower size, buffer will be optionally increased (but not ought to)
 	size_t    m_recommendedSendBufferSize = 4 * 1024;
 	int       m_pendingListenConnections = 128;           //!< Maximum pending concurrent connections count
+	bool      m_reuseSockets = true;
 
 	std::shared_ptr<TcpConnectionParamsPrivate> m_impl; //!< making possible to copy params.
 

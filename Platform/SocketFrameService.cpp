@@ -13,9 +13,8 @@
 
 #include "SocketFrameService.h"
 
-#include <TcpListener.h>
-#include <Application.h>
-#include <ThreadUtils.h>
+#include "TcpListener.h"
+#include "ThreadUtils.h"
 
 #include <functional>
 
@@ -39,15 +38,15 @@ SocketFrameService::SocketFrameService(int autoStartListenPort)
 SocketFrameService::~SocketFrameService()
 {
 	Syslogger(m_logContext) << "SocketFrameService::~SocketFrameService()";
+	Stop(); ///< @warning stop thread before any deinitialization
 	for (auto workerPtr : m_workers)
 	{
+		workerPtr->Stop(); ///< @warning stop thread before any deinitialization
 		if (m_handlerDestroyCallback)
 			m_handlerDestroyCallback(workerPtr.get());
-		workerPtr->Stop(false);
 	}
 	m_workers.clear();
 	m_listenters.clear();
-	Stop();
 }
 
 int SocketFrameService::QueueFrameToAll(SocketFrameHandler *sender, SocketFrame::Ptr message)
@@ -102,12 +101,11 @@ void SocketFrameService::Quant()
 	{
 		if (!(*workerIt)->IsActive())
 		{
-			(*workerIt)->Stop(true);
-
+			(*workerIt)->Stop(); ///< @warning stop thread before any deinitialization
 			if (m_handlerDestroyCallback)
 				m_handlerDestroyCallback((*workerIt).get());
 
-			Syslogger(m_logContext) << "SocketFrameService::Quant() erasing unactive worker ";
+			Syslogger(m_logContext) << "SocketFrameService::Quant() erasing unactive worker " << (*workerIt)->GetThreadId();
 			workerIt = m_workers.erase(workerIt);
 			continue;
 		}
@@ -120,15 +118,16 @@ void SocketFrameService::Quant()
 		auto client = listenter->GetPendingConnection(); //TODO: while?
 		if (client)
 		{
-			Syslogger(m_logContext) << "SocketFrameService::quant() adding new worker ";
-			AddWorker(client, m_nextWorkerId++);
+			const int newId = m_nextWorkerId++;
+			Syslogger(m_logContext) << "SocketFrameService::quant() adding new worker " << newId;
+			AddWorker(client, newId);
 		}
 	}
 }
 
 void SocketFrameService::AddWorker(IDataSocket::Ptr client, int threadId)
 {
-	std::shared_ptr<SocketFrameHandler> handler(new SocketFrameHandler(m_settings));
+	std::shared_ptr<SocketFrameHandler> handler(new SocketFrameHandler(threadId, m_settings));
 	handler->SetRetryConnectOnFail(false);
 	for (const auto & reader : m_readers)
 		handler->RegisterFrameReader(reader);

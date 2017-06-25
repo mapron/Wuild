@@ -38,8 +38,11 @@ public:
 	/// start thread execution; thread will repeat calling quant() until stopping.
 	void Exec(QuantFunction quant, int64_t sleepUS = 1000);
 
-	/// Stop(true) interrupts thread synchronously; Stop(false) just marks thread for interruption without wait.
-	void Stop(bool wait = true);
+	/// Stop() interrupts thread synchronously.
+	void Stop();
+
+	/// Stop calling action callback.
+	void Cancel();
 };
 
 }

@@ -155,8 +155,8 @@ void CoordinatorClient::CoordWorker::Quant()
 void CoordinatorClient::CoordWorker::Stop()
 {
 	m_clientState = false;
-	m_client->Stop(false);
-	m_thread.Stop(true);
+	m_client->Stop();
+	m_thread.Stop();
 }
 
 void CoordinatorClient::CoordWorker::Start(const std::string &host, int port)

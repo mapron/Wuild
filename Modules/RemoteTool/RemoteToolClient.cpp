@@ -184,7 +184,7 @@ RemoteToolClient::~RemoteToolClient()
 	m_thread.Stop();
 
 	for (auto & client : m_impl->m_clients)
-		client->Stop(false);
+		client->Stop();
 }
 
 bool RemoteToolClient::SetConfig(const RemoteToolClient::Config &config)

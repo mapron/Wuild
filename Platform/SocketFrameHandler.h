@@ -15,11 +15,11 @@
 
 #include "SocketFrame.h"
 
-#include <ThreadUtils.h>
-#include <ThreadLoop.h>
-#include <IDataSocket.h>
-#include <ByteOrderBuffer.h>
-#include <Syslogger.h>
+#include "ThreadUtils.h"
+#include "ThreadLoop.h"
+#include "IDataSocket.h"
+#include "ByteOrderBuffer.h"
+#include "Syslogger.h"
 
 #include <functional>
 #include <atomic>
@@ -108,7 +108,8 @@ public:
 	};
 
 public:
-	SocketFrameHandler(const SocketFrameHandlerSettings & settings = SocketFrameHandlerSettings());
+	explicit SocketFrameHandler(int threadId, const SocketFrameHandlerSettings & settings = SocketFrameHandlerSettings());
+	explicit SocketFrameHandler(const SocketFrameHandlerSettings & settings = SocketFrameHandlerSettings());
 	~SocketFrameHandler();
 
 // Process cycle management:
@@ -118,8 +119,8 @@ public:
 	/// Runs new thread. Returns immediately.
 	void   Start();
 
-	/// Stops process thread. If wait==true, then wait for thread finish.
-	void   Stop(bool wait = true);
+	/// Stops process thread.
+	void   Stop();
 
 	void   MainLoop();
 	bool   Quant();
@@ -149,6 +150,8 @@ public:
 //Logging:
 	void   SetLogContext(const std::string & context);
 	void   UpdateLogContext();
+
+	int    GetThreadId() const;
 
 protected:
 
@@ -189,6 +192,7 @@ protected:
 	void                        PreprocessFrame(SocketFrame::Ptr incomingMessage);
 
 protected:
+	const int                         m_threadId;
 
 	bool                              m_retryConnectOnFail = true;
 	ConnectionState                   m_prevConnectionState = ConnectionState::Pending;

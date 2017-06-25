@@ -34,10 +34,10 @@
 	#define SocketCheckConnectionPending(err) ((err) == EINPROGRESS)
 	#define SocketRWPending(err) ((err) == EAGAIN)
 #else // Pure win: ws2_32
-	#include <winsock2.h>
-	#include <ws2tcpip.h>
+	#include <WinSock2.h>
+	#include <WS2tcpip.h>
 	#include <stdio.h>
-	#include <windows.h>
+	#include <Windows.h>
 
 	#define TCP_SOCKET_WIN
 	#define SOCK_OPT_ARG (char*)
@@ -48,9 +48,11 @@
 	#define SocketRWPending(err) ((err) == WSAEWOULDBLOCK)
 #endif
 
+#include <stdint.h>
+
 #define SET_TIMEVAL_US(timeout, timePoint) \
-	timeout.tv_usec =timePoint.GetUS() % Wuild::TimePoint::ONE_SECOND;\
-	timeout.tv_sec = timePoint.GetUS() / Wuild::TimePoint::ONE_SECOND;
+	timeout.tv_usec =(long)(timePoint.GetUS() % Wuild::TimePoint::ONE_SECOND);\
+	timeout.tv_sec = (long)(timePoint.GetUS() / Wuild::TimePoint::ONE_SECOND);
 
 namespace Wuild
 {

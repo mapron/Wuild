@@ -13,10 +13,9 @@
 
 #include "SocketFrameHandler.h"
 
-#include <TcpSocket.h>
-#include <ThreadUtils.h>
-#include <Application.h>
-#include <ByteOrderStream.h>
+#include "TcpSocket.h"
+#include "ThreadUtils.h"
+#include "ByteOrderStream.h"
 
 #include <cstring>
 #include <stdexcept>
@@ -28,12 +27,13 @@
 namespace Wuild
 {
 SocketFrameHandlerSettings::SocketFrameHandlerSettings()
-	: m_channelActivityTimeout(false)
-	, m_byteOrder( ByteOrderDataStream::CreateByteorderMask(ORDER_BE, ORDER_BE, ORDER_BE))
+	: m_byteOrder( ByteOrderDataStream::CreateByteorderMask(ORDER_BE, ORDER_BE, ORDER_BE))
+	, m_channelActivityTimeout(false)
 {}
 
-SocketFrameHandler::SocketFrameHandler(const SocketFrameHandlerSettings & settings)
-	: m_settings(settings)
+SocketFrameHandler::SocketFrameHandler(int threadId, const SocketFrameHandlerSettings & settings)
+	: m_threadId(threadId)
+	, m_settings(settings)
 	, m_acknowledgeTimer(true)
 {
 	m_maxUnAcknowledgedSize = 4 * 1024 * BUFFER_RATIO;// 4 Kb is a minimal socket buffer.
@@ -41,6 +41,10 @@ SocketFrameHandler::SocketFrameHandler(const SocketFrameHandlerSettings & settin
 		m_setConnectionOptionsNeedSend = true;
 	m_aliveHolder.reset(new AliveStateHolder());
 }
+
+SocketFrameHandler::SocketFrameHandler(const SocketFrameHandlerSettings & settings)
+	: SocketFrameHandler(0, settings)
+{}
 
 SocketFrameHandler::~SocketFrameHandler()
 {
@@ -61,14 +65,14 @@ void SocketFrameHandler::Start()
 		if (!this->Quant())
 		{
 			this->DisconnectChannel();
-			m_thread.Stop(false);
+			m_thread.Cancel();
 		}
 	}, m_settings.m_clientThreadSleep.GetUS());
 }
 
-void SocketFrameHandler::Stop(bool wait)
+void SocketFrameHandler::Stop()
 {
-	m_thread.Stop(wait);
+	m_thread.Stop();
 }
 
 bool SocketFrameHandler::Quant()
@@ -169,12 +173,15 @@ void SocketFrameHandler::UpdateLogContext()
 {
 	std::string channelContext;
 	if (m_channel)
-	{
 		channelContext = m_channel->GetLogContext();
-		if (!m_logContextAdditional.empty())
-			channelContext += " ";
-	}
-	m_logContext = channelContext + m_logContextAdditional;
+	m_logContext = channelContext +
+			"[" + std::to_string(m_threadId) + "]" +
+			(m_logContextAdditional.empty() ? "" : " ") + m_logContextAdditional;
+}
+
+int SocketFrameHandler::GetThreadId() const
+{
+	return m_threadId;
 }
 
 // protected:
@@ -343,7 +350,7 @@ SocketFrameHandler::ConsumeState SocketFrameHandler::ConsumeReadBuffer()
 				Syslogger(m_logContext, Syslogger::Err) << "Invalid segment size =" << size;
 				return ConsumeState::Broken;
 			}
-			if (size > frameLength)
+			if (ptrdiff_t(size) > frameLength)
 				return ConsumeState::Incomplete; // incomplete read buffer;
 
 			frameLength = size;

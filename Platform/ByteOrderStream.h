@@ -38,7 +38,7 @@ class ByteOrderDataStream
 public:
 	/// Creates stream object. ProtocolMask sets actual stream byte order: for byte, words and dwords. Default is Big Endian for all.
 	inline ByteOrderDataStream(ByteOrderBuffer* buf = nullptr, uint_fast8_t ProtocolMask = CreateByteorderMask(ORDER_BE, ORDER_BE, ORDER_BE))
-		: m_bufOwner(false), m_buf(buf)
+		: m_buf(buf)
 	{
 		if (!m_buf)
 		{

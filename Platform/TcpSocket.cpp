@@ -135,7 +135,7 @@ bool TcpSocket::Connect ()
 		return false;
 	}
 
-	int cres = connect(m_impl->m_socket, m_params.m_impl->ai->ai_addr, m_params.m_impl->ai->ai_addrlen);
+	int cres = connect(m_impl->m_socket, m_params.m_impl->ai->ai_addr, static_cast<int>(m_params.m_impl->ai->ai_addrlen));
 	if (cres < 0)
 	{
 
@@ -151,7 +151,7 @@ bool TcpSocket::Connect ()
 			int valopt;
 			socklen_t valopt_len = sizeof(valopt);
 
-			if (select( m_impl->m_socket + 1, 0, &select_set, 0, &timeout ) <= 0 || !FD_ISSET( m_impl->m_socket, &select_set ) ||
+			if (select( static_cast<int>(m_impl->m_socket + 1), 0, &select_set, 0, &timeout ) <= 0 || !FD_ISSET( m_impl->m_socket, &select_set ) ||
 				getsockopt( m_impl->m_socket, SOL_SOCKET, SO_ERROR, SOCK_OPT_ARG (&valopt), &valopt_len ) < 0 || valopt
 					)
 			{
@@ -247,7 +247,7 @@ TcpSocket::WriteState TcpSocket::Write(const ByteArrayHolder & buffer, size_t ma
 
 	maxBytes = std::min(maxBytes, buffer.size());
 
-	auto written = send( m_impl->m_socket, (const char*)(buffer.data()), maxBytes, MSG_NOSIGNAL);
+	auto written = send( m_impl->m_socket, (const char*)(buffer.data()), static_cast<int>(maxBytes), MSG_NOSIGNAL);
 	if (written < 0)
 	{
 		const auto err = SocketGetLastError();
@@ -292,7 +292,7 @@ bool TcpSocket::IsSocketReadReady()
 	FD_SET( m_impl->m_socket, &set );
 
 	struct timeval timeout = { 0, 0 };
-	int selected = select( m_impl->m_socket + 1U, &set, 0, 0, &timeout );
+	int selected = select( static_cast<int>(m_impl->m_socket + 1U), &set, 0, 0, &timeout );
 	if (selected < 0)
 	{
 		Syslogger(m_logContext) << "Disconnect from IsSocketReadReady" ;
@@ -313,7 +313,7 @@ bool TcpSocket::SelectRead (const TimePoint &timeout)
 	FD_SET( m_impl->m_socket, &selected );
 	struct timeval timeoutTV;
 	SET_TIMEVAL_US(timeoutTV, timeout);
-	res = select( m_impl->m_socket + 1, &selected, 0, 0, &timeoutTV ) > 0 && FD_ISSET( m_impl->m_socket, &selected );
+	res = select( static_cast<int>(m_impl->m_socket + 1), &selected, 0, 0, &timeoutTV ) > 0 && FD_ISSET( m_impl->m_socket, &selected );
 	return res;
 }
 
@@ -322,7 +322,7 @@ void TcpSocket::SetBufferSize()
 	m_recieveBufferSize = m_impl->GetRecieveBuffer();
 	if (m_recieveBufferSize < m_params.m_recommendedRecieveBufferSize)
 	{
-		if (!m_impl->SetRecieveBuffer(m_params.m_recommendedRecieveBufferSize))
+		if (!m_impl->SetRecieveBuffer(static_cast<uint32_t>(m_params.m_recommendedRecieveBufferSize)))
 		{
 			Syslogger(m_logContext, Syslogger::Info) << "Failed to set recieve socket buffer size:" << m_params.m_recommendedRecieveBufferSize;
 		}
@@ -331,7 +331,7 @@ void TcpSocket::SetBufferSize()
 	m_sendBufferSize = m_impl->GetSendBuffer();
 	if (m_sendBufferSize < m_params.m_recommendedSendBufferSize)
 	{
-		if (!m_impl->SetSendBuffer(m_params.m_recommendedSendBufferSize))
+		if (!m_impl->SetSendBuffer(static_cast<uint32_t>(m_params.m_recommendedSendBufferSize)))
 		{
 			Syslogger(m_logContext, Syslogger::Info) << "Failed to set send socket buffer size:" << m_params.m_recommendedSendBufferSize;
 		}

@@ -10,7 +10,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.h
  */
-
+#ifdef _WIN32
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
+#endif
 #include "TcpListener.h"
 
 #include "Tcp_private.h"
@@ -94,13 +96,13 @@ bool TcpListener::StartListen()
 	m_impl->SetBlocking(false);
 
 	int optval = 1;
-	setsockopt(m_impl->m_socket, SOL_SOCKET, SO_REUSEADDR,
+	setsockopt(m_impl->m_socket, SOL_SOCKET,  m_params.m_reuseSockets ? SO_REUSEADDR : 0,
 		   #ifdef _WIN32
 			   (char*)
 		   #endif
 			   &optval, sizeof optval);
 
-	int ret = ::bind( m_impl->m_socket, m_params.m_impl->ai->ai_addr, m_params.m_impl->ai->ai_addrlen );
+	int ret = ::bind( m_impl->m_socket, m_params.m_impl->ai->ai_addr, static_cast<int>(m_params.m_impl->ai->ai_addrlen) );
 	if (ret < 0)
 	{
 		close( m_impl->m_socket );
@@ -130,7 +132,7 @@ bool TcpListener::IsListenerReadReady()
 	//select() modifies timeout.
 	struct timeval timeout;
 	SET_TIMEVAL_US(timeout, m_params.m_connectTimeout);
-	int selected = select( m_impl->m_socket + 1, &set, 0, 0, &timeout );
+	int selected = select( static_cast<int>(m_impl->m_socket + 1), &set, 0, 0, &timeout );
 	if (selected < 0)
 	{
 		Syslogger(m_logContext) << "Disconnect from IsListenerReadReady" ;

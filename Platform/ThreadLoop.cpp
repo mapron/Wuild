@@ -77,13 +77,21 @@ void ThreadLoop::Exec(ThreadLoop::QuantFunction quant, int64_t sleepUS)
 	});
 }
 
-void ThreadLoop::Stop(bool wait)
+void ThreadLoop::Stop()
+{
+	if (!m_impl)
+		return;
+
+	Cancel();
+	if (m_impl->m_thread.joinable())
+		m_impl->m_thread.join();
+}
+
+void ThreadLoop::Cancel()
 {
 	if (!m_impl)
 		return;
 	m_impl->m_condition = false;
-	if (wait && m_impl->m_thread.joinable())
-		m_impl->m_thread.join();
 }
 
 }

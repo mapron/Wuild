@@ -14,8 +14,6 @@
 #include "Syslogger_private.h"
 #include "Syslogger.h"
 
-#include "Application.h"
-
 #include <iostream>
 #include <iomanip>
 

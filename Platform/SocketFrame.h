@@ -13,8 +13,8 @@
 
 #pragma once
 
-#include <TimePoint.h>
-#include <CommonTypes.h>
+#include "TimePoint.h"
+#include "CommonTypes.h"
 
 #include <stdint.h>
 #include <vector>

@@ -13,7 +13,7 @@
 
 #include "SocketFrame.h"
 
-#include <ByteOrderStream.h>
+#include "ByteOrderStream.h"
 
 #include <sstream>
 
@@ -74,7 +74,7 @@ SocketFrame::State SocketFrame::Write(ByteOrderDataStreamWriter &stream) const
 
 	if (m_writeLength)
 	{
-		m_length = stream.GetBuffer().GetOffsetWrite() - initialOffset - sizeof(m_length) ;
+		m_length = static_cast<uint32_t>(stream.GetBuffer().GetOffsetWrite() - initialOffset - sizeof(m_length));
 		stream.WriteToOffset(m_length, initialOffset);
 	}
 	return result;

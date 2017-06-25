@@ -15,9 +15,8 @@
 
 #include "SocketFrame.h"
 #include "SocketFrameHandler.h"
-
-#include <IDataListener.h>
-#include <ThreadLoop.h>
+#include "IDataListener.h"
+#include "ThreadLoop.h"
 
 #include <mutex>
 #include <list>
