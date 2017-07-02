@@ -155,7 +155,7 @@ void CoordinatorClient::CoordWorker::Quant()
 void CoordinatorClient::CoordWorker::Stop()
 {
 	m_clientState = false;
-	m_client->Stop();
+	m_client->Cancel();
 	m_thread.Stop();
 }
 

@@ -122,6 +122,9 @@ public:
 	/// Stops process thread.
 	void   Stop();
 
+	/// Stop quant function.
+	void   Cancel();
+
 	void   MainLoop();
 	bool   Quant();
 

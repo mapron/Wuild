@@ -75,6 +75,11 @@ void SocketFrameHandler::Stop()
 	m_thread.Stop();
 }
 
+void SocketFrameHandler::Cancel()
+{
+	m_thread.Cancel();
+}
+
 bool SocketFrameHandler::Quant()
 {
 	// Each quant, we check connection, if we ok, then read and write frames data.
