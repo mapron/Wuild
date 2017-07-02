@@ -108,6 +108,7 @@ void BuildStatus::BuildEdgeStarted(Edge* edge, const string &prefix) {
 
 void BuildStatus::BuildEdgeFinished(Edge* edge,
 									bool success,
+									bool silent,
 									const string& output,
 									int* start_time,
 									int* end_time,
@@ -124,7 +125,7 @@ void BuildStatus::BuildEdgeFinished(Edge* edge,
   if (edge->use_console())
 	printer_.SetConsoleLocked(false);
 
-  if (config_.verbosity == BuildConfig::QUIET)
+  if (config_.verbosity == BuildConfig::QUIET || silent)
 	return;
 
   if (!edge->use_console())
@@ -744,7 +745,7 @@ bool Builder::Build(string* err) {
 		result.output = std::move(remoteResult.output);
 		result.edge = remoteResult.userData;
 		result.status = remoteResult.status ? ExitSuccess : ExitFailure;
-		if (!FinishCommand(&result, err, true)) {
+		if (!FinishCommand(&result, err, true, !failures_allowed)) {
 		  Cleanup();
 		  status_->BuildFinished();
 		  return false;
@@ -794,7 +795,7 @@ bool Builder::Build(string* err) {
 	  }
 
 	  --pending_commands;
-	  if (!FinishCommand(&result, err, false)) {
+	  if (!FinishCommand(&result, err, false, !failures_allowed)) {
 		Cleanup();
 		status_->BuildFinished();
 		return false;
@@ -868,7 +869,7 @@ bool Builder::StartEdge(Edge* edge, string* err, bool remote) {
   return true;
 }
 
-bool Builder::FinishCommand(CommandRunner::Result* result, string* err, bool remote) {
+bool Builder::FinishCommand(CommandRunner::Result* result, string* err, bool remote, bool silentOnSuccess) {
   METRIC_RECORD("FinishCommand");
 
   Edge* edge = result->edge;
@@ -900,7 +901,7 @@ bool Builder::FinishCommand(CommandRunner::Result* result, string* err, bool rem
   }
 
   int start_time, end_time;
-  status_->BuildEdgeFinished(edge, result->success(), result->output,
+  status_->BuildEdgeFinished(edge, result->success(), silentOnSuccess && result->success(),  result->output,
 							 &start_time, &end_time, remote ? "[REMOTE] " : "");
 
   // The rest of this function only applies to successful commands.

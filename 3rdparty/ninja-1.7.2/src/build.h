@@ -177,7 +177,7 @@ struct Builder {
 
   /// Update status ninja logs following a command termination.
   /// @return false if the build can not proceed further due to a fatal error.
-  bool FinishCommand(CommandRunner::Result* result, string* err, bool remote);
+  bool FinishCommand(CommandRunner::Result* result, string* err, bool remote, bool silentOnSuccess);
 
   /// Used for tests.
   void SetBuildLog(BuildLog* log) {
@@ -208,7 +208,7 @@ struct BuildStatus {
   explicit BuildStatus(const BuildConfig& config);
   void PlanHasTotalEdges(int total);
   void BuildEdgeStarted(Edge* edge, const string& prefix = "");
-  void BuildEdgeFinished(Edge* edge, bool success, const string& output,
+  void BuildEdgeFinished(Edge* edge, bool success, bool silent, const string& output,
 						 int* start_time, int* end_time, const std::string & prefix);
   void BuildStarted();
   void BuildFinished();
