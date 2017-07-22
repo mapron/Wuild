@@ -873,12 +873,15 @@ bool Builder::FinishCommand(CommandRunner::Result* result, string* err, bool rem
   METRIC_RECORD("FinishCommand");
 
   Edge* edge = result->edge;
+  bool needToClean = edge->is_remote_ && result->success();
 
-  if (edge->is_remote_ && result->success())
-  {
-	  for (Node * node : edge->inputs_)
-		disk_interface_->RemoveFile(node->path());
-  }
+  auto removeInputs = [this, needToClean, edge](){
+	  if (needToClean)
+	  {
+		  for (Node * node : edge->inputs_)
+			disk_interface_->RemoveFile(node->path());
+	  }
+  };
 
   // First try to extract dependencies from the result, if any.
   // This must happen first as it filters the command output (we want
@@ -983,6 +986,7 @@ bool Builder::FinishCommand(CommandRunner::Result* result, string* err, bool rem
 	  return false;
 	}
   }
+  removeInputs();
   return true;
 }
 
