@@ -873,7 +873,7 @@ bool Builder::FinishCommand(CommandRunner::Result* result, string* err, bool rem
   METRIC_RECORD("FinishCommand");
 
   Edge* edge = result->edge;
-  bool needToClean = edge->is_remote_ && result->success();
+  bool needToClean = edge->use_temporary_inputs_ && result->success();
 
   auto removeInputs = [this, needToClean, edge](){
 	  if (needToClean)

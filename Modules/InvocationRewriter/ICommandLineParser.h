@@ -39,6 +39,8 @@ public:
 
 	virtual void SetInvokeType(ToolInvocation::InvokeType type) = 0;
 
+	virtual bool IsRemotePossible() const = 0;
+
 	virtual void RemovePDB() = 0;
 	virtual void RemoveDependencyFiles() = 0;
 	virtual void RemovePrepocessorFlags() = 0;

@@ -40,10 +40,11 @@ public:
 				 ToolInvocation &,
 				  std::string *) override { return false;}
 
-	ToolInvocation CompleteInvocation(const ToolInvocation & original) override { return original; }
-	ToolInvocation PrepareRemote(const ToolInvocation & original) override { return original; }
+	ToolInvocation CompleteInvocation(const ToolInvocation & original) const override { return original; }
+	ToolInvocation PrepareRemote(const ToolInvocation & original) const override { return original; }
 
-	ToolInvocation FilterFlags(const ToolInvocation & original) override { return original; }
+	bool CheckRemotePossibleForFlags(const ToolInvocation & original) const override { return true; }
+	ToolInvocation FilterFlags(const ToolInvocation & original) const override { return original; }
 
 	std::string GetPreprocessedPath(const std::string &, const std::string & objectPath) const override { return objectPath + ".pp";}
 

@@ -98,6 +98,14 @@ bool RemoteExecutor::PreprocessCode(const std::vector<std::string> &originalRule
 	return true;
 }
 
+bool RemoteExecutor::CheckRemotePossibleForFlags(const std::string & toolId, const std::string & flags) const
+{
+	if (!m_remoteEnabled)
+		return false;
+
+	return m_invocationRewriter->CheckRemotePossibleForFlags(ToolInvocation(flags, ToolInvocation::InvokeType::Preprocess).SetId(toolId));
+}
+
 std::string RemoteExecutor::GetPreprocessedPath(const std::string &sourcePath, const std::string &objectPath) const
 {
 	if (!m_remoteEnabled)

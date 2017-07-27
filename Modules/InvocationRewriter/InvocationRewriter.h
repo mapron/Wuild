@@ -39,13 +39,14 @@ public:
 						 ToolInvocation & compilation,
 						 std::string * remoteToolId = nullptr) override;
 
-   ToolInvocation CompleteInvocation(const ToolInvocation & original) override;
+   ToolInvocation CompleteInvocation(const ToolInvocation & original) const override;
 
-   ToolInvocation FilterFlags(const ToolInvocation & original) override;
+   bool CheckRemotePossibleForFlags(const ToolInvocation & original) const override;
+   ToolInvocation FilterFlags(const ToolInvocation & original) const override;
 
    std::string GetPreprocessedPath(const std::string & sourcePath, const std::string & objectPath) const override;
 
-   ToolInvocation PrepareRemote(const ToolInvocation & original) override;
+   ToolInvocation PrepareRemote(const ToolInvocation & original) const override;
 
 
 private:

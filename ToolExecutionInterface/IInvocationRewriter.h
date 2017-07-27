@@ -45,16 +45,17 @@ public:
 								 std::string * remoteToolId = nullptr) = 0;
 
 	/// Normalizes invocation struct, making possible to replace input/output files. Substitute toolId if possible.
-	virtual ToolInvocation CompleteInvocation(const ToolInvocation & original) = 0;
+	virtual ToolInvocation CompleteInvocation(const ToolInvocation & original) const = 0;
 
+	virtual bool CheckRemotePossibleForFlags(const ToolInvocation & original) const = 0;
 	/// Remove preprocessor flags from splitted compilation phase; also remove extra preprocessor flags which not supported for distributed build.
-	virtual ToolInvocation FilterFlags(const ToolInvocation & original) = 0;
+	virtual ToolInvocation FilterFlags(const ToolInvocation & original) const = 0;
 
 	/// Get preprocessed filename path.
 	virtual std::string GetPreprocessedPath(const std::string & sourcePath, const std::string & objectPath) const = 0;
 
 	/// Prepare invocation for remote execution
-	virtual ToolInvocation PrepareRemote(const ToolInvocation & original) = 0;
+	virtual ToolInvocation PrepareRemote(const ToolInvocation & original) const = 0;
 
 };
 

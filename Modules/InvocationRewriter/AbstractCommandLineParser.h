@@ -21,6 +21,7 @@ class AbstractCommandLineParser : public ICommandLineParser
 {
 protected:
 	ToolInvocation m_invocation;
+	bool m_remotePossible = true;
 
 	bool IsIgnored(const std::string & arg) const;
 
@@ -30,6 +31,7 @@ public:
 
 	virtual void UpdateInfo() = 0;
 
+	bool IsRemotePossible() const override { return m_remotePossible; }
 	void RemovePDB() override {}
 	void RemoveDependencyFiles() override {}
 	void RemovePrepocessorFlags() override {}

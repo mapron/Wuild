@@ -76,7 +76,7 @@ bool InvocationRewriter::SplitInvocation(const ToolInvocation & original, ToolIn
 	return true;
 }
 
-ToolInvocation InvocationRewriter::CompleteInvocation(const ToolInvocation &original)
+ToolInvocation InvocationRewriter::CompleteInvocation(const ToolInvocation &original) const
 {
 	ToolInvocation inv;
 	inv.m_args.clear();
@@ -98,7 +98,19 @@ ToolInvocation InvocationRewriter::CompleteInvocation(const ToolInvocation &orig
 	return inv;
 }
 
-ToolInvocation InvocationRewriter::FilterFlags(const ToolInvocation &original)
+bool InvocationRewriter::CheckRemotePossibleForFlags(const ToolInvocation & original) const
+{
+	ToolInfo info = CompileInfoById(original.m_id);
+	if (info.m_valid)
+	{
+		ToolInvocation flags = CompleteInvocation(original);
+		info.m_parser->SetToolInvocation(flags);
+		return info.m_parser->IsRemotePossible();
+	}
+	return false;
+}
+
+ToolInvocation InvocationRewriter::FilterFlags(const ToolInvocation &original) const
 {
 	ToolInfo info = CompileInfoById(original.m_id);
 	if (info.m_valid)
@@ -132,7 +144,7 @@ std::string InvocationRewriter::GetPreprocessedPath(const std::string & sourcePa
 	return preprocessed;
 }
 
-ToolInvocation InvocationRewriter::PrepareRemote(const ToolInvocation &original)
+ToolInvocation InvocationRewriter::PrepareRemote(const ToolInvocation &original) const
 {
 	ToolInvocation inv = CompleteInvocation(original);
 	ToolInfo info = CompileInfoById(original.m_id);

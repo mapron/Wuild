@@ -63,6 +63,7 @@ public:
 						std::vector<std::string> & preprocessRule,
 						std::vector<std::string> & compileRule) const override;
 
+	bool CheckRemotePossibleForFlags(const std::string & toolId, const std::string & flags) const override;
 	std::string GetPreprocessedPath(const std::string & sourcePath, const std::string & objectPath) const override;
 	std::string FilterPreprocessorFlags(const std::string & toolId, const std::string & flags) const override;
 

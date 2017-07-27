@@ -31,6 +31,7 @@ public:
 
 	virtual std::string GetPreprocessedPath(const std::string & sourcePath, const std::string & objectPath) const = 0;
 
+	virtual bool CheckRemotePossibleForFlags(const std::string & toolId, const std::string & flags) const = 0;
 	virtual std::string FilterPreprocessorFlags(const std::string & toolId, const std::string & flags) const = 0;
 	virtual std::string FilterCompilerFlags(const std::string & toolId, const std::string & flags) const = 0;
 

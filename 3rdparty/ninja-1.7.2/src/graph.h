@@ -163,6 +163,7 @@ struct Edge {
   bool outputs_ready_;
   bool deps_missing_;
   bool is_remote_ = false;
+  bool use_temporary_inputs_ = false;
 
   const Rule& rule() const { return *rule_; }
   Pool* pool() const { return pool_; }

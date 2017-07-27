@@ -110,10 +110,21 @@ void RewriteStateRules(State *state, IRemoteExecutor * const remoteExecutor)
 
 			pp_node->set_buddy(in_egde->outputs_[0]);
 
+			auto originalBindings  = in_egde->env_->GetBindings();
+			bool isRemote = true;
+			if (originalBindings.find("FLAGS") != originalBindings.end())
+				isRemote = isRemote && remoteExecutor->CheckRemotePossibleForFlags(replacement.toolId, originalBindings["FLAGS"] );
+			if (originalBindings.find("INCLUDES") != originalBindings.end())
+				isRemote = isRemote && remoteExecutor->CheckRemotePossibleForFlags(replacement.toolId, originalBindings["INCLUDES"] );
+
+			if (!isRemote)
+				continue;
+
 			Edge* edge_pp = state->AddEdge(replacement.pp);
 			Edge* edge_cc = state->AddEdge(replacement.cc);
 
 			edge_cc->is_remote_ = true; // allow remote excution of compiler.
+			edge_cc->use_temporary_inputs_ = true;  // clean preprocessed files on success.
 
 			edge_pp->implicit_deps_ = in_egde->implicit_deps_;
 			edge_pp->order_only_deps_ = in_egde->order_only_deps_;
