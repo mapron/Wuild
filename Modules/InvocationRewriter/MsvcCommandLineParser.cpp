@@ -45,6 +45,10 @@ void MsvcCommandLineParser::UpdateInfo()
 				m_invocation.m_type = ToolInvocation::InvokeType::Preprocess;
 				m_invokeTypeIndex = realArgs.size();
 			}
+			if (arg.size() > 3 && arg[1] == 'A' &&  arg[2] == 'I')
+			{
+				m_remotePossible = false;
+			}
 			if ((arg[1] == 'D' || arg[1] == 'I') && arg.size() == 2) // /D DEFINE  /I path
 			{
 				ignoreNext = true;
