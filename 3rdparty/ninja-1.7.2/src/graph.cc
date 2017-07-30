@@ -27,7 +27,7 @@
 #include "state.h"
 #include "util.h"
 
-bool Node::Stat(DiskInterface* disk_interface, string* err) {
+bool Node::Stat(const DiskInterface* disk_interface, string* err) {
   METRIC_RECORD("node stat");
   mtime_ = disk_interface->Stat(path_, err);
   if (mtime_ <= 0 && buddy_node_)

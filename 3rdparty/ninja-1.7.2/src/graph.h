@@ -42,10 +42,10 @@ struct Node {
 		id_(-1) {}
 
   /// Return false on error.
-  bool Stat(DiskInterface* disk_interface, string* err);
+  bool Stat(const DiskInterface* disk_interface, string* err);
 
   /// Return false on error.
-  bool StatIfNecessary(DiskInterface* disk_interface, string* err) {
+  bool StatIfNecessary(const DiskInterface* disk_interface, string* err) {
 	if (status_known())
 	  return true;
 	return Stat(disk_interface, err);
