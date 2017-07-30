@@ -196,9 +196,17 @@ InvocationRewriter::ToolInfo InvocationRewriter::CompileInfoByExecutable(const s
 InvocationRewriter::ToolInfo InvocationRewriter::CompileInfoByToolId(const std::string &toolId) const
 {
 	InvocationRewriter::ToolInfo info;
+	if (toolId.empty())
+		return info;
+
 	for (const Config::Tool & unit : m_config.m_tools)
 	{
 		if (unit.m_id == toolId)
+			return CompileInfoByUnit(unit);
+	}
+	for (const Config::Tool & unit : m_config.m_tools)
+	{
+		if (unit.m_remoteAlias == toolId)
 			return CompileInfoByUnit(unit);
 	}
 	return info;
