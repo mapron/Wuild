@@ -32,7 +32,7 @@ public:
 	virtual void UpdateInfo() = 0;
 
 	bool IsRemotePossible() const override { return m_remotePossible; }
-	void RemovePDB() override {}
+	void RemoveLocalFlags() override {}
 	void RemoveDependencyFiles() override {}
 	void RemovePrepocessorFlags() override {}
 };

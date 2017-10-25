@@ -119,7 +119,7 @@ void MsvcCommandLineParser::SetInvokeType(ToolInvocation::InvokeType type)
 }
 
 
-void MsvcCommandLineParser::RemovePDB()
+void MsvcCommandLineParser::RemoveLocalFlags()
 {
 	StringVector newArgs;
 	bool skipNext = false;

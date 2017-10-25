@@ -26,6 +26,7 @@ public:
 
 	void SetInvokeType(ToolInvocation::InvokeType type) override;
 
+	void RemoveLocalFlags() override;
 	void RemoveDependencyFiles() override;
 	void RemovePrepocessorFlags() override;
 };

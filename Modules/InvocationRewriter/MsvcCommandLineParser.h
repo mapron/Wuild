@@ -27,7 +27,7 @@ public:
 
 	void SetInvokeType(ToolInvocation::InvokeType type) override;
 
-	void RemovePDB() override;
+	void RemoveLocalFlags() override;
 	void RemovePrepocessorFlags() override;
 };
 }
