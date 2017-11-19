@@ -41,7 +41,7 @@ public:
 
 	virtual bool IsRemotePossible() const = 0;
 
-	virtual void RemovePDB() = 0;
+	virtual void RemoveLocalFlags() = 0;
 	virtual void RemoveDependencyFiles() = 0;
 	virtual void RemovePrepocessorFlags() = 0;
 };

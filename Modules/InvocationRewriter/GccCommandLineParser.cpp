@@ -53,7 +53,7 @@ void GccCommandLineParser::UpdateInfo()
 			{
 				skipNext = true;
 			}
-			if (arg == "-MF" || arg == "-MT" || arg == "-isysroot" || arg == "-target" || arg == "-isystem" || arg == "-iframework" || arg == "--serialize-diagnostics" || arg == "-arch")
+			if (arg == "-MF" || arg == "-MT" || arg == "-isysroot" || arg == "-target" || arg == "-isystem" || arg == "-iframework" || arg == "--serialize-diagnostics" || arg == "-index-store-path" || arg == "-arch")
 				skipNext = true;
 
 			continue;
@@ -84,6 +84,28 @@ void GccCommandLineParser::SetInvokeType(ToolInvocation::InvokeType type)
 
 	m_invocation.m_type = type;
 	m_invocation.m_args[m_invokeTypeIndex] = type == ToolInvocation::InvokeType::Preprocess ? "-E" : "-c";
+}
+
+void GccCommandLineParser::RemoveLocalFlags()
+{
+	StringVector newArgs;
+	bool skipNext = false;
+	for (const auto &arg : m_invocation.m_args)
+	{
+		if (skipNext)
+		{
+			skipNext = false;
+			continue;
+		}
+		if (arg == "-index-store-path")
+		{
+			skipNext = true;
+			continue;
+		}
+		newArgs.push_back(arg);
+	}
+	m_invocation.m_args = newArgs;
+	UpdateInfo();
 }
 
 void GccCommandLineParser::RemoveDependencyFiles()
@@ -126,7 +148,7 @@ void GccCommandLineParser::RemovePrepocessorFlags()
 			if (arg[1] == 'I' || arg[1] == 'D' || arg[1] == 'F' )
 				continue;
 
-			if (arg == "-isysroot" || arg == "-iframework" || arg == "-isystem" || arg == "--serialize-diagnostics")
+			if (arg == "-isysroot" || arg == "-iframework" || arg == "-isystem" || arg == "--serialize-diagnostics" || arg == "-index-store-path")
 			{
 				skipNext = true;
 				continue;

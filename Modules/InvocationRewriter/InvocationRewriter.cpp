@@ -53,11 +53,11 @@ bool InvocationRewriter::SplitInvocation(const ToolInvocation & original, ToolIn
 		*remoteToolId = toolInfo.m_remoteId;
 	toolInfo.m_parser->SetToolInvocation(origComplete);
 	toolInfo.m_parser->SetInvokeType(ToolInvocation::InvokeType::Preprocess);
-	toolInfo.m_parser->RemovePDB();
+	toolInfo.m_parser->RemoveLocalFlags();
 	preprocessor = toolInfo.m_parser->GetToolInvocation();
 
 	toolInfo.m_parser->SetToolInvocation(origComplete);
-	toolInfo.m_parser->RemovePDB();
+	toolInfo.m_parser->RemoveLocalFlags();
 	toolInfo.m_parser->RemovePrepocessorFlags();
 	toolInfo.m_parser->RemoveDependencyFiles();
 	compilation = toolInfo.m_parser->GetToolInvocation();
@@ -119,7 +119,7 @@ ToolInvocation InvocationRewriter::FilterFlags(const ToolInvocation &original) c
 		 if (flags.m_type == ToolInvocation::InvokeType::Preprocess)
 		 {
 			info.m_parser->SetToolInvocation(flags);
-			info.m_parser->RemovePDB();
+			info.m_parser->RemoveLocalFlags();
 			return info.m_parser->GetToolInvocation();
 		 }
 		 else if (flags.m_type == ToolInvocation::InvokeType::Compile)
@@ -127,7 +127,7 @@ ToolInvocation InvocationRewriter::FilterFlags(const ToolInvocation &original) c
 			info.m_parser->SetToolInvocation(flags);
 			info.m_parser->RemovePrepocessorFlags();
 			info.m_parser->RemoveDependencyFiles();
-			info.m_parser->RemovePDB();
+			info.m_parser->RemoveLocalFlags();
 			return info.m_parser->GetToolInvocation();
 		 }
 	}
