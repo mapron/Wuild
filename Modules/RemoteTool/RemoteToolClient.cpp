@@ -119,7 +119,7 @@ public:
 			bool retry = false;
 			if (state == SocketFrameHandler::ReplyState::Timeout)
 			{
-				info.m_stdOutput = "Timeout expired.";
+				info.m_stdOutput = "Timeout expired:" + outputFilename + ", start:" + task.m_start.ToString() + " exp:" + task.m_expirationMoment.ToString() + ", att:" + std::to_string(task.m_attemptsRemain);
 				retry = true;
 			}
 			else if (state == SocketFrameHandler::ReplyState::Error)
