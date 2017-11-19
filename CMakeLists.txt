@@ -15,7 +15,7 @@ cmake_minimum_required(VERSION 3.5)
 project(Wuild)
 
 # main paths.
-set(NINJA_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/ninja-1.7.2/src)
+set(NINJA_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/ninja-1.8.2/src)
 set(ZLIB_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/zlib-1.2.11)
 set(LZ4_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/lz4-1.7.3)
 set(LZ4_STREAM_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/lz4_stream)
@@ -143,6 +143,7 @@ set(ninja_lib_src
   #  subprocess-posix.cc
 	util.cc
 	version.cc
+	string_piece_util.cc
 	)
 
 if (WIN32)
