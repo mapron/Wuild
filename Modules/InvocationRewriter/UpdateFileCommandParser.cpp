@@ -11,29 +11,26 @@
  * limitations under the License.h
  */
 
-#pragma once
-#include "IConfig.h"
+#include "UpdateFileCommandParser.h"
+#include <StringUtils.h>
+
+#include <assert.h>
 
 namespace Wuild
 {
-class InvocationRewriterConfig : public IConfig
+
+void UpdateFileCommandParser::UpdateInfo()
 {
-public:
-	enum class ToolchainType { GCC, MSVC, UpdateFile };
-	struct Tool
-	{
-		std::string m_id;
-		std::string m_removeRemote;
-		std::string m_appendRemote;
-		std::string m_remoteAlias;
-		ToolchainType m_type = ToolchainType::GCC;
-		std::vector<std::string> m_names;
-	};
-	std::vector<Tool> m_tools;
-	StringVector m_toolIds;
-	std::string GetFirstToolId() const;
-	std::string GetFirstToolName() const;
-	bool Validate(std::ostream * errStream = nullptr) const override;
-	std::string Dump() const;
-};
+	m_invocation.m_inputNameIndex  = -1;
+	m_invocation.m_outputNameIndex = -1;
+	m_invocation.m_type = ToolInvocation::InvokeType::Unknown;
+	if (!m_invocation.m_args.empty())
+		m_invocation.m_inputNameIndex  = m_invocation.m_outputNameIndex = m_invocation.m_args.size() - 1;
+}
+
+void UpdateFileCommandParser::SetInvokeType(ToolInvocation::InvokeType type)
+{
+	assert(!"Unsupported logic.");
+}
+
 }

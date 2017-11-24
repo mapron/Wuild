@@ -15,6 +15,7 @@
 
 #include "GccCommandLineParser.h"
 #include "MsvcCommandLineParser.h"
+#include "UpdateFileCommandParser.h"
 
 #include <CommonTypes.h>
 #include <FileUtils.h>
@@ -222,6 +223,9 @@ InvocationRewriter::ToolInfo InvocationRewriter::CompileInfoByUnit(const IInvoca
 		info.m_parser.reset(new GccCommandLineParser());
 	else if (unit.m_type == Config::ToolchainType::MSVC)
 		info.m_parser.reset(new MsvcCommandLineParser());
+	else if (unit.m_type == Config::ToolchainType::UpdateFile)
+		info.m_parser.reset(new UpdateFileCommandParser());
+
 	if (info.m_parser)
 		info.m_valid = true;
 	info.m_remoteId = info.m_id.m_toolId;

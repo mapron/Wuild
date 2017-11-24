@@ -277,6 +277,11 @@ void ConfiguredApplication::ReadInvocationRewriterConfig()
 		std::string type = m_config->GetString(defaultGroup, id + "_type", "gcc"); // "gcc" or "msvc"
 		if (type == "msvc" || unit.m_id.find("ms") == 0)
 			unit.m_type = InvocationRewriterConfig::ToolchainType::MSVC;
+		else if (type == "gcc")
+			unit.m_type = InvocationRewriterConfig::ToolchainType::GCC;
+		else if (type == "update_file")
+			unit.m_type = InvocationRewriterConfig::ToolchainType::UpdateFile;
+
 		for (auto executable: m_config->GetStringList(defaultGroup, id))
 		{
 			executable = FileInfo::ToPlatformPath(executable);

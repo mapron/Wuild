@@ -12,28 +12,18 @@
  */
 
 #pragma once
-#include "IConfig.h"
+
+#include "AbstractCommandLineParser.h"
 
 namespace Wuild
 {
-class InvocationRewriterConfig : public IConfig
+
+class UpdateFileCommandParser : public AbstractCommandLineParser
 {
 public:
-	enum class ToolchainType { GCC, MSVC, UpdateFile };
-	struct Tool
-	{
-		std::string m_id;
-		std::string m_removeRemote;
-		std::string m_appendRemote;
-		std::string m_remoteAlias;
-		ToolchainType m_type = ToolchainType::GCC;
-		std::vector<std::string> m_names;
-	};
-	std::vector<Tool> m_tools;
-	StringVector m_toolIds;
-	std::string GetFirstToolId() const;
-	std::string GetFirstToolName() const;
-	bool Validate(std::ostream * errStream = nullptr) const override;
-	std::string Dump() const;
+	void UpdateInfo() override;
+
+	void SetInvokeType(ToolInvocation::InvokeType type) override;
 };
+
 }
