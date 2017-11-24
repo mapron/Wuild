@@ -215,7 +215,7 @@ foreach (testname AllConfigs Balancer Compiler Coordinator Inflate Networking To
 		)
 endforeach()
 
-foreach (appname Coordinator CoordinatorStatus ToolServer Proxy ProxyClient)
+foreach (appname Coordinator CoordinatorStatus ToolServer Proxy ProxyClient ToolExecutor)
 	AddTarget(APP NAME Wuild${appname} ROOT ${CMAKE_CURRENT_SOURCE_DIR}/
 		CSRC Wuild${appname}.cpp
 		DEPS ${main_deps} ${sys_deps}
