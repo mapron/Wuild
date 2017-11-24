@@ -34,9 +34,9 @@ int main(int argc, char** argv)
 
 	auto invocationRewriter = InvocationRewriter::Create(iconfig);
 
-	Syslogger() << "Configuration: " << app.DumpAllConfigValues();
+	//Syslogger() << "Configuration: " << app.DumpAllConfigValues();
 
-	app.m_loggerConfig.m_maxLogLevel = Syslogger::Debug;
+	app.m_loggerConfig.m_maxLogLevel = Syslogger::Warning;
 	app.InitLogging(app.m_loggerConfig);
 
 	StringVector args = app.GetRemainArgs();
@@ -63,8 +63,7 @@ int main(int argc, char** argv)
 
 	auto callback = []( const Wuild::RemoteToolClient::TaskExecutionInfo& info){
 		if (info.m_stdOutput.size())
-			std::cout << info.m_stdOutput << std::endl << std::flush;
-		std::cout << info.GetProfilingStr() << " \n";
+			std::cout << info.m_stdOutput << std::flush;
 		Application::Interrupt(1 - info.m_result);
 	};
 	rcClient.InvokeTool(invocation, callback);

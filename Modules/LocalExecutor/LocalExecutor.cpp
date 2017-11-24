@@ -146,6 +146,7 @@ void LocalExecutor::Quant()
 					task->ErrorResult("Failed to create cmd string for " + task->GetShortErrorInfo() );
 					break;
 				}
+				task->m_invocation = inv;
 				task->m_executionStart = TimePoint(true);
 				Subprocess * addsubproc = m_subprocs->Add(cmd);
 				if (!addsubproc)
@@ -182,8 +183,10 @@ void LocalExecutor::Quant()
 		delete subproc;
 
 		result->m_executionTime = task->m_executionStart.GetElapsedTime();
-
-		if (result->m_stdOut.size() < 1000 && result->m_stdOut.find_first_of('\n') == result->m_stdOut.size()-1)
+		const auto & executableName = task->m_invocation.m_id.m_toolExecutable;
+		if (result->m_stdOut.size() < 1000
+				&& result->m_stdOut.find_first_of('\n') == result->m_stdOut.size()-1
+				&& executableName.find("cl.exe") != std::string::npos)
 		{   // cl.exe always outputs input name to stderr.
 			result->m_stdOut.clear();
 		}
