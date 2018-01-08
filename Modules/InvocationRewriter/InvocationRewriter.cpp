@@ -182,7 +182,7 @@ InvocationRewriter::ToolInfo InvocationRewriter::CompileInfoById(const ToolInvoc
 
 InvocationRewriter::ToolInfo InvocationRewriter::CompileInfoByExecutable(const std::string &executable) const
 {
-	const std::string exec = FileInfo::ToPlatformPath(executable);
+	const std::string exec = FileInfo::ToPlatformPath(FileInfo::LocatePath(executable));
 	InvocationRewriter::ToolInfo info;
 	for (const Config::Tool & unit : m_config.m_tools)
 	{

@@ -27,6 +27,7 @@ class FileInfo
 {
 	std::unique_ptr<FileInfoPrivate> m_impl;
 public:
+	static std::string LocatePath(const std::string & path);
 	static std::string ToPlatformPath(std::string path);
 
 public:

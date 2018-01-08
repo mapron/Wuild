@@ -53,6 +53,11 @@ inline int GetLastError() { return errno; }
 
 namespace {
 static const size_t CHUNK = 16384;
+#ifdef _WIN32
+static const char PATH_LIST_SEPARTOR = ';';
+#else
+static const char PATH_LIST_SEPARTOR = ':';
+#endif
 }
 
 
@@ -63,6 +68,26 @@ class FileInfoPrivate
 public:
 	fs::path m_path;
 };
+
+std::string FileInfo::LocatePath(const std::string &path)
+{
+	if (fs::path(path).is_absolute())
+		return path;
+	const std::string pathEnv = getenv("PATH");
+	std::stringstream ss;
+	ss.str(pathEnv);
+	std::string item;
+	while (std::getline(ss, item, PATH_LIST_SEPARTOR))
+	{
+		if (item.empty())
+			continue;
+		if (item[item.size()-1] != '/' && item[item.size()-1] != '\\')
+			item += '/';
+		if (fs::exists(item + path))
+			return FileInfo(item + path).GetPlatformShortName();
+	}
+	return path;
+}
 
 std::string FileInfo::ToPlatformPath(std::string path)
 {
