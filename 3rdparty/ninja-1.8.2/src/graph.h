@@ -98,6 +98,7 @@ struct Node {
 
   void set_buddy(Node * buddy) { buddy_node_ = buddy; }
   bool has_buddy() const { return !!buddy_node_;}
+  Node * buddy() const { return buddy_node_;}
 
   void Dump(const char* prefix="") const;
 

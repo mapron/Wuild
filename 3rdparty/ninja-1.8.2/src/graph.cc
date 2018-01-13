@@ -222,7 +222,12 @@ bool DependencyScan::RecomputeOutputDirty(Edge* edge,
     EXPLAIN("output %s doesn't exist", output->path().c_str());
     return true;
   }
-
+  
+  // Dirty if we have unexistent buddy (target for preprocessor rule)
+  if (output->has_buddy() && !output->buddy()->exists()) {
+    EXPLAIN("output buddy %s doesn't exist", output->buddy()->path().c_str());
+    return true;
+  }
   // Dirty if the output is older than the input.
   if (most_recent_input && output->mtime() < most_recent_input->mtime()) {
     TimeStamp output_mtime = output->mtime();
@@ -270,6 +275,17 @@ bool DependencyScan::RecomputeOutputDirty(Edge* edge,
         return true;
       }
     }
+	if (output->has_buddy())
+	{
+		BuildLog::LogEntry* entryBuddy = build_log()->LookupByOutput(output->buddy()->path());
+		if (entryBuddy && entryBuddy->mtime < output->mtime())
+		{
+			EXPLAIN("recorded buddy mtime of %s older than output %s (%d vs %d)",
+					output->buddy()->path().c_str(), output->path().c_str(),
+					entryBuddy->mtime, output->mtime());
+			return true;
+		}
+	}
     if (!entry && !generator) {
       EXPLAIN("command line not found in log for %s", output->path().c_str());
       return true;

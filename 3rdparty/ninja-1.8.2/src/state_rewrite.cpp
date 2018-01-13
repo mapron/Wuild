@@ -106,7 +106,10 @@ void RewriteStateRules(State *state, IRemoteExecutor * const remoteExecutor)
             const std::string objectPath = node->path();
             const std::string sourcePath = in_egde->inputs_[0]->path();
             const std::string ppPath = remoteExecutor->GetPreprocessedPath(sourcePath, objectPath);
-            Node *pp_node = state->GetNode(ppPath, node->slash_bits());
+			// always clean preprocessed file from prev crashes.
+			remove(ppPath.c_str());
+            
+			Node *pp_node = state->GetNode(ppPath, node->slash_bits());
 
             pp_node->set_buddy(in_egde->outputs_[0]);
 
