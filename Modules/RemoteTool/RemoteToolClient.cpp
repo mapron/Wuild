@@ -110,7 +110,7 @@ public:
 			std::lock_guard<std::mutex> lock2(m_clientsMutex);
 			handler = m_clients[clientIndex];
 		}
-		auto frameCallback = [this, task, clientIndex](SocketFrame::Ptr responseFrame, SocketFrameHandler::ReplyState state)
+		auto frameCallback = [this, task, clientIndex](SocketFrame::Ptr responseFrame, SocketFrameHandler::ReplyState state, const std::string & errorInfo)
 		{
 			m_balancer.FinishTask(clientIndex);
 			const std::string outputFilename =  task.m_originalFilename;
@@ -119,12 +119,14 @@ public:
 			bool retry = false;
 			if (state == SocketFrameHandler::ReplyState::Timeout)
 			{
-				info.m_stdOutput = "Timeout expired:" + outputFilename + ", start:" + task.m_start.ToString() + " exp:" + task.m_expirationMoment.ToString() + ", att:" + std::to_string(task.m_attemptsRemain);
+				info.m_stdOutput = "Timeout expired:" + outputFilename + ", start:" + task.m_start.ToString() 
+						+ " exp:" + task.m_expirationMoment.ToString() + ", remain:" + std::to_string(task.m_attemptsRemain) 
+						+ ", balancer.free:" + std::to_string(m_balancer.GetFreeThreads()) + ", extraInfo:" + errorInfo;
 				retry = true;
 			}
 			else if (state == SocketFrameHandler::ReplyState::Error)
 			{
-				info.m_stdOutput = "Internal error.";
+				info.m_stdOutput = "Internal error. " + errorInfo;
 				retry = true;
 			}
 			else

@@ -88,7 +88,7 @@ public:
 
 	using Ptr = std::shared_ptr<SocketFrameHandler>;
 	using StateNotifierCallback = std::function<void(bool)> ;
-	using ReplyNotifier  = std::function<void(SocketFrame::Ptr, ReplyState)>;
+	using ReplyNotifier  = std::function<void(SocketFrame::Ptr, ReplyState, const std::string &)>;
 	using OutputCallback = std::function<void(SocketFrame::Ptr)>;
 
 	class IFrameReader
@@ -178,7 +178,7 @@ protected:
 	public:
 		void ClearAndSendError();
 		void AddNotifier(uint64_t id, ReplyNotifier callback, TimePoint timeout);
-		void CheckTimeouts();
+		void CheckTimeouts(const std::string & extraInfo);
 		ReplyNotifier TakeNotifier(uint64_t id);
 	};
 
@@ -220,6 +220,7 @@ protected:
 
 	size_t                      m_bytesWaitingAcknowledge = 0;
 	TimePoint                   m_lastSucceessfulRead;
+	TimePoint                   m_lastSucceessfulWrite;
 	TimePoint                   m_acknowledgeTimer;
 	TimePoint                   m_lastTestActivity;
 	TimePoint                   m_lastTimeoutCheck;

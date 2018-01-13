@@ -105,7 +105,15 @@ bool SocketFrameHandler::Quant()
 	if (m_lastTimeoutCheck.GetElapsedTime() > m_settings.m_replyTimeoutCheckInterval)
 	{
 		m_lastTimeoutCheck = TimePoint(true);
-		m_replyManager.CheckTimeouts();
+		std::ostringstream os;
+		os << " queue size:" << m_framesQueueOutput.size() 
+			<< ", outputSegments:" << m_outputSegments.size()
+			<< ", outputAcknowledgesSize:" << m_outputAcknowledgesSize
+			<< ", bytesWaitingAcknowledge:" << m_bytesWaitingAcknowledge
+			<< ", lastSucceessfulRead:" << m_lastSucceessfulRead.ToString()
+			<< ", lastSucceessfulWrite:" << m_lastSucceessfulWrite.ToString()
+			  ;
+		m_replyManager.CheckTimeouts(os.str());
 	}
 	return true;
 }
@@ -521,7 +529,7 @@ bool SocketFrameHandler::WriteFrames()
 		}
 
 		m_lineTestQueued = false;
-		m_lastTestActivity = TimePoint(true);
+		m_lastTestActivity = m_lastSucceessfulWrite = TimePoint(true);
 		if (m_settings.m_hasAcknowledges)
 		{
 			m_acknowledgeTimer = m_lastTestActivity;
@@ -575,7 +583,7 @@ void SocketFrameHandler::PreprocessFrame(SocketFrame::Ptr incomingMessage)
 	auto notifyCallback = m_replyManager.TakeNotifier(incomingMessage->m_replyToTransactionId);
 	if (notifyCallback)
 	{
-		notifyCallback(incomingMessage, ReplyState::Success);
+		notifyCallback(incomingMessage, ReplyState::Success, "");
 	}
 	else
 	{
@@ -599,7 +607,7 @@ void SocketFrameHandler::ReplyManager::ClearAndSendError()
 	std::lock_guard<std::mutex> lock(m_mutex);
 
 	for (auto &p : m_replyNotifiers)
-		p.second(nullptr, ReplyState::Error);
+		p.second(nullptr, ReplyState::Error, "Lost connection.");
 
 	m_replyNotifiers.clear();
 	m_timeouts.clear();
@@ -616,7 +624,7 @@ void SocketFrameHandler::ReplyManager::AddNotifier(uint64_t id, SocketFrameHandl
 	}
 }
 
-void SocketFrameHandler::ReplyManager::CheckTimeouts()
+void SocketFrameHandler::ReplyManager::CheckTimeouts(const std::string & extraInfo)
 {
 	std::lock_guard<std::mutex> lock(m_mutex);
 	TimePoint now(true);
@@ -630,7 +638,7 @@ void SocketFrameHandler::ReplyManager::CheckTimeouts()
 			auto search = m_replyNotifiers.find(id);
 			if (search != m_replyNotifiers.end())
 			{
-				search->second(nullptr, ReplyState::Timeout);
+				search->second(nullptr, ReplyState::Timeout, extraInfo);
 				m_replyNotifiers.erase(search);
 			}
 			else

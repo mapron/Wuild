@@ -73,13 +73,13 @@ bool ToolProxyClient::Start(TimePoint connectionTimeout)
 
 void ToolProxyClient::RunTask(const StringVector &args)
 {
-	auto frameCallback = [](SocketFrame::Ptr responseFrame, SocketFrameHandler::ReplyState state)
+	auto frameCallback = [](SocketFrame::Ptr responseFrame, SocketFrameHandler::ReplyState state, const std::string & errorInfo)
 	{
 		std::string stdOut;
 		bool result = false;
 		if (state == SocketFrameHandler::ReplyState::Timeout)
 		{
-			stdOut = "Timeout expired.";
+			stdOut = "Timeout expired:" + errorInfo;
 		}
 		else if (state == SocketFrameHandler::ReplyState::Error)
 		{
