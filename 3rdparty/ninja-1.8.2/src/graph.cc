@@ -30,11 +30,6 @@
 
 bool Node::Stat(const DiskInterface* disk_interface, string* err) {
   mtime_ = disk_interface->Stat(path_, err);
-  if (mtime_ <= 0 && buddy_node_)
-  {
-      buddy_node_->Stat(disk_interface, err);
-      mtime_ = buddy_node_->mtime();
-  }
   return  mtime_ != -1;
 }
 
@@ -216,18 +211,16 @@ bool DependencyScan::RecomputeOutputDirty(Edge* edge,
   }
 
   BuildLog::LogEntry* entry = 0;
-
+  Node* originalOutput = output;
+  if (output->has_buddy()) 
+	 output = output->buddy();
+  
   // Dirty if we're missing the output.
   if (!output->exists()) {
     EXPLAIN("output %s doesn't exist", output->path().c_str());
     return true;
   }
   
-  // Dirty if we have unexistent buddy (target for preprocessor rule)
-  if (output->has_buddy() && !output->buddy()->exists()) {
-    EXPLAIN("output buddy %s doesn't exist", output->buddy()->path().c_str());
-    return true;
-  }
   // Dirty if the output is older than the input.
   if (most_recent_input && output->mtime() < most_recent_input->mtime()) {
     TimeStamp output_mtime = output->mtime();
@@ -254,42 +247,32 @@ bool DependencyScan::RecomputeOutputDirty(Edge* edge,
   }
 
   if (build_log()) {
-    bool generator = edge->GetBindingBool("generator");
-    if (entry || (entry = build_log()->LookupByOutput(output->path()))) {
-      if (!generator &&
-          BuildLog::LogEntry::HashCommand(command) != entry->command_hash) {
-        // May also be dirty due to the command changing since the last build.
-        // But if this is a generator rule, the command changing does not make us
-        // dirty.
-        EXPLAIN("command line changed for %s", output->path().c_str());
-        return true;
-      }
-      if (most_recent_input && entry->mtime < most_recent_input->mtime()) {
-        // May also be dirty due to the mtime in the log being older than the
-        // mtime of the most recent input.  This can occur even when the mtime
-        // on disk is newer if a previous run wrote to the output file but
-        // exited with an error or was interrupted.
-        EXPLAIN("recorded mtime of %s older than most recent input %s (%d vs %d)",
-                output->path().c_str(), most_recent_input->path().c_str(),
-                entry->mtime, most_recent_input->mtime());
-        return true;
-      }
-    }
-	if (output->has_buddy())
-	{
-		BuildLog::LogEntry* entryBuddy = build_log()->LookupByOutput(output->buddy()->path());
-		if (entryBuddy && entryBuddy->mtime < output->mtime())
-		{
-			EXPLAIN("recorded buddy mtime of %s older than output %s (%d vs %d)",
-					output->buddy()->path().c_str(), output->path().c_str(),
-					entryBuddy->mtime, output->mtime());
-			return true;
-		}
-	}
-    if (!entry && !generator) {
-      EXPLAIN("command line not found in log for %s", output->path().c_str());
-      return true;
-    }
+	  bool generator = edge->GetBindingBool("generator");
+	  BuildLog::LogEntry* entryOriginal = build_log()->LookupByOutput(originalOutput->path());
+	  if (entryOriginal && !generator && BuildLog::LogEntry::HashCommand(command) != entryOriginal->command_hash) {
+		  // May also be dirty due to the command changing since the last build.
+		  // But if this is a generator rule, the command changing does not make us
+		  // dirty.
+		  EXPLAIN("command line changed for %s", originalOutput->path().c_str());
+		  return true;
+	  }
+	  if (entry || (entry = build_log()->LookupByOutput(output->path()))) {
+		  
+		  if (most_recent_input && entry->mtime < most_recent_input->mtime()) {
+			  // May also be dirty due to the mtime in the log being older than the
+			  // mtime of the most recent input.  This can occur even when the mtime
+			  // on disk is newer if a previous run wrote to the output file but
+			  // exited with an error or was interrupted.
+			  EXPLAIN("recorded mtime of %s older than most recent input %s (%d vs %d)",
+					  output->path().c_str(), most_recent_input->path().c_str(),
+					  entry->mtime, most_recent_input->mtime());
+			  return true;
+		  }
+	  }
+	  if (!entry && !generator) {
+		  EXPLAIN("command line not found in log for %s", output->path().c_str());
+		  return true;
+	  }
   }
 
   return false;
@@ -581,7 +564,7 @@ bool ImplicitDepLoader::LoadDepsFromLog(Edge* edge, string* err) {
   }
 
   // Deps are invalid if the output is newer than the deps.
-  if (output->mtime() > deps->mtime && !output->has_buddy()) {
+  if (output->mtime() > deps->mtime) {
     EXPLAIN("stored deps info out of date for '%s' (%d vs %d)",
             output->path().c_str(), deps->mtime, output->mtime());
     return false;
