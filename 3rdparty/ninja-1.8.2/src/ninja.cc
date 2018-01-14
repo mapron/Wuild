@@ -19,7 +19,7 @@
 #include <string.h>
 
 #ifdef _WIN32
-#include "getopt.h"
+#include "getopt_win.h"
 #include <direct.h>
 #include <windows.h>
 #elif defined(_AIX)
