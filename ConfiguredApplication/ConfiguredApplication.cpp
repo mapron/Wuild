@@ -332,7 +332,7 @@ void ConfiguredApplication::ReadCoordinatorServerConfig()
 
 void ConfiguredApplication::ReadCompressionConfig(CompressionInfo &compressionInfo, const std::string &groupName)
 {
-	auto type = m_config->GetString(groupName,    "compressionType", "LZ4");
+	auto type = m_config->GetString(groupName,    "compressionType", "Gzip");
 	if (type == "None")
 		compressionInfo.m_type = CompressionType::None;
 	else if (type == "LZ4")
