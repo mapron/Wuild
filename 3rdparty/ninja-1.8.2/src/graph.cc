@@ -256,8 +256,19 @@ bool DependencyScan::RecomputeOutputDirty(Edge* edge,
 		  EXPLAIN("command line changed for %s", originalOutput->path().c_str());
 		  return true;
 	  }
-	  if (entry || (entry = build_log()->LookupByOutput(output->path()))) {
-		  
+	  
+	  if (entry || (entry = build_log()->LookupByOutput(output->path()))) 
+	  {
+		  if (originalOutput != output) // PP rule
+		  {			
+			  Edge* edge = output->in_edge(); 
+			  string command = edge->EvaluateCommand(/*incl_rsp_file=*/true);
+			  if (entry && !generator && BuildLog::LogEntry::HashCommand(command) != entry->command_hash) 
+			  {
+				  EXPLAIN("command line changed for %s", output->path().c_str());
+				  return true;
+			  }
+		  }
 		  if (most_recent_input && entry->mtime < most_recent_input->mtime()) {
 			  // May also be dirty due to the mtime in the log being older than the
 			  // mtime of the most recent input.  This can occur even when the mtime
