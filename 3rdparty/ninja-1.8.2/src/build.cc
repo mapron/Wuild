@@ -474,7 +474,7 @@ bool Plan::CleanNode(DependencyScan* scan, Node* node, string* err) {
     vector<Node*>::iterator
         begin = (*oe)->inputs_.begin(),
         end = (*oe)->inputs_.end() - (*oe)->order_only_deps_;
-    if (find_if(begin, end, mem_fun(&Node::dirty)) == end) {
+    if (find_if(begin, end, mem_fn(&Node::dirty)) == end) {
       // Recompute most_recent_input.
       Node* most_recent_input = NULL;
       for (vector<Node*>::iterator i = begin; i != end; ++i) {

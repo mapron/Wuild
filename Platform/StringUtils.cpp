@@ -31,20 +31,25 @@ std::string JoinString(const StringVector &list, char glue)
 	return ret;
 }
 
-std::string Ltrim(std::string s) {
-	s.erase(s.begin(), std::find_if(s.begin(), s.end(),
-									std::not1(std::ptr_fun<int, int>(isspace))));
-	return s;
+// trim from start (in place)
+static inline void ltrim(std::string &s) {
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](int ch) {
+        return !std::isspace(ch);
+    }));
 }
 
-std::string Rtrim(std::string s) {
-	s.erase(std::find_if(s.rbegin(), s.rend(),
-						 std::not1(std::ptr_fun<int, int>(isspace))).base(), s.end());
-	return s;
+// trim from end (in place)
+static inline void rtrim(std::string &s) {
+    s.erase(std::find_if(s.rbegin(), s.rend(), [](int ch) {
+        return !std::isspace(ch);
+    }).base(), s.end());
 }
 
 std::string Trim(const std::string & s) {
-	return Ltrim(Rtrim(s));
+	auto result = s;
+	ltrim(result);
+	rtrim(result);
+	return result;
 }
 
 void SplitString(const std::string & str, StringVector & outList, char delim, bool trimEach, bool skipEmpty)

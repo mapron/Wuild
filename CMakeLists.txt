@@ -54,6 +54,7 @@ endif()
 
 if (APPLE)
 	list(APPEND sys_deps -stdlib=libc++ -lc++)
+	add_definitions(-D_LIBCPP_ENABLE_CXX17_REMOVED_AUTO_PTR)
 endif()
 
 if (NOT BOOST_LIBRARYDIR)
