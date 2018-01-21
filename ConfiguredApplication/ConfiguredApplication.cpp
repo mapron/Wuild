@@ -66,14 +66,13 @@ ConfiguredApplication::ConfiguredApplication(int argc, char **argv, const std::s
 	if (configPath.empty())
 	{
 		unexistendConfigIsError = false;
-		configPath = Application::Instance().GetHomeDir() + "/" + g_defaultConfig;
-		const std::string fullConfigPath = Application::Instance().GetHomeDir() + "/" + g_defaultConfigSubfolder + g_defaultConfig;
-		if (!g_defaultConfigSubfolder.empty() && FileInfo(configPath).Exists())
-		{
-			Syslogger(Syslogger::Warning) << "Path '" << configPath << "' is deprecated, use '" << fullConfigPath << "' instead.";
-		}
-		if (FileInfo(fullConfigPath).Exists())
-			configPath = fullConfigPath;
+		const std::vector<std::string> configPaths {
+			Application::Instance().GetHomeDir() + "/" + g_defaultConfigSubfolder + g_defaultConfig,
+			Application::Instance().GetExecutablePath()	+ "/" + g_defaultConfig,
+		};
+		for (const auto & path : configPaths)
+			if (FileInfo(path).Exists())
+				configPath = path;
 	}
 	if (!config.ReadIniFile(configPath) && unexistendConfigIsError)
 	{
