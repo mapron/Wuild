@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <sstream>
 #include <functional>
+#include <cctype>
 
 namespace Wuild { namespace StringUtils {
 
