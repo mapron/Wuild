@@ -80,6 +80,7 @@ void RemoteToolServer::Start()
 	settings.m_recommendedRecieveBufferSize = g_recommendedBufferSize;
 	settings.m_recommendedSendBufferSize    = g_recommendedBufferSize;
 	settings.m_segmentSize = 8192;
+	settings.m_hasConnStatus = true;
 	m_impl->m_server.reset(new SocketFrameService( settings, m_config.m_listenPort ));
 
 	m_impl->m_server->SetHandlerInitCallback([this](SocketFrameHandler * handler){

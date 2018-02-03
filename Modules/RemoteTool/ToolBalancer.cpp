@@ -95,6 +95,17 @@ void ToolBalancer::SetClientActive(size_t index, bool isActive)
 	RecalcAvailable();
 }
 
+void ToolBalancer::SetServerSideLoad(size_t index, uint16_t load)
+{
+	std::lock_guard<std::mutex> lock(m_clientsMutex);
+	ClientInfo & info = m_clients[index];
+	info.m_serverSideQueuePrev = info.m_serverSideQueue;
+	info.m_serverSideQueue = load;
+	info.m_serverSideQueueAvg = (info.m_serverSideQueue + info.m_serverSideQueuePrev) / 2;
+	info.UpdateLoad(m_sessionId);
+	RecalcAvailable();
+}
+
 size_t ToolBalancer::FindFreeClient(const std::string &toolId) const
 {
 	std::lock_guard<std::mutex> lock(m_clientsMutex);
@@ -186,9 +197,21 @@ void ToolBalancer::ClientInfo::UpdateLoad(int64_t mySessionId)
 	}
 	if (m_busyOthers > 0)
 		m_busyOthers--; // reduce other's load for more greedy behaviour.
-	m_busyTotal = m_busyOthers + m_busyMine;
-	if (m_busyTotal > m_toolServer.m_totalThreads)
-		m_busyTotal = m_toolServer.m_totalThreads;
+	
+	if (m_serverSideQueueAvg >= m_busyMine - 1)
+	{
+		// if server has large queue, lower free threads.
+		m_busyByNetworkLoad++;
+		m_busyByNetworkLoad = std::min(m_busyByNetworkLoad, m_toolServer.m_totalThreads);
+	}
+	if (m_serverSideQueueAvg == 0 && m_busyByNetworkLoad) 
+	{
+		// if server has empty queue, remove penalty
+		m_busyByNetworkLoad--;
+	}
+	
+	m_busyTotal = m_busyOthers + m_busyMine + m_busyByNetworkLoad;
+	m_busyTotal = std::min(m_busyTotal, m_toolServer.m_totalThreads);
 
 	m_clientLoad = m_busyTotal * m_eachTaskWeight / m_toolServer.m_totalThreads;
 }

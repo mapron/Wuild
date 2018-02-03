@@ -44,6 +44,7 @@ public:
 
 	ClientStatus UpdateClient(const ToolServerInfo & toolServer, size_t & index);
 	void SetClientActive(size_t index, bool isActive);
+	void SetServerSideLoad(size_t index, uint16_t load);
 
 	size_t FindFreeClient(const std::string & toolId) const;
 	void StartTask(size_t index);
@@ -63,9 +64,13 @@ protected:
 	{
 		ToolServerInfo m_toolServer;
 		bool m_active = false;
+		uint16_t m_serverSideQueue = 0;
+		uint16_t m_serverSideQueuePrev = 0;
+		uint16_t m_serverSideQueueAvg = 0;
 		uint16_t m_busyMine = 0;
 		uint16_t m_busyOthers = 0;
 		uint16_t m_busyTotal = 0;
+		uint16_t m_busyByNetworkLoad = 0;
 		int64_t m_clientLoad = 0;
 		int m_eachTaskWeight = 32768; //TODO: priority? configaration?
 		void UpdateLoad(int64_t mySessionId);

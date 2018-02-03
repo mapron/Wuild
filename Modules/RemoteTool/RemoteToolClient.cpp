@@ -260,12 +260,17 @@ void RemoteToolClient::AddClient(const ToolServerInfo &info, bool start)
 	settings.m_recommendedRecieveBufferSize = g_recommendedBufferSize;
 	settings.m_recommendedSendBufferSize    = g_recommendedBufferSize;
 	settings.m_segmentSize = 8192;
+	settings.m_hasConnStatus = true;
 	SocketFrameHandler::Ptr handler(new SocketFrameHandler( settings ));
 	handler->RegisterFrameReader(SocketFrameReaderTemplate<RemoteToolResponse>::Create());
 	handler->SetTcpChannel(info.m_connectionHost, info.m_connectionPort);
 
 	handler->SetChannelNotifier([&balancer, index, this](bool state){
 		balancer.SetClientActive(index, state);
+		AvailableCheck();
+	});
+	handler->SetConnectionStatusNotifier([&balancer, index, this](SocketFrameHandler::ConnectionStatus status){
+		balancer.SetServerSideLoad(index, status.uniqueRepliesQueued);
 		AvailableCheck();
 	});
 	if (start)
