@@ -20,6 +20,7 @@
 #include <cstring>
 #include <stdexcept>
 #include <sstream>
+#include <set>
 #include <assert.h>
 
 #define BUFFER_RATIO 8 / 10
@@ -152,6 +153,11 @@ void SocketFrameHandler::DisconnectChannel()
 void SocketFrameHandler::SetChannelNotifier(StateNotifierCallback stateNotifier)
 {
 	m_stateNotifier = stateNotifier;
+}
+
+void SocketFrameHandler::SetConnectionStatusNotifier(SocketFrameHandler::ConnectionStatusCallback callback)
+{
+	m_connStatusNotifier = callback;
 }
 // Application logic:
 
@@ -334,7 +340,17 @@ SocketFrameHandler::ConsumeState SocketFrameHandler::ConsumeReadBuffer()
 			Syslogger(m_logContext, Syslogger::Err) << "Remote version is  " << version << ", but mine is " << m_settings.m_channelProtocolVersion;
 			return ConsumeState::FatalError;
 		}
-		Syslogger(m_logContext)<< "Recieved buffer size = " << bufferSize << ", MaxUnAck=" << m_maxUnAcknowledgedSize  <<  ", remote time is " << m_remoteTimeDiffToPast.ToString() << " in past compare to me. (" << m_remoteTimeDiffToPast.GetUS() << " us)";
+		Syslogger(m_logContext) << "Recieved buffer size = " << bufferSize << ", MaxUnAck=" << m_maxUnAcknowledgedSize  <<  ", remote time is " << m_remoteTimeDiffToPast.ToString() << " in past compare to me. (" << m_remoteTimeDiffToPast.GetUS() << " us)";
+	}
+	else if (m_settings.m_hasConnStatus && mtype == ServiceMessageType::ConnStatus)
+	{
+		ConnectionStatus status;
+		inputStream >> status.uniqueRepliesQueued;
+		if (m_connStatusNotifier)
+			m_connStatusNotifier(status);
+		else
+			Syslogger(m_logContext, Syslogger::Info) << "Server-side messages queued: " << status.uniqueRepliesQueued
+														;
 	}
 	// othrewise, we have application frame. Move its data to framebuffer.
 	else
@@ -457,6 +473,20 @@ bool SocketFrameHandler::WriteFrames()
 		m_outputSegments.push_front(streamWriter.GetBuffer().GetHolder());
 		m_lineTestQueued = true;
 	}
+	
+	// check and write line connection status
+	if ( m_settings.m_hasConnStatus
+		 && (m_outputSegments.empty() || m_outputSegments.front().type() != ServiceMessageType::ConnStatus)
+		 && m_lastConnStatusSend.GetElapsedTime() > m_settings.m_connStatusInterval
+		)
+	{
+		ByteOrderDataStreamWriter streamWriter(m_settings.m_byteOrder);
+		streamWriter << uint8_t(ServiceMessageType::ConnStatus);
+		auto status = CalculateStatus();
+		streamWriter << status.uniqueRepliesQueued;
+		m_outputSegments.push_front(streamWriter.GetBuffer().GetHolder());
+		m_lastConnStatusSend = TimePoint(true);
+	}
 
 	// send connection options
 	if (m_setConnectionOptionsNeedSend)
@@ -500,21 +530,23 @@ bool SocketFrameHandler::WriteFrames()
 			size_t curSize = bufferPart.ref().size();
 			bufferPart.ref().resize(curSize + length);
 			memcpy(bufferPart.data() + curSize, buffer.data() + offset , length);
-			m_outputSegments.push_back(bufferPart);
+			SegmentInfo info(bufferPart);
+			info.transaction = frontMsg->m_replyToTransactionId;
+			m_outputSegments.push_back(info);
 		}
 	}
 
 	// write all outgoing segments to tcp socket
 	while (!m_outputSegments.empty())
 	{
-		ByteArrayHolder frontSegment = m_outputSegments.front();
+		const auto & frontSegment = m_outputSegments.front();
 
-		const auto sizeForWrite = frontSegment.size();
+		const auto sizeForWrite = frontSegment.data.size();
 		const auto maxSize = m_maxUnAcknowledgedSize - m_bytesWaitingAcknowledge;
 		if (m_settings.m_hasAcknowledges && sizeForWrite > maxSize && sizeForWrite > 1) // allow writeing of test frame.
 			break;
 
-		auto writeResult = m_channel->Write(frontSegment, sizeForWrite);
+		auto writeResult = m_channel->Write(frontSegment.data, sizeForWrite);
 		if (writeResult == IDataSocket::WriteState::TryAgain)
 			break;
 
@@ -600,6 +632,19 @@ void SocketFrameHandler::PreprocessFrame(SocketFrame::Ptr incomingMessage)
 			handler->QueueFrame(reply);
 		});
 	}
+}
+
+SocketFrameHandler::ConnectionStatus SocketFrameHandler::CalculateStatus()
+{	
+	std::set<size_t> transactions;
+	for (const auto & segment : m_outputSegments)
+	{
+		if (segment.transaction)
+			transactions.insert(segment.transaction);
+	}
+	ConnectionStatus status;
+	status.uniqueRepliesQueued = static_cast<uint16_t>(transactions.size());
+	return status;
 }
 
 void SocketFrameHandler::ReplyManager::ClearAndSendError()

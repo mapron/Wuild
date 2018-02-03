@@ -59,6 +59,7 @@ struct SocketFrameHandlerSettings
 	TimePoint      m_lineTestInterval        = TimePoint(3.0);    //!< If no channel activity for this time, line test frame will be send.
 	TimePoint      m_afterDisconnectWait     = TimePoint(10.0);   //!< If channel was disconnected, connect retry will be after that time.
 	TimePoint      m_replyTimeoutCheckInterval = TimePoint(1.0);  //!< How often check for timeouted requests.
+	TimePoint      m_connStatusInterval        = TimePoint(1.0);
 
 	TimePoint      m_tcpReadTimeout          = TimePoint(0.0);    //!< Read timeout for underlying physical channel.
 	size_t         m_recommendedRecieveBufferSize = 4 * 1024;     //!< Recommended TCP-buffer size.
@@ -69,6 +70,7 @@ struct SocketFrameHandlerSettings
 	bool           m_hasLineTest     = true;                      //!< Test frames
 	bool           m_hasConnOptions  = true;                      //!< Send connect options after connection established.
 	bool           m_hasChannelTypes = true;                      //!< Use frame type marker in stream. Without that, all frames should have SocketFrame::s_minimalUserFrameId id.
+	bool           m_hasConnStatus   = false;
 
 	int            m_writeFailureLogLevel = Syslogger::Err;
 };
@@ -106,6 +108,12 @@ public:
 		/// This function specify handling of incoming frames. In function, call outputCallback() to enqueue new frames as reply in hadler.
 		virtual void ProcessFrame(SocketFrame::Ptr incomingMessage, OutputCallback outputCallback) = 0;
 	};
+	
+	struct ConnectionStatus
+	{
+		uint16_t uniqueRepliesQueued;
+	};
+	using ConnectionStatusCallback = std::function<void(const ConnectionStatus &)>;
 
 public:
 	explicit SocketFrameHandler(int threadId, const SocketFrameHandlerSettings & settings = SocketFrameHandlerSettings());
@@ -142,6 +150,9 @@ public:
 
 	/// callback will be called when underlying state changes. It also will called on initial state.
 	void   SetChannelNotifier(StateNotifierCallback stateNotifier);
+	
+	/// register watcher for connection status change. 
+	void   SetConnectionStatusNotifier(ConnectionStatusCallback callback);
 
 // Application logic:
 	///  Adding new frame to queue. If replyNotifier is set, it will called instead of IFrameReader::ProcessFrame, when reply arrived or failure occurs.
@@ -158,7 +169,7 @@ public:
 
 protected:
 
-	enum class ServiceMessageType { None, Ack, LineTest, ConnOptions, User = SocketFrame::s_minimalUserFrameId };
+	enum class ServiceMessageType { None, Ack, LineTest, ConnOptions, ConnStatus, User = SocketFrame::s_minimalUserFrameId };
 
 	enum class ConsumeState { Ok, Broken, Incomplete, FatalError };
 
@@ -193,6 +204,7 @@ protected:
 	bool                        IsOutputBufferEmpty();
 
 	void                        PreprocessFrame(SocketFrame::Ptr incomingMessage);
+	ConnectionStatus            CalculateStatus();
 
 protected:
 	const int                         m_threadId;
@@ -201,6 +213,7 @@ protected:
 	ConnectionState                   m_prevConnectionState = ConnectionState::Pending;
 
 	StateNotifierCallback             m_stateNotifier;
+	ConnectionStatusCallback          m_connStatusNotifier;
 	std::atomic_uint_fast64_t         m_transaction {0};
 
 	IDataSocket::Ptr                  m_channel;
@@ -208,7 +221,15 @@ protected:
 
 	ByteOrderBuffer                   m_readBuffer;
 	ByteOrderBuffer                   m_frameDataBuffer;
-	std::deque<ByteArrayHolder>       m_outputSegments;
+	struct SegmentInfo 
+	{
+		ByteArrayHolder data;
+		size_t transaction = 0;
+		ServiceMessageType type() const { return ServiceMessageType(data.data()[0]);}
+		SegmentInfo() = default;
+		SegmentInfo(const ByteArrayHolder & d) : data(d) {};
+	};
+	std::deque<SegmentInfo>           m_outputSegments;
 	ServiceMessageType                m_pendingReadType = ServiceMessageType::None;
 
 	ThreadSafeQueue<SocketFrame::Ptr>    m_framesQueueOutput;
@@ -216,6 +237,7 @@ protected:
 	ReplyManager                         m_replyManager;
 	std::map<uint8_t, IFrameReader::Ptr> m_frameReaders;
 
+	uint8_t                     m_outputLoadPercent = 0;
 	size_t                      m_maxUnAcknowledgedSize = 0;
 
 	size_t                      m_bytesWaitingAcknowledge = 0;
@@ -224,6 +246,7 @@ protected:
 	TimePoint                   m_acknowledgeTimer;
 	TimePoint                   m_lastTestActivity;
 	TimePoint                   m_lastTimeoutCheck;
+	TimePoint                   m_lastConnStatusSend;
 	bool mutable                m_doTestActivity = false;
 	bool mutable                m_setConnectionOptionsNeedSend = false;
 	TimePoint                   m_remoteTimeDiffToPast;
