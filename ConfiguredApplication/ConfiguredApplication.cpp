@@ -72,7 +72,10 @@ ConfiguredApplication::ConfiguredApplication(int argc, char **argv, const std::s
 		};
 		for (const auto & path : configPaths)
 			if (FileInfo(path).Exists())
+			{
 				configPath = path;
+				break;
+			}
 	}
 	if (!config.ReadIniFile(configPath) && unexistendConfigIsError)
 	{
