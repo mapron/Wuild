@@ -16,6 +16,7 @@
 
 #include <stddef.h>
 #include <cstring>
+#include <sstream>
 
 namespace Wuild
 {
@@ -171,6 +172,20 @@ public:
 			if (m_eofWrite) ret +="[eofWrite] ";
 		}
 		return ret;
+	}
+
+	std::string GetDebugInfo() const
+	{
+		std::ostringstream os;
+		os << "beg="    << intptr_t(m_beg)
+		   << ", end="  << intptr_t(m_end)
+		   << ", size=" << GetSize()
+		   << ", r="    << intptr_t(m_posRead)  << " [" << GetOffsetRead()  << "]"
+		   << ", w="    << intptr_t(m_posWrite) << " [" << GetOffsetWrite() << "]";
+		if (m_eofRead)  os << "[eofRead] ";
+		if (m_eofWrite) os << "[eofWrite] ";
+		os << ", internal=" << intptr_t(m_internal.data()) << ", size=" << m_internal.size();
+		return os.str();
 	}
 
 private:

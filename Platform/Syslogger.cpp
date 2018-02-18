@@ -72,26 +72,42 @@ Syslogger &Syslogger::operator <<(const Binary& SizeHolder)
 {
 	if (m_stream)
 	{
+		*m_stream << "[" << SizeHolder.m_size << "] ";
 		*m_stream << std::hex << std::setfill('0');
-		for( size_t i = 0; i < (size_t)SizeHolder.m_size; ++i )
-			*m_stream << std::setw(2) << int(SizeHolder.m_data[i]) << ' ';
+		const size_t outputSize = std::min(SizeHolder.m_size, SizeHolder.m_outputMax);
+
+		if (SizeHolder.m_size <= SizeHolder.m_outputMax)
+		{
+			for( size_t i = 0; i < outputSize; ++i )
+				*m_stream << std::setw(2) << int(SizeHolder.m_data[i]) << ' ';
+		}
+		else
+		{
+			for( size_t i = 0; i < outputSize / 2; ++i )
+				*m_stream << std::setw(2) << int(SizeHolder.m_data[i]) << ' ';
+
+			*m_stream << "... ";
+
+			for( size_t i = 0; i < outputSize / 2; ++i )
+				*m_stream << std::setw(2) << int(SizeHolder.m_data[SizeHolder.m_size - outputSize / 2 + i]) << ' ';
+		}
 		*m_stream << std::dec;
 	}
 	return *this;
 }
 
-Syslogger::Binary::Binary(const void *data, int size)
-	: m_data((const unsigned char *)data), m_size(size)
+Syslogger::Binary::Binary(const void *data, size_t size, size_t outputMax)
+	: m_data((const unsigned char *)data), m_size(size), m_outputMax(outputMax)
 {
 }
 
-Syslogger::Binary::Binary(const char *data, int size)
-	 : m_data((const unsigned char *)data), m_size(size)
+Syslogger::Binary::Binary(const char *data, size_t size, size_t outputMax)
+	 : m_data((const unsigned char *)data), m_size(size), m_outputMax(outputMax)
 {
 }
 
-Syslogger::Binary::Binary(const unsigned char *data, int size)
-	 : m_data((const unsigned char *)data), m_size(size)
+Syslogger::Binary::Binary(const unsigned char *data, size_t size, size_t outputMax)
+	 : m_data((const unsigned char *)data), m_size(size), m_outputMax(outputMax)
 {
 
 }

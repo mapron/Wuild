@@ -51,11 +51,12 @@ public:
 	{
 		friend class Syslogger;
 		const unsigned char* m_data;
-		const int m_size;
+		const size_t m_size;
+		const size_t m_outputMax;
 	public:
-		Binary (const void* data, int size);
-		Binary (const char* data, int size);
-		Binary (const unsigned char* data, int size);
+		Binary (const void* data, size_t size, size_t outputMax = size_t(-1));
+		Binary (const char* data, size_t size, size_t outputMax = size_t(-1));
+		Binary (const unsigned char* data, size_t size, size_t outputMax = size_t(-1));
 	};
 	/// Creates logger. If loglevel is flushable by backend, stream will be created.
 	Syslogger (int logLevel = Syslogger::Debug);
