@@ -16,6 +16,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <algorithm>
 
 namespace Wuild
 {
