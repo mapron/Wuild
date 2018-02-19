@@ -94,8 +94,8 @@ public:
 			SetMaximumSize(sz);
 
 		m_end = m_beg + sz;
-		if (GetRemainRead() <= 0) ResetRead();
-		if (GetRemainWrite() <= 0) ResetWrite();
+		if (GetRemainRead()  < 0) ResetRead();
+		if (GetRemainWrite() < 0) ResetWrite();
 		return true;
 	}
 	void Clear() { SetSize(0); }
