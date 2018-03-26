@@ -273,11 +273,14 @@ void RemoteToolClient::AddClient(const ToolServerInfo &info, bool start)
 		balancer.SetServerSideLoad(index, status.uniqueRepliesQueued);
 		AvailableCheck();
 	});
+
+
+	{
+		std::lock_guard<std::mutex> lock2(m_impl->m_clientsMutex);
+		m_impl->m_clients.push_back(handler);
+	}
 	if (start)
 	   handler->Start();
-
-	std::lock_guard<std::mutex> lock2(m_impl->m_clientsMutex);
-	m_impl->m_clients.push_back(handler);
 }
 
 void RemoteToolClient::InvokeTool(const ToolInvocation & invocation, InvokeCallback callback)
