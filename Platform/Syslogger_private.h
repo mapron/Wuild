@@ -100,22 +100,28 @@ private:
 
 class LoggerBackendConsole : public AbstractLoggerBackend
 {
-    const bool m_useCerr;
+public:	
+	enum class Type { Cout, Cerr, Printf };
+	
 public:
     LoggerBackendConsole(int maxLogLevel,
 					  bool outputLoglevel,
 					  bool outputTimestamp,
                       bool outputTimeoffsets,
-                      bool useCerr)
-        : AbstractLoggerBackend(maxLogLevel, outputLoglevel, outputTimestamp, outputTimeoffsets, true)
-        , m_useCerr(useCerr){ }
+                      Type type)
+        : AbstractLoggerBackend(maxLogLevel, outputLoglevel, outputTimestamp, outputTimeoffsets, false)
+        , m_type(type) { }
 	void FlushMessageInternal(const std::string & message, int ) const override
 	{
-        if (m_useCerr)
-			std::cerr << message << std::flush;
+		if (m_type == Type::Printf)
+			printf("%s\n", message.c_str());
+        else if (m_type == Type::Cerr)
+			std::cerr << message << std::endl << std::flush;
         else
-			std::cout << message << std::flush;
+			std::cout << message << std::endl << std::flush;
 	}
+private:
+	const Type m_type;
 };
 #ifdef __linux__
 class LoggerBackendSyslog : public AbstractLoggerBackend

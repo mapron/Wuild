@@ -21,7 +21,7 @@ namespace Wuild
 class LoggerConfig : public IConfig
 {
 public:
-	enum class LogType { Cout, Cerr, Syslog, Files };
+	enum class LogType { Cout, Cerr, Printf, Syslog, Files };
 	int m_maxLogLevel = Syslogger::Notice;
 	LogType m_logType = LogType::Cout;
 	std::string m_dir;

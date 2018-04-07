@@ -129,11 +129,14 @@ bool ConfiguredApplication::InitLogging(const LoggerConfig &loggerConfig)
 			//fallthrough
 		case LoggerConfig::LogType::Cout:
 		case LoggerConfig::LogType::Cerr:
+		case LoggerConfig::LogType::Printf:
 			backend.reset(new LoggerBackendConsole(loggerConfig.m_maxLogLevel,
 												loggerConfig.m_outputLoglevel,
 												loggerConfig.m_outputTimestamp,
 												loggerConfig.m_outputTimeoffsets,
-												loggerConfig.m_logType == LoggerConfig::LogType::Cerr));
+												loggerConfig.m_logType == LoggerConfig::LogType::Printf ? LoggerBackendConsole::Type::Printf : 
+													(loggerConfig.m_logType == LoggerConfig::LogType::Cerr ?  LoggerBackendConsole::Type::Cerr :  LoggerBackendConsole::Type::Cout)
+												   ));
 		break;
 		case LoggerConfig::LogType::Files:
 			backend.reset(new LoggerBackendFiles(loggerConfig.m_maxLogLevel,

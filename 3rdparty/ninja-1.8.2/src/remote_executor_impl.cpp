@@ -60,10 +60,11 @@ RemoteExecutor::RemoteExecutor(ConfiguredApplication &app) : m_app(app)
 
 void RemoteExecutor::SetVerbose(bool verbose)
 {
-    if (!verbose || Syslogger::IsLogLevelEnabled(Syslogger::Info))
-        return;
-
-    m_app.m_loggerConfig.m_maxLogLevel = Syslogger::Info;
+    if (verbose && !Syslogger::IsLogLevelEnabled(Syslogger::Info))
+		m_app.m_loggerConfig.m_maxLogLevel = Syslogger::Info;
+	
+	m_app.m_loggerConfig.m_logType = LoggerConfig::LogType::Printf;
+	
     m_app.InitLogging(m_app.m_loggerConfig);
 }
 
@@ -228,7 +229,7 @@ void RemoteExecutor::Abort()
 
 std::set<Edge *> RemoteExecutor::GetActiveEdges()
 {
-    return m_activeEdges;
+	return m_activeEdges;
 }
 
 RemoteExecutor::~RemoteExecutor()
