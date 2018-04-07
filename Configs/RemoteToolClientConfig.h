@@ -26,6 +26,7 @@ public:
 	TimePoint m_requestTimeout = 240.0;
 	int m_invocationAttempts = 2;
 	int m_minimalRemoteTasks = 10;
+	double m_maxLoadAverage = 0.0;
 	std::string m_clientId;
 	CoordinatorClientConfig m_coordinator;
 	CompressionInfo m_compression;

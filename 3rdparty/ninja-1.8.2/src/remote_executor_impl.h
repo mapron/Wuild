@@ -55,7 +55,7 @@ public:
     RemoteExecutor(Wuild::ConfiguredApplication & app);
 
     void SetVerbose(bool verbose);
-
+	double GetMaxLoadAverage() const;
 
     bool PreprocessCode(const std::vector<std::string> & originalRule,
                         const std::vector<std::string> & ignoredArgs,

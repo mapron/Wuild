@@ -305,6 +305,8 @@ void ConfiguredApplication::ReadRemoteToolClientConfig()
 	const std::string defaultGroup("toolClient");
 	m_remoteToolClientConfig.m_invocationAttempts = m_config->GetInt(defaultGroup, "invocationAttempts", m_remoteToolClientConfig.m_invocationAttempts);
 	m_remoteToolClientConfig.m_minimalRemoteTasks = m_config->GetInt(defaultGroup, "minimalRemoteTasks", m_remoteToolClientConfig.m_minimalRemoteTasks);
+	m_remoteToolClientConfig.m_maxLoadAverage     = m_config->GetDouble(defaultGroup, "maxLoadAverage" , m_remoteToolClientConfig.m_maxLoadAverage);
+	
 	int queueTimeoutMS = m_config->GetInt(defaultGroup, "queueTimeoutMS");
 	if (queueTimeoutMS)
 		m_remoteToolClientConfig.m_queueTimeout = TimePoint(queueTimeoutMS / 1000.);

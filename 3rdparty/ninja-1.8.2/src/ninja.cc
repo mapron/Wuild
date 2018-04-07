@@ -1124,6 +1124,9 @@ int real_main(int argc, char** argv) {
   if (exit_code >= 0)
     return exit_code;
 
+  double maxLoad = remoteExecutor.GetMaxLoadAverage();
+  if (maxLoad)
+	config.max_load_average = maxLoad;
   remoteExecutor.SetVerbose(config.verbosity == BuildConfig::VERBOSE);
 
   if (options.working_dir) {

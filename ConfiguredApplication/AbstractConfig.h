@@ -35,6 +35,7 @@ public:
 
 	/// Get different value types. If value no present in group, it will be searched in default ("") group.
 	int GetInt(const std::string & group, const std::string & key, int defValue = 0) const;
+	double GetDouble(const std::string & group, const std::string & key, double defValue = 0) const;
 	std::string GetString(const std::string & group, const std::string & key, const std::string & defValue = "") const;
 	StringVector GetStringList(const std::string & group, const std::string & key, const StringVector & defValue = StringVector()) const;
 	bool GetBool(const std::string & group, const std::string & key, bool defValue = false) const;

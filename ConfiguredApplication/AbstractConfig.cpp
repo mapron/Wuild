@@ -151,6 +151,15 @@ int AbstractConfig::GetInt(const std::string & group, const std::string &key, in
 	return std::atoi(val->c_str());
 }
 
+double AbstractConfig::GetDouble(const std::string & group, const std::string & key, double defValue) const
+{
+	const auto * val = Find(group, key);
+	if (!val)
+		return defValue;
+
+	return std::stod(val->c_str());
+}
+
 std::string AbstractConfig::GetString(const std::string & group, const std::string &key, const std::string &defValue) const
 {
 	const auto * val = Find(group, key);

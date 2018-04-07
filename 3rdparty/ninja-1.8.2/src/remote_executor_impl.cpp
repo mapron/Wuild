@@ -65,7 +65,12 @@ void RemoteExecutor::SetVerbose(bool verbose)
 	
 	m_app.m_loggerConfig.m_logType = LoggerConfig::LogType::Printf;
 	
-    m_app.InitLogging(m_app.m_loggerConfig);
+	m_app.InitLogging(m_app.m_loggerConfig);
+}
+
+double RemoteExecutor::GetMaxLoadAverage() const
+{
+	return m_app.m_remoteToolClientConfig.m_maxLoadAverage;
 }
 
 bool RemoteExecutor::PreprocessCode(const std::vector<std::string> &originalRule, const std::vector<std::string> &ignoredArgs, std::string &toolId, std::vector<std::string> &preprocessRule, std::vector<std::string> &compileRule) const
