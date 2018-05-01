@@ -119,8 +119,8 @@ public:
 			bool retry = false;
 			if (state == SocketFrameHandler::ReplyState::Timeout)
 			{
-				info.m_stdOutput = "Timeout expired:" + outputFilename + ", start:" + task.m_start.ToString() 
-						+ " exp:" + task.m_expirationMoment.ToString() + ", remain:" + std::to_string(task.m_attemptsRemain) 
+				info.m_stdOutput = "Timeout expired:" + outputFilename + ", start:" + task.m_start.ToString()
+						+ " exp:" + task.m_expirationMoment.ToString() + ", remain:" + std::to_string(task.m_attemptsRemain)
 						+ ", balancer.free:" + std::to_string(m_balancer.GetFreeThreads()) + ", extraInfo:" + errorInfo;
 				retry = true;
 			}
@@ -308,7 +308,7 @@ void RemoteToolClient::InvokeTool(const ToolInvocation & invocation, InvokeCallb
 	wrap.m_invocation = toolRequest->m_invocation;
 	wrap.m_originalFilename = invocation.GetOutput();
 	wrap.m_callback = callback;
-	wrap.m_expirationMoment = wrap.m_start + m_config.m_queueTimeout;
+	wrap.m_expirationMoment = TimePoint(true) + m_config.m_queueTimeout;
 	wrap.m_attemptsRemain = m_config.m_invocationAttempts;
 	wrap.m_requestTimeout = m_config.m_requestTimeout;
 
