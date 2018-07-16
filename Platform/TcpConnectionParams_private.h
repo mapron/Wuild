@@ -15,6 +15,8 @@
 
 #include "Tcp_private.h"
 
+#include <string>
+
 namespace Wuild
 {
 	class TcpEndPointPrivate
@@ -35,6 +37,11 @@ namespace Wuild
 		int Bind(SOCKET sock) const
 		{
 			return ::bind( sock, ai->ai_addr, static_cast<int>(ai->ai_addrlen));
+		}
+		std::string ToString() const
+		{
+			sockaddr_in * sockin = (sockaddr_in *)ai->ai_addr;
+			return inet_ntoa( sockin->sin_addr ) ;
 		}
 
 	private:

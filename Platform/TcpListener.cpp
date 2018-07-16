@@ -27,7 +27,7 @@ class TcpListenerPrivate : public TcpSocketPrivate
 {
 };
 
-TcpListener::TcpListener(const TcpConnectionParams & params)
+TcpListener::TcpListener(const TcpListenerParams & params)
 	: m_impl(new TcpListenerPrivate())
 	, m_params(params)
 {
@@ -45,7 +45,7 @@ TcpListener::~TcpListener()
 	}
 }
 
-IDataListener::Ptr TcpListener::Create(const TcpConnectionParams &params)
+IDataListener::Ptr TcpListener::Create(const TcpListenerParams &params)
 {
 	return IDataListener::Ptr(new TcpListener(params));
 }
@@ -83,7 +83,7 @@ bool TcpListener::StartListen()
 		return true;
 
 	Syslogger(m_logContext, Syslogger::Info) << "Start listen on: " <<  m_params.m_endPoint.GetShortInfo();
-	if (!m_params.m_endPoint.Resolve())
+	if (!m_params.m_endPoint.Resolve() || !m_params.Resolve())
 		return false;
 
 	m_impl->m_socket = m_params.m_endPoint.GetImpl().MakeSocket();
@@ -155,8 +155,15 @@ bool TcpListener::DoAccept(TcpSocket *client)
 	setsockopt( Socket, SOL_SOCKET, SO_KEEPALIVE, SOCK_OPT_ARG &value, sizeof(value) );
 
 	// TODO: inet_ntop?
-	const std::string peerIp = (incoming_length == sizeof(sockaddr_in) ? inet_ntoa( incoming_address.sin_addr ) : std::string());
-
+	const std::string peerIp = (incoming_length == sizeof(sockaddr_in) ?  inet_ntoa( incoming_address.sin_addr ) : std::string());
+	std::string err;
+	if (!m_params.IsAccepted(peerIp, err))
+	{
+		if (Socket != INVALID_SOCKET)
+			close(Socket);
+		Syslogger(Syslogger::Err) << "Socket accept failed. Got " << peerIp << ", but only these allowed:" << err ;
+		return false;
+	}
 	client->m_logContext = peerIp + "->:" + std::to_string(m_params.m_endPoint.GetPort());
 
 	client->m_impl->m_socket =  Socket;

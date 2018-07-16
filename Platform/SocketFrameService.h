@@ -40,15 +40,14 @@ public:
 	using HandlerDestroyCallback = std::function<void(SocketFrameHandler*)>;
 
 public:
-				SocketFrameService(const SocketFrameHandlerSettings & settings = SocketFrameHandlerSettings(), int autoStartListenPort = -1);
-				SocketFrameService(int autoStartListenPort);
+				SocketFrameService(const SocketFrameHandlerSettings & settings = SocketFrameHandlerSettings(), int autoStartListenPort = -1, const StringVector & whiteList = StringVector());
 	virtual     ~SocketFrameService();
 
 	/// Sends message to all connected clients.
 	int    QueueFrameToAll(SocketFrameHandler* sender, SocketFrame::Ptr message);
 
 	/// Creates new tcp port listener.
-	void   AddTcpListener(int port, std::string ip="*");
+	void   AddTcpListener(int port, const std::string & host="*", const StringVector & whiteList = StringVector());
 
 	/// Starts new processing thread, calling Quant().
 	void   Start();

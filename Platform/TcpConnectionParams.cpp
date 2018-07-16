@@ -26,7 +26,13 @@ TcpEndPoint::TcpEndPoint()
 	SocketEngineCheck();
 }
 
-void TcpEndPoint::SetPoint(int port, std::string host)
+TcpEndPoint::TcpEndPoint(int port, const std::string & host)
+	: TcpEndPoint()
+{
+	SetPoint(port, host);
+}
+
+void TcpEndPoint::SetPoint(int port, const std::string & host)
 {
 	m_errorShown = false;
 	m_resolved = false;
@@ -79,6 +85,7 @@ bool TcpEndPoint::Resolve()
 		sin->sin_addr.s_addr = htonl(INADDR_ANY);
 #endif
 	}
+	m_ip = m_impl->ToString();
 	m_resolved = true;
 	return true;
 }
@@ -88,6 +95,36 @@ std::string TcpEndPoint::GetShortInfo() const
 	std::ostringstream os;
 	os << m_host << ":" << m_port;
 	return os.str();
+}
+
+bool TcpListenerParams::Resolve()
+{
+	for (auto & point : m_whiteList)
+	{
+		if (!point.Resolve())
+			return false;
+	}
+	return true;
+}
+
+void TcpListenerParams::AddWhiteListPoint(int port, const std::string & host)
+{
+	m_whiteList.emplace_back(port, host);
+}
+
+bool TcpListenerParams::IsAccepted(const std::string & host, std::string & allowed)
+{
+	if (m_whiteList.empty())
+		return true;
+
+	allowed.clear();
+	for (const auto & point : m_whiteList)
+	{
+		allowed += point.GetIpString() + ", ";
+		if (host == point.GetIpString())
+			return true;
+	}
+	return false;
 }
 
 }

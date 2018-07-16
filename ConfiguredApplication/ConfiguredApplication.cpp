@@ -328,10 +328,11 @@ void ConfiguredApplication::ReadRemoteToolClientConfig()
 void ConfiguredApplication::ReadRemoteToolServerConfig()
 {
 	const std::string defaultGroup("toolServer");
-	m_remoteToolServerConfig.m_listenPort   = m_config->GetInt(defaultGroup,    "listenPort");
-	m_remoteToolServerConfig.m_listenHost   = m_config->GetString(defaultGroup, "listenHost");
-	m_remoteToolServerConfig.m_threadCount  = m_config->GetInt(defaultGroup,    "threadCount");
-	m_remoteToolServerConfig.m_serverName   = m_config->GetString(defaultGroup, "serverName");
+	m_remoteToolServerConfig.m_listenPort     = m_config->GetInt       (defaultGroup, "listenPort");
+	m_remoteToolServerConfig.m_listenHost     = m_config->GetString    (defaultGroup, "listenHost");
+	m_remoteToolServerConfig.m_threadCount    = m_config->GetInt       (defaultGroup, "threadCount");
+	m_remoteToolServerConfig.m_serverName     = m_config->GetString    (defaultGroup, "serverName");
+	m_remoteToolServerConfig.m_hostsWhiteList = m_config->GetStringList(defaultGroup, "hostsWhiteList");
 	ReadCoordinatorClientConfig(m_remoteToolServerConfig.m_coordinator, defaultGroup);
 	ReadCompressionConfig(m_remoteToolServerConfig.m_compression, defaultGroup);
 }

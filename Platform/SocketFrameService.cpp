@@ -21,18 +21,11 @@
 namespace Wuild
 {
 
-SocketFrameService::SocketFrameService(const SocketFrameHandlerSettings & settings, int autoStartListenPort)
+SocketFrameService::SocketFrameService(const SocketFrameHandlerSettings & settings, int autoStartListenPort, const StringVector & whiteList)
 	: m_settings(settings)
 {
 	if (autoStartListenPort > 0)
-		AddTcpListener(autoStartListenPort);
-}
-
-SocketFrameService::SocketFrameService(int autoStartListenPort)
-	: m_settings{}
-{
-	if (autoStartListenPort > 0)
-		AddTcpListener(autoStartListenPort);
+		AddTcpListener(autoStartListenPort, "*", whiteList);
 }
 
 SocketFrameService::~SocketFrameService()
@@ -67,13 +60,16 @@ int SocketFrameService::QueueFrameToAll(SocketFrameHandler *sender, SocketFrame:
 	return ret;
 }
 
-void SocketFrameService::AddTcpListener(int port, std::string ip)
+void SocketFrameService::AddTcpListener(int port, const std::string & host, const StringVector & whiteList)
 {
-	TcpConnectionParams params;
-	params.m_endPoint.SetPoint(port, ip);
+	TcpListenerParams params;
+	params.m_endPoint.SetPoint(port, host);
 	params.m_connectTimeout = TimePoint(0.001);
 	params.m_recommendedRecieveBufferSize = m_settings.m_recommendedRecieveBufferSize;
 	params.m_recommendedSendBufferSize    = m_settings.m_recommendedSendBufferSize;
+	for (const auto & host : whiteList)
+		params.AddWhiteListPoint(port, host);
+
 	auto listener = TcpListener::Create(params);
 	if (!m_logContext.empty())
 		m_logContext += ", ";

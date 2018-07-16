@@ -13,6 +13,7 @@
 
 #pragma once
 #include <memory>
+#include <vector>
 
 #include "TimePoint.h"
 
@@ -23,9 +24,10 @@ class TcpEndPoint
 {
 public:
 	TcpEndPoint();
+	TcpEndPoint(int port, const std::string & host = std::string());
 
 	/// Set host and port information. No resolution performed until Resolve() call.
-	void SetPoint(int port, std::string host = std::string());
+	void SetPoint(int port, const std::string & host = std::string());
 
 	/// Creates internal data for host and port. If resolution already made, true returned.
 	bool Resolve();
@@ -53,12 +55,21 @@ struct TcpConnectionParams
 {
 	TimePoint   m_readTimeout = 0.0;                        //!< Scoket read timeout
 	TimePoint   m_connectTimeout = 1.0;                     //!< Connection timeout
-	bool        m_skipFailedConnection = true;              //!< Do not retry recreate listener on fail.
 	size_t      m_recommendedRecieveBufferSize = 4 * 1024;  //!< Buffer size is recommended for socket. If socket has lower size, buffer will be optionally increased (but not ought to)
 	size_t      m_recommendedSendBufferSize = 4 * 1024;
-	int         m_pendingListenConnections = 128;           //!< Maximum pending concurrent connections count
-	bool        m_reuseSockets = true;                      //!< Reuse socket on listen, if possible. Helpful if program terminates and run again shortly.
 	TcpEndPoint m_endPoint;
+};
+
+struct TcpListenerParams : public TcpConnectionParams
+{
+	int                      m_pendingListenConnections = 128; //!< Maximum pending concurrent connections count
+	bool                     m_reuseSockets = true;            //!< Reuse socket on listen, if possible. Helpful if program terminates and run again shortly.
+	bool                     m_skipFailedConnection = true;    //!< Do not retry recreate listener on fail.
+	std::vector<TcpEndPoint> m_whiteList;                      //!< This hosts are allowed to connect. If empty, any host is allowed.
+
+	bool Resolve();
+	void AddWhiteListPoint(int port, const std::string & host = std::string());
+	bool IsAccepted(const std::string & host, std::string & allowed);
 };
 
 }

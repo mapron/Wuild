@@ -26,10 +26,10 @@ class TcpSocket;
 class TcpListener : public IDataListener
 {
 public:
-	TcpListener (const TcpConnectionParams & params);
+	TcpListener (const TcpListenerParams & params);
 	~TcpListener ();
 
-	static IDataListener::Ptr Create(const TcpConnectionParams & params);
+	static IDataListener::Ptr Create(const TcpListenerParams & params);
 
 	IDataSocket::Ptr GetPendingConnection() override;
 	bool StartListen() override;
@@ -45,7 +45,7 @@ private:
 
 	bool IsListenerReadReady ();
 	std::unique_ptr<TcpListenerPrivate> m_impl;
-	TcpConnectionParams m_params;
+	TcpListenerParams m_params;
 	std::string m_logContext;
 
 	bool m_listenerFailed = false;
