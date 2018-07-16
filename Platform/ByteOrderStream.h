@@ -27,41 +27,25 @@ namespace Wuild {
  *
  * General usage:
  *
- * ByteOrderDataStreamWriter stream; // creating stream;
- * stream << uint32_t(42);           // Writing scalar data;
- * stream << std::string("Foo bar"); // Writing binary strings;
+ * ByteOrderBuffer buffer;
+ * ByteOrderDataStreamWriter stream(buffer); // Creating stream;
+ * stream << uint32_t(42);                   // Writing scalar data;
+ * stream << std::string("Foo bar");         // Writing binary strings;
  *
- * stream.GetBuffer().begin(), stream.GetBuffer().size()  // retrieving serialized data.
+ * buffer.begin(), buffer.size()             // retrieving serialized data.
  */
 class ByteOrderDataStream
 {
 public:
 	/// Creates stream object. ProtocolMask sets actual stream byte order: for byte, words and dwords. Default is Big Endian for all.
-	inline ByteOrderDataStream(ByteOrderBuffer* buf = nullptr, uint_fast8_t ProtocolMask = CreateByteorderMask(ORDER_BE, ORDER_BE, ORDER_BE))
+	inline ByteOrderDataStream(ByteOrderBuffer & buf, uint_fast8_t ProtocolMask = CreateByteorderMask(ORDER_BE, ORDER_BE, ORDER_BE))
 		: m_buf(buf)
 	{
-		if (!m_buf)
-		{
-			m_buf = new ByteOrderBuffer();
-			m_bufOwner = true;
-		}
-		SetMask(ProtocolMask);
-	}
-	inline ByteOrderDataStream(uint_fast8_t ProtocolMask)
-	{
-		m_buf = new ByteOrderBuffer();
-		m_bufOwner = true;
 		SetMask(ProtocolMask);
 	}
 
-	~ByteOrderDataStream()
-	{
-		if (m_bufOwner)
-			delete m_buf;
-	}
-
-	inline       ByteOrderBuffer& GetBuffer()       { return *m_buf; }
-	inline const ByteOrderBuffer& GetBuffer() const { return *m_buf; }
+	inline       ByteOrderBuffer& GetBuffer()       { return m_buf; }
+	inline const ByteOrderBuffer& GetBuffer() const { return m_buf; }
 
 	/// Set byteorder settings for stream. To create actual value, use CreateByteorderMask.
 	inline void SetMask(uint_fast8_t protocolMask)
@@ -92,14 +76,13 @@ protected:
 	ByteOrderDataStream & operator = (const ByteOrderDataStream& another) = delete;
 	ByteOrderDataStream & operator = (ByteOrderDataStream&& another) = delete;
 
-	ByteOrderBuffer* m_buf = nullptr;
+	ByteOrderBuffer& m_buf;
 	uint_fast8_t m_maskInt8;
 	uint_fast8_t m_maskInt16;
 	uint_fast8_t m_maskInt32;
 	uint_fast8_t m_maskInt64;
 	uint_fast8_t m_maskFloat;
 	uint_fast8_t m_maskDouble;
-	bool m_bufOwner = false;
 };
 
 class ByteOrderDataStreamReader : public ByteOrderDataStream
@@ -107,19 +90,19 @@ class ByteOrderDataStreamReader : public ByteOrderDataStream
 public:
 	using ByteOrderDataStream::ByteOrderDataStream;
 
-	inline bool EofRead() const {  return m_buf->EofRead(); }
+	inline bool EofRead() const {  return m_buf.EofRead(); }
 
 	template<typename T>
 	inline ByteOrderDataStreamReader& operator >> (T &data)
 	{
 		constexpr size_t size = sizeof(T);
 		static_assert(std::is_arithmetic<T>::value, "Only scalar data streaming is allowed.");
-		const uint8_t* bufferP = m_buf->PosRead(size);
+		const uint8_t* bufferP = m_buf.PosRead(size);
 		if (!bufferP)
 			return *this;
 
 		read<size>(reinterpret_cast<uint8_t*>(&data), bufferP, this->GetTypeMask<T>());
-		m_buf->MarkRead(size);
+		m_buf.MarkRead(size);
 		return *this;
 	}
 	template <class T>
@@ -161,13 +144,13 @@ public:
 	}
 	bool ReadBlock(uint8_t * data, ptrdiff_t size)
 	{
-		const uint8_t * start = m_buf->PosRead(size);
+		const uint8_t * start = m_buf.PosRead(size);
 		if (!start)
 			return false;
 
 		memcpy(data, start, size);
-		m_buf->MarkRead(size);
-		m_buf->CheckRemain(0);
+		m_buf.MarkRead(size);
+		m_buf.CheckRemain(0);
 		return !EofRead();
 	}
 private:
@@ -187,12 +170,12 @@ public:
 		constexpr size_t size = sizeof(T);
 		static_assert(std::is_arithmetic<T>::value, "Only scalar data streaming is allowed.");
 
-		uint8_t* bufferP = m_buf->PosWrite(size);
+		uint8_t* bufferP = m_buf.PosWrite(size);
 		if (!bufferP)
 			return *this;
 
 		write<size>(reinterpret_cast<const uint8_t*>(&data), bufferP, this->GetTypeMask<T>());
-		m_buf->MarkWrite(size);
+		m_buf.MarkWrite(size);
 		return *this;
 	}
 
@@ -231,13 +214,13 @@ public:
 	/// Read/write raw data blocks.
 	bool WriteBlock(const uint8_t * data, ptrdiff_t size)
 	{
-		uint8_t * start = m_buf->PosWrite(size);
+		uint8_t * start = m_buf.PosWrite(size);
 		if (!start)
 			return false;
 
 		memcpy(start, data, size);
-		m_buf->MarkWrite(size);
-		m_buf->CheckRemain(0);
+		m_buf.MarkWrite(size);
+		m_buf.CheckRemain(0);
 		return true;
 	}
 private:
@@ -328,7 +311,7 @@ inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator << (const 
 template<typename T>
 void ByteOrderDataStreamWriter::WriteToOffset(const T &data, ptrdiff_t writeOffset)
 {
-	write<sizeof(T)>(reinterpret_cast<const uint8_t*>(&data), m_buf->begin() + writeOffset, this->GetTypeMask<T>());
+	write<sizeof(T)>(reinterpret_cast<const uint8_t*>(&data), m_buf.begin() + writeOffset, this->GetTypeMask<T>());
 }
 
 }

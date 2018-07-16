@@ -175,8 +175,8 @@ int main(int argc, char** argv)
 	ConfiguredApplication app(argc, argv, "TestNetworking");
 
 	ByteOrderBuffer buf;
-	ByteOrderDataStreamReader streamReader(&buf);
-	ByteOrderDataStreamWriter streamWriter(&buf);
+	ByteOrderDataStreamReader streamReader(buf);
+	ByteOrderDataStreamWriter streamWriter(buf);
 	uint32_t test = 42;
 	streamWriter << test;
 	assert(buf.GetSize() == 4);

@@ -107,7 +107,7 @@ bool SocketFrameHandler::Quant()
 	{
 		m_lastTimeoutCheck = TimePoint(true);
 		std::ostringstream os;
-		os << " queue size:" << m_framesQueueOutput.size() 
+		os << " queue size:" << m_framesQueueOutput.size()
 			<< ", outputSegments:" << m_outputSegments.size()
 			<< ", outputAcknowledgesSize:" << m_outputAcknowledgesSize
 			<< ", bytesWaitingAcknowledge:" << m_bytesWaitingAcknowledge
@@ -303,7 +303,7 @@ bool SocketFrameHandler::ReadFrames()
 SocketFrameHandler::ConsumeState SocketFrameHandler::ConsumeReadBuffer()
 {
 	// create stream for reading
-	ByteOrderDataStreamReader inputStream(&m_readBuffer, m_settings.m_byteOrder);
+	ByteOrderDataStreamReader inputStream(m_readBuffer, m_settings.m_byteOrder);
 	ServiceMessageType mtype = ServiceMessageType::User;
 	if (m_settings.m_hasChannelTypes)
 		mtype = SocketFrameHandler::ServiceMessageType(inputStream.ReadScalar<uint8_t>());
@@ -405,7 +405,7 @@ SocketFrameHandler::ConsumeState SocketFrameHandler::ConsumeFrameBuffer()
 	SocketFrame::State framestate;
 	try
 	{
-		ByteOrderDataStreamReader frameStream(&m_frameDataBuffer, m_settings.m_byteOrder);
+		ByteOrderDataStreamReader frameStream(m_frameDataBuffer, m_settings.m_byteOrder);
 		framestate = incoming->Read(frameStream);
 	}
 	catch(std::exception & ex)
@@ -451,11 +451,12 @@ bool SocketFrameHandler::WriteFrames()
 	// write ack if needed
 	if (m_settings.m_hasAcknowledges && m_outputAcknowledgesSize > m_settings.m_acknowledgeMinimalReadSize)
 	{
-		ByteOrderDataStreamWriter streamWriter(m_settings.m_byteOrder);
+		ByteOrderBuffer buf;
+		ByteOrderDataStreamWriter streamWriter(buf, m_settings.m_byteOrder);
 		streamWriter << uint8_t(ServiceMessageType::Ack);
 		streamWriter << static_cast<uint32_t>(m_outputAcknowledgesSize);
 		m_outputAcknowledgesSize = 0;
-		m_outputSegments.push_front(streamWriter.GetBuffer().GetHolder()); // acknowledges has high priority, so pushing them to front!
+		m_outputSegments.push_front(buf.GetHolder()); // acknowledges has high priority, so pushing them to front!
 	}
 
 	// check and write line test byte
@@ -468,23 +469,25 @@ bool SocketFrameHandler::WriteFrames()
 		 || (m_lastTestActivity.GetElapsedTime() > (m_settings.m_lineTestInterval * int64_t(3))))
 		 )
 	{
-		ByteOrderDataStreamWriter streamWriter(m_settings.m_byteOrder);
+		ByteOrderBuffer buf;
+		ByteOrderDataStreamWriter streamWriter(buf, m_settings.m_byteOrder);
 		streamWriter << uint8_t(ServiceMessageType::LineTest);
-		m_outputSegments.push_front(streamWriter.GetBuffer().GetHolder());
+		m_outputSegments.push_front(buf.GetHolder());
 		m_lineTestQueued = true;
 	}
-	
+
 	// check and write line connection status
 	if ( m_settings.m_hasConnStatus
 		 && (m_outputSegments.empty() || m_outputSegments.front().type() != ServiceMessageType::ConnStatus)
 		 && m_lastConnStatusSend.GetElapsedTime() > m_settings.m_connStatusInterval
 		)
 	{
-		ByteOrderDataStreamWriter streamWriter(m_settings.m_byteOrder);
+		ByteOrderBuffer buf;
+		ByteOrderDataStreamWriter streamWriter(buf, m_settings.m_byteOrder);
 		streamWriter << uint8_t(ServiceMessageType::ConnStatus);
 		auto status = CalculateStatus();
 		streamWriter << status.uniqueRepliesQueued;
-		m_outputSegments.push_front(streamWriter.GetBuffer().GetHolder());
+		m_outputSegments.push_front(buf.GetHolder());
 		m_lastConnStatusSend = TimePoint(true);
 	}
 
@@ -494,10 +497,11 @@ bool SocketFrameHandler::WriteFrames()
 		m_setConnectionOptionsNeedSend = false;
 		auto tcpch = std::dynamic_pointer_cast<TcpSocket>(m_channel);
 		uint32_t size = tcpch ? tcpch->GetRecieveBufferSize() : 0;
-		ByteOrderDataStreamWriter streamWriter(m_settings.m_byteOrder);
+		ByteOrderBuffer buf;
+		ByteOrderDataStreamWriter streamWriter(buf, m_settings.m_byteOrder);
 		streamWriter << uint8_t(ServiceMessageType::ConnOptions);
 		streamWriter << size << m_settings.m_channelProtocolVersion << TimePoint(true).GetUS();
-		m_outputSegments.push_back(streamWriter.GetBuffer().GetHolder());
+		m_outputSegments.push_back(buf.GetHolder());
 	}
 
 	// get all outpgoing frames and serialize them into channel segments
@@ -507,7 +511,8 @@ bool SocketFrameHandler::WriteFrames()
 		if (!m_framesQueueOutput.pop(frontMsg))
 			throw std::logic_error("Invalid queue logic");
 
-		ByteOrderDataStreamWriter streamWriter(m_settings.m_byteOrder);
+		ByteOrderBuffer buf;
+		ByteOrderDataStreamWriter streamWriter(buf, m_settings.m_byteOrder);
 		Syslogger(m_logContext, Syslogger::Info) << "outgoung -> " << frontMsg;
 		frontMsg->Write(streamWriter);
 
@@ -524,7 +529,7 @@ bool SocketFrameHandler::WriteFrames()
 			if (m_settings.m_hasChannelTypes)
 			{
 				ByteOrderBuffer partStreamBuf(bufferPart);
-				ByteOrderDataStreamWriter partStreamWriter(&partStreamBuf, m_settings.m_byteOrder);
+				ByteOrderDataStreamWriter partStreamWriter(partStreamBuf, m_settings.m_byteOrder);
 				partStreamWriter << typeId << uint32_t(length);
 			}
 			size_t curSize = bufferPart.ref().size();
@@ -635,7 +640,7 @@ void SocketFrameHandler::PreprocessFrame(SocketFrame::Ptr incomingMessage)
 }
 
 SocketFrameHandler::ConnectionStatus SocketFrameHandler::CalculateStatus()
-{	
+{
 	std::set<size_t> transactions;
 	for (const auto & segment : m_outputSegments)
 	{
