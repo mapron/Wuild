@@ -18,13 +18,11 @@
 
 namespace Wuild
 {
-struct TcpConnectionParamsPrivate;
-/// Parameters for tcp connection: client or server.
-/// Contains information about host, port and timeouts.
-struct TcpConnectionParams
+class TcpEndPointPrivate;
+class TcpEndPoint
 {
-	TcpConnectionParams();
-	~TcpConnectionParams();
+public:
+	TcpEndPoint();
 
 	/// Set host and port information. No resolution performed until Resolve() call.
 	void SetPoint(int port, std::string host = std::string());
@@ -37,21 +35,30 @@ struct TcpConnectionParams
 
 	int GetPort() const { return m_port; }
 	const std::string& GetHost() const { return m_host; }
+	const std::string& GetIpString() const { return m_ip; }
 
-	TimePoint m_readTimeout = 0.0;                        //!< Scoket read timeout
-	TimePoint m_connectTimeout = 1.0;                     //!< Connection timeout
-	bool      m_skipFailedConnection = true;              //!< Do not retry recreate listener on fail.
-	size_t    m_recommendedRecieveBufferSize = 4 * 1024;  //!< Buffer size is recommended for socket. If socket has lower size, buffer will be optionally increased (but not ought to)
-	size_t    m_recommendedSendBufferSize = 4 * 1024;
-	int       m_pendingListenConnections = 128;           //!< Maximum pending concurrent connections count
-	bool      m_reuseSockets = true;
-
-	std::shared_ptr<TcpConnectionParamsPrivate> m_impl; //!< making possible to copy params.
-
+	const TcpEndPointPrivate & GetImpl() const { return *m_impl;}
 private:
+	std::shared_ptr<TcpEndPointPrivate> m_impl; //!< making possible to copy params.
 	bool m_resolved = false;
 	bool m_errorShown = false;
 	int m_port = 0;
 	std::string m_host;
+	std::string m_ip;
 };
+
+/// Parameters for tcp connection: client or server.
+/// Contains information about host, port and timeouts.
+struct TcpConnectionParams
+{
+	TimePoint   m_readTimeout = 0.0;                        //!< Scoket read timeout
+	TimePoint   m_connectTimeout = 1.0;                     //!< Connection timeout
+	bool        m_skipFailedConnection = true;              //!< Do not retry recreate listener on fail.
+	size_t      m_recommendedRecieveBufferSize = 4 * 1024;  //!< Buffer size is recommended for socket. If socket has lower size, buffer will be optionally increased (but not ought to)
+	size_t      m_recommendedSendBufferSize = 4 * 1024;
+	int         m_pendingListenConnections = 128;           //!< Maximum pending concurrent connections count
+	bool        m_reuseSockets = true;                      //!< Reuse socket on listen, if possible. Helpful if program terminates and run again shortly.
+	TcpEndPoint m_endPoint;
+};
+
 }

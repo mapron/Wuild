@@ -64,7 +64,7 @@ TcpSocket::TcpSocket(const TcpConnectionParams &params)
 	, m_impl(new TcpSocketPrivate())
 {
 	SocketEngineCheck();
-	m_logContext = params.GetShortInfo();
+	m_logContext = params.m_endPoint.GetShortInfo();
 	Syslogger(m_logContext) << "TcpSocket::TcpSocket() ";
 }
 
@@ -113,10 +113,10 @@ bool TcpSocket::Connect ()
 		return false;
 	}
 
-	if (!m_params.Resolve())
+	if (!m_params.m_endPoint.Resolve())
 		return false;
 
-	m_impl->m_socket = socket(m_params.m_impl->ai->ai_family, m_params.m_impl->ai->ai_socktype, m_params.m_impl->ai->ai_protocol);
+	m_impl->m_socket = m_params.m_endPoint.GetImpl().MakeSocket();
 	if (m_impl->m_socket == INVALID_SOCKET)
 	{
 		Syslogger(m_logContext, Syslogger::Err) << "socket creation failed." ;
@@ -135,10 +135,9 @@ bool TcpSocket::Connect ()
 		return false;
 	}
 
-	int cres = connect(m_impl->m_socket, m_params.m_impl->ai->ai_addr, static_cast<int>(m_params.m_impl->ai->ai_addrlen));
+	int cres = m_params.m_endPoint.GetImpl().Connect(m_impl->m_socket);
 	if (cres < 0)
 	{
-
 		const auto err = SocketGetLastError();
 		const bool inProgress = SocketCheckConnectionPending(err);
 		if (inProgress)

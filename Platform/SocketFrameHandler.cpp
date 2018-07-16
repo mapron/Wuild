@@ -129,7 +129,7 @@ bool SocketFrameHandler::IsActive() const
 void SocketFrameHandler::SetTcpChannel(const std::string& host, int port, TimePoint connectionTimeout)
 {
 	TcpConnectionParams params;
-	params.SetPoint(port, host);
+	params.m_endPoint.SetPoint(port, host);
 	params.m_connectTimeout = connectionTimeout;
 	params.m_readTimeout = m_settings.m_tcpReadTimeout;
 	params.m_recommendedRecieveBufferSize = m_settings.m_recommendedRecieveBufferSize;

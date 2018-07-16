@@ -20,18 +20,13 @@
 namespace Wuild
 {
 
-TcpConnectionParams::TcpConnectionParams()
-	: m_impl(new TcpConnectionParamsPrivate())
+TcpEndPoint::TcpEndPoint()
+	: m_impl(new TcpEndPointPrivate())
 {
 	SocketEngineCheck();
 }
 
-TcpConnectionParams::~TcpConnectionParams()
-{
-
-}
-
-void TcpConnectionParams::SetPoint(int port, std::string host)
+void TcpEndPoint::SetPoint(int port, std::string host)
 {
 	m_errorShown = false;
 	m_resolved = false;
@@ -39,7 +34,7 @@ void TcpConnectionParams::SetPoint(int port, std::string host)
 	m_port = port;
 }
 
-bool TcpConnectionParams::Resolve()
+bool TcpEndPoint::Resolve()
 {
 	if (m_resolved)
 		return true;
@@ -61,7 +56,7 @@ bool TcpConnectionParams::Resolve()
 	hint.ai_protocol = PF_UNSPEC;// PF_INET;
 	hint.ai_socktype = SOCK_STREAM;
 
-	m_impl->freeAddr();
+	m_impl->FreeAddr();
 
 	int ret = getaddrinfo(host.c_str(), portStr.c_str(), &hint, &(m_impl->ai));
 	if (ret)
@@ -88,7 +83,7 @@ bool TcpConnectionParams::Resolve()
 	return true;
 }
 
-std::string TcpConnectionParams::GetShortInfo() const
+std::string TcpEndPoint::GetShortInfo() const
 {
 	std::ostringstream os;
 	os << m_host << ":" << m_port;

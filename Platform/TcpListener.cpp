@@ -32,7 +32,7 @@ TcpListener::TcpListener(const TcpConnectionParams & params)
 	, m_params(params)
 {
 	SocketEngineCheck();
-	m_logContext = m_params.GetShortInfo();
+	m_logContext = m_params.m_endPoint.GetShortInfo();
 	Syslogger(m_logContext) << "Adding TCP server";
 }
 
@@ -70,7 +70,7 @@ bool TcpListener::HasPendingConnections()
 
 	if (!StartListen())
 	{
-		Syslogger(m_logContext, Syslogger::Err) << "Failed to listen on " << m_params.GetShortInfo() ;
+		Syslogger(m_logContext, Syslogger::Err) << "Failed to listen on " << m_params.m_endPoint.GetShortInfo() ;
 		return false;
 	}
 
@@ -82,11 +82,11 @@ bool TcpListener::StartListen()
 	if (m_impl->m_socket != INVALID_SOCKET)
 		return true;
 
-	Syslogger(m_logContext, Syslogger::Info) << "Start listen on: " <<  m_params.GetShortInfo();
-	if (!m_params.Resolve())
+	Syslogger(m_logContext, Syslogger::Info) << "Start listen on: " <<  m_params.m_endPoint.GetShortInfo();
+	if (!m_params.m_endPoint.Resolve())
 		return false;
 
-	m_impl->m_socket = socket( m_params.m_impl->ai->ai_family, m_params.m_impl->ai->ai_socktype, m_params.m_impl->ai->ai_protocol );
+	m_impl->m_socket = m_params.m_endPoint.GetImpl().MakeSocket();
 	if (m_impl->m_socket == INVALID_SOCKET)
 	{
 		m_listenerFailed = true;
@@ -102,7 +102,7 @@ bool TcpListener::StartListen()
 		   #endif
 			   &optval, sizeof optval);
 
-	int ret = ::bind( m_impl->m_socket, m_params.m_impl->ai->ai_addr, static_cast<int>(m_params.m_impl->ai->ai_addrlen) );
+	int ret = m_params.m_endPoint.GetImpl().Bind(m_impl->m_socket);
 	if (ret < 0)
 	{
 		close( m_impl->m_socket );
@@ -157,7 +157,7 @@ bool TcpListener::DoAccept(TcpSocket *client)
 	// TODO: inet_ntop?
 	const std::string peerIp = (incoming_length == sizeof(sockaddr_in) ? inet_ntoa( incoming_address.sin_addr ) : std::string());
 
-	client->m_logContext = peerIp + "->:" + std::to_string(m_params.GetPort());
+	client->m_logContext = peerIp + "->:" + std::to_string(m_params.m_endPoint.GetPort());
 
 	client->m_impl->m_socket =  Socket;
 	m_waitingAccept = false;

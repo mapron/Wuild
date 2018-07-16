@@ -17,10 +17,27 @@
 
 namespace Wuild
 {
-	struct TcpConnectionParamsPrivate
+	class TcpEndPointPrivate
 	{
+		friend class TcpEndPoint;
+	public:
+		void FreeAddr() { if (ai) freeaddrinfo(ai); ai = nullptr; }
+		~TcpEndPointPrivate() { FreeAddr(); }
+
+		SOCKET MakeSocket() const
+		{
+			return socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
+		}
+		int Connect(SOCKET sock) const
+		{
+			return connect(sock, ai->ai_addr, static_cast<int>(ai->ai_addrlen));
+		}
+		int Bind(SOCKET sock) const
+		{
+			return ::bind( sock, ai->ai_addr, static_cast<int>(ai->ai_addrlen));
+		}
+
+	private:
 		addrinfo * ai = nullptr;
-		void freeAddr() { if (ai) freeaddrinfo(ai); ai = nullptr; }
-		~TcpConnectionParamsPrivate() { freeAddr(); }
 	};
 }
