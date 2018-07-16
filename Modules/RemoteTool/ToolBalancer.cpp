@@ -43,7 +43,7 @@ void ToolBalancer::SetSessionId(int64_t sessionId)
 
 ToolBalancer::ClientStatus ToolBalancer::UpdateClient(const ToolServerInfo &toolServer, size_t &index)
 {
-	if (!m_requiredToolIds.empty())
+	if (!m_requiredToolIds.empty() && !toolServer.m_toolIds.empty())
 	{
 		bool hasAtLeastOneTool = false;
 		for (const auto & toolId : m_requiredToolIds)
@@ -119,7 +119,7 @@ size_t ToolBalancer::FindFreeClient(const std::string &toolId) const
 		if (client.m_active)
 		{
 			const StringVector & toolIds = client.m_toolServer.m_toolIds;
-			const bool toolExists = (std::find(toolIds.cbegin(), toolIds.cend(), toolId) != toolIds.cend());
+			const bool toolExists = toolIds.empty() || (std::find(toolIds.cbegin(), toolIds.cend(), toolId) != toolIds.cend());
 			if (!toolExists)
 				continue;
 
@@ -197,23 +197,23 @@ void ToolBalancer::ClientInfo::UpdateLoad(int64_t mySessionId)
 	}
 	if (m_busyOthers > 0)
 		m_busyOthers--; // reduce other's load for more greedy behaviour.
-	
+
 	if (m_serverSideQueueAvg >= m_busyMine - 1)
 	{
 		// if server has large queue, lower free threads.
 		m_busyByNetworkLoad++;
 		m_busyByNetworkLoad = std::min(m_busyByNetworkLoad, m_toolServer.m_totalThreads);
 	}
-	if (m_serverSideQueueAvg == 0 && m_busyByNetworkLoad) 
+	if (m_serverSideQueueAvg == 0 && m_busyByNetworkLoad)
 	{
 		// if server has empty queue, remove penalty
 		m_busyByNetworkLoad--;
 	}
-	
+
 	m_busyTotal = m_busyOthers + m_busyMine + m_busyByNetworkLoad;
 	m_busyTotal = std::min(m_busyTotal, m_toolServer.m_totalThreads);
 
-	m_clientLoad = m_busyTotal * m_eachTaskWeight / m_toolServer.m_totalThreads;
+	m_clientLoad = m_toolServer.m_totalThreads ? (m_busyTotal * m_eachTaskWeight / m_toolServer.m_totalThreads) : 0;
 }
 
 }

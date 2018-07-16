@@ -216,11 +216,22 @@ void RemoteToolClient::Start(const StringVector & requiredToolIds)
 	m_impl->m_balancer.SetRequiredTools(requiredToolIds);
 	m_impl->m_balancer.SetSessionId(m_sessionId);
 
+	const auto & initialToolServers = m_config.m_initialToolServers;
+	for (const auto & toolserverHost : initialToolServers.m_hosts)
+	{
+		ToolServerInfo info;
+		info.m_connectionHost = toolserverHost;
+		info.m_connectionPort = initialToolServers.m_port;
+		info.m_toolIds        = initialToolServers.m_toolIds;
+		AddClient(info);
+	}
+
 	for (auto & handler : m_impl->m_clients)
 		handler->Start();
 
 	if (!m_impl->m_coordinator.SetConfig(m_config.m_coordinator))
 		return;
+
 	m_impl->m_coordinator.Start();
 
 	m_thread.Exec(std::bind(&RemoteToolClientImpl::ProcessTasks, m_impl.get()));

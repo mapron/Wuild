@@ -134,7 +134,7 @@ bool ConfiguredApplication::InitLogging(const LoggerConfig &loggerConfig)
 												loggerConfig.m_outputLoglevel,
 												loggerConfig.m_outputTimestamp,
 												loggerConfig.m_outputTimeoffsets,
-												loggerConfig.m_logType == LoggerConfig::LogType::Printf ? LoggerBackendConsole::Type::Printf : 
+												loggerConfig.m_logType == LoggerConfig::LogType::Printf ? LoggerBackendConsole::Type::Printf :
 													(loggerConfig.m_logType == LoggerConfig::LogType::Cerr ?  LoggerBackendConsole::Type::Cerr :  LoggerBackendConsole::Type::Cout)
 												   ));
 		break;
@@ -306,7 +306,7 @@ void ConfiguredApplication::ReadRemoteToolClientConfig()
 	m_remoteToolClientConfig.m_invocationAttempts = m_config->GetInt(defaultGroup, "invocationAttempts", m_remoteToolClientConfig.m_invocationAttempts);
 	m_remoteToolClientConfig.m_minimalRemoteTasks = m_config->GetInt(defaultGroup, "minimalRemoteTasks", m_remoteToolClientConfig.m_minimalRemoteTasks);
 	m_remoteToolClientConfig.m_maxLoadAverage     = m_config->GetDouble(defaultGroup, "maxLoadAverage" , m_remoteToolClientConfig.m_maxLoadAverage);
-	
+
 	int queueTimeoutMS = m_config->GetInt(defaultGroup, "queueTimeoutMS");
 	if (queueTimeoutMS)
 		m_remoteToolClientConfig.m_queueTimeout = TimePoint(queueTimeoutMS / 1000.);
@@ -318,6 +318,11 @@ void ConfiguredApplication::ReadRemoteToolClientConfig()
 	ReadCoordinatorClientConfig(m_remoteToolClientConfig.m_coordinator, defaultGroup);
 	m_remoteToolClientConfig.m_coordinator.m_redundance = CoordinatorClientConfig::Redundance::Any;
 	ReadCompressionConfig(m_remoteToolClientConfig.m_compression, defaultGroup);
+
+	auto & toolServers    = m_remoteToolClientConfig.m_initialToolServers;
+	toolServers.m_hosts   = m_config->GetStringList(defaultGroup, "toolserverHosts");
+	toolServers.m_port    = m_config->GetInt       (defaultGroup, "toolserverPort");
+	toolServers.m_toolIds = m_config->GetStringList(defaultGroup, "toolserverIds");
 }
 
 void ConfiguredApplication::ReadRemoteToolServerConfig()
