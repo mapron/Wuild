@@ -21,31 +21,17 @@
 namespace Wuild
 {
 
-/// Class wraps some blob data to use in read/write operation in ByteOrderStream.
-/// Can use ByteArrayHolder, const std::string &, or char* as internal storage, but only ByteArrayHolder can be autogrown.
+/// Class wraps some blob data to use in read/write operations in ByteOrderStream.
+/// Uses ByteArrayHolder as internal storage
 class ByteOrderBuffer
 {
 public:
 	ByteOrderBuffer(const ByteArrayHolder & holder = ByteArrayHolder())
-		:m_internal(holder)
+		: m_internal(holder)
 	{
-		m_resizable = true;
 		SetMaximumSize(m_internal.size());
 		SetSize(m_internal.size());
 		Reset();
-	}
-
-	ByteOrderBuffer(uint8_t *begin, uint8_t *end = nullptr)
-	{
-		SetPointer(begin, end);
-	}
-	ByteOrderBuffer(const char *begin, const char *end = nullptr)
-	{
-		SetPointer(begin, end);
-	}
-	ByteOrderBuffer(const std::string& str)
-	{
-		SetPointer(str.c_str(), str.c_str() + str.size());
 	}
 
 	ByteArrayHolder & GetHolder() { return m_internal;}
@@ -58,9 +44,10 @@ public:
 	inline const uint8_t * end() const   { return m_end; }
 
 	/// return pointer to current read position, ensuring that buffer have at least required size after that. Otherwise, returns null.
-	inline uint8_t * PosRead(size_t required = 0)
+	inline const uint8_t * PosRead(size_t required = 0)
 	{
-		if (m_posRead  + required > m_end) {
+		if (m_posRead  + required > m_end)
+		{
 			m_eofRead = true;
 			return nullptr;
 		}
@@ -71,7 +58,7 @@ public:
 	{
 		ptrdiff_t r = GetRemainWrite();
 		if (r < ptrdiff_t(required) && !SetSize(GetSize() + required - r))
-				return nullptr;
+			return nullptr;
 
 		return m_posWrite;
 	}
@@ -88,14 +75,15 @@ public:
 	/// Try to resize buffer. If resize fails, return false.
 	bool SetSize(size_t sz)
 	{
-		if (sz > GetSize() && !m_resizable)
-			return false;
-		if(sz != GetSize() && m_resizable)
+		if (sz != GetSize())
 			SetMaximumSize(sz);
 
 		m_end = m_beg + sz;
-		if (GetRemainRead()  < 0) ResetRead();
-		if (GetRemainWrite() < 0) ResetWrite();
+		if (GetRemainRead()  < 0)
+			ResetRead();
+		if (GetRemainWrite() < 0)
+			ResetWrite();
+
 		return true;
 	}
 	void Clear() { SetSize(0); }
@@ -131,10 +119,7 @@ public:
 		if (sz >= GetSize())
 			return SetSize(0);
 
-		if (!m_resizable)
-			m_beg += sz;
-		else
-			RemoveFromStartInternal(sz);
+		RemoveFromStartInternal(sz);
 
 		return true;
 	}
@@ -142,15 +127,15 @@ public:
 	/// debugging functions.
 	static inline char ToHex(uint8_t c)
 	{
-		if (c <= 9) return '0' + c;
-		return 'a' + c - 10;
+		return (c <= 9) ? '0' + c : 'a' + c - 10;
 	}
 
 	/// Debug output.
 	std::string ToHex(bool insertSpaces = true, bool insertPos = false) const
 	{
 		std::string  ret;
-		if (!m_beg || !GetSize()) return ret;
+		if (!m_beg || !GetSize())
+			return ret;
 		for (uint8_t *p = m_beg; p < m_end; p++)
 		{
 			uint8_t l = *p % 16;
@@ -220,51 +205,27 @@ private:
 		ptrdiff_t oRead = GetOffsetRead()-rem;
 		ptrdiff_t oWrite= GetOffsetWrite()-rem;
 		ptrdiff_t oSize= GetSize()-rem;
-		if (oRead< 0) oRead = 0;
-		if (oWrite< 0) oWrite = 0;
+		if (oRead< 0)
+			oRead = 0;
+		if (oWrite< 0)
+			oWrite = 0;
 
-	   // _internal->resize(maxSize);
 		m_internal.ref().erase (m_internal.ref().begin(),m_internal.ref().begin() + rem);
 		m_beg = m_internal.data();
 		m_end = m_beg + oSize;
 		SetOffsetRead(oRead);
 		SetOffsetWrite(oWrite);
-
-	}
-
-	template <class TChar>
-	void SetPointer(const TChar *begin, const TChar *end = nullptr)
-	{
-		m_beg = (uint8_t *)begin;
-		m_end = (uint8_t *)end;
-		if (!end) FindEnd();
-		Reset();
-	}
-	template <class TChar>
-	void SetPointer(TChar *begin, TChar *end = nullptr)
-	{
-		m_beg = (uint8_t *)(begin);
-		m_end = (uint8_t *)(end);
-		if (!end) FindEnd();
-		Reset();
-	}
-	void FindEnd()
-	{
-		m_end = m_beg;
-		while (*m_end++) ;
-		m_end--;
 	}
 
 private:
 	ByteArrayHolder m_internal;
-	uint8_t *m_posRead = nullptr;
+	uint8_t *m_posRead  = nullptr;
 	uint8_t *m_posWrite = nullptr;
-	uint8_t *m_beg = nullptr;
-	uint8_t *m_end = nullptr;
+	uint8_t *m_beg      = nullptr;
+	uint8_t *m_end      = nullptr;
 
-	bool m_eofRead= false;
+	bool m_eofRead  = false;
 	bool m_eofWrite = false;
-	bool m_resizable = false;
 };
 
 }
