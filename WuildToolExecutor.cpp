@@ -62,7 +62,7 @@ int main(int argc, char** argv)
 	rcClient.Start();
 
 	auto callback = []( const Wuild::RemoteToolClient::TaskExecutionInfo& info){
-		if (info.m_stdOutput.size())
+		if (!info.m_stdOutput.empty())
 			std::cout << info.m_stdOutput << std::flush;
 		Application::Interrupt(1 - info.m_result);
 	};

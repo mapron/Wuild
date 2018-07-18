@@ -71,7 +71,7 @@ public:
 	void SetRemoteAvailableCallback(RemoteAvailableCallback callback);
 
 	/// Starts new remote task.
-	void InvokeTool(const ToolInvocation & invocation, InvokeCallback callback);
+	void InvokeTool(const ToolInvocation & invocation, const InvokeCallback& callback);
 
 	std::string GetSessionInformation() const { return m_sessionInfo.ToString(false, true); }
 

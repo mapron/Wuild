@@ -71,7 +71,7 @@ void SplitString(const std::string & str, StringVector & outList, char delim, bo
 StringVector StringVectorFromArgv(int argc, char **argv, bool skipFirstArg)
 {
 	StringVector ret;
-	for (int i = int(skipFirstArg); i < argc; ++i)
+	for (auto i = int(skipFirstArg); i < argc; ++i)
 	{
 		std::string arg(argv[i]);
 		std::string escapedArg = arg;

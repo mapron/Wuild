@@ -16,11 +16,14 @@
 #include <SocketFrameService.h>
 #include <FileUtils.h>
 
+#include <utility>
+#include <memory>
+
 namespace Wuild
 {
 
 ToolProxyServer::ToolProxyServer(ILocalExecutor::Ptr executor, RemoteToolClient &rcClient)
-	: m_executor(executor), m_rcClient(rcClient)
+	: m_executor(std::move(std::move(executor))), m_rcClient(rcClient)
 {
 }
 
@@ -45,7 +48,7 @@ bool ToolProxyServer::SetConfig(const ToolProxyServer::Config &config)
 void ToolProxyServer::Start()
 {
 	m_executor->SetThreadCount(m_config.m_threadCount);
-	m_server.reset(new SocketFrameService( {}, m_config.m_listenPort ));
+	m_server = std::make_unique<SocketFrameService>( SocketFrameHandlerSettings{}, m_config.m_listenPort );
 	m_server->RegisterFrameReader(SocketFrameReaderTemplate<ToolProxyRequest>::Create([this](const ToolProxyRequest& inputMessage, SocketFrameHandler::OutputCallback outputCallback){
 
 		// TODO: we assume that proxy server is used to build only one working directory at once.
@@ -68,7 +71,7 @@ void ToolProxyServer::Start()
 
 				if (!localResult->m_result)
 				{
-					outputCallback(ToolProxyResponse::Ptr(new ToolProxyResponse(localResult->m_stdOut)));
+					outputCallback(std::make_shared<ToolProxyResponse>(localResult->m_stdOut));
 					return;
 				}
 
@@ -77,14 +80,14 @@ void ToolProxyServer::Start()
 					auto inputFilename = taskCC->m_invocation.GetInput();
 					auto remoteCallback = [outputCallback, inputFilename]( const Wuild::RemoteToolClient::TaskExecutionInfo& info) {
 						FileInfo(inputFilename).Remove();
-						outputCallback(ToolProxyResponse::Ptr(new ToolProxyResponse(info.m_stdOutput, info.m_result)));
+						outputCallback(std::make_shared<ToolProxyResponse>(info.m_stdOutput, info.m_result));
 					};
 					rcClient.InvokeTool(taskCC->m_invocation, remoteCallback);
 				}
 				else
 				{
 					taskCC->m_callback = [outputCallback]( LocalExecutorResult::Ptr localResult ) {
-						outputCallback(ToolProxyResponse::Ptr(new ToolProxyResponse(localResult->m_stdOut, localResult->m_result)));
+						outputCallback(std::make_shared<ToolProxyResponse>(localResult->m_stdOut, localResult->m_result));
 					};
 					executor->AddTask(taskCC);
 				}
@@ -94,7 +97,7 @@ void ToolProxyServer::Start()
 		else
 		{
 			original->m_callback = [outputCallback] ( LocalExecutorResult::Ptr localResult ) {
-				outputCallback(ToolProxyResponse::Ptr(new ToolProxyResponse(localResult->m_stdOut, localResult->m_result)));
+				outputCallback(std::make_shared<ToolProxyResponse>(localResult->m_stdOut, localResult->m_result));
 			};
 			m_executor->AddTask(original);
 		}

@@ -78,7 +78,7 @@ public:
 
 private:
 	std::unique_ptr<std::ostringstream> m_stream;   //!< Stream used for buffer formatting
-	int m_logLevel;
+	int m_logLevel{};
 
 	void flush();
 

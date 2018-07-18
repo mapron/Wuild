@@ -21,11 +21,12 @@
 #include <ThreadUtils.h>
 #include <FileUtils.h>
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <functional>
 #include <fstream>
 #include <algorithm>
+#include <utility>
 
 namespace Wuild
 {
@@ -49,7 +50,7 @@ public:
 class RemoteToolClientImpl
 {
 public:
-	RemoteToolClient *m_parent; // ugly..
+	RemoteToolClient *m_parent{}; // ugly..
 	ToolBalancer m_balancer;
 	std::mutex m_clientsMutex;
 	std::deque<SocketFrameHandler::Ptr> m_clients;
@@ -171,7 +172,7 @@ public:
 
 
 RemoteToolClient::RemoteToolClient(IInvocationRewriter::Ptr invocationRewriter)
-	: m_impl(new RemoteToolClientImpl()), m_invocationRewriter(invocationRewriter)
+	: m_impl(new RemoteToolClientImpl()), m_invocationRewriter(std::move(std::move(invocationRewriter)))
 {
 	m_impl->m_parent = this;
 	m_impl->m_coordinator.SetInfoArrivedCallback([this](const CoordinatorInfo& info){
@@ -248,7 +249,7 @@ void RemoteToolClient::FinishSession()
 
 void RemoteToolClient::SetRemoteAvailableCallback(RemoteToolClient::RemoteAvailableCallback callback)
 {
-	m_remoteAvailableCallback = callback;
+	m_remoteAvailableCallback = std::move(callback);
 }
 
 void RemoteToolClient::AddClient(const ToolServerInfo &info, bool start)
@@ -294,7 +295,7 @@ void RemoteToolClient::AddClient(const ToolServerInfo &info, bool start)
 	   handler->Start();
 }
 
-void RemoteToolClient::InvokeTool(const ToolInvocation & invocation, InvokeCallback callback)
+void RemoteToolClient::InvokeTool(const ToolInvocation & invocation, const InvokeCallback& callback)
 {
 	TimePoint start(true);
 	const std::string inputFilename  = invocation.GetInput();

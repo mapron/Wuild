@@ -17,9 +17,10 @@
 #include "FileUtils.h"
 #include "TimePoint.h"
 
-#include <stdio.h>
+#include <cstdio>
 #include <iostream>
 #include <algorithm>
+#include <utility>
 
 namespace Wuild
 {
@@ -30,9 +31,9 @@ LoggerBackendFiles::LoggerBackendFiles(int maxLogLevel,
 									   bool outputTimeoffsets,
 									   int maxFilesInDir,
 									   int maxMessagesInFile,
-									   const std::string & dir)
+									   std::string  dir)
 	: AbstractLoggerBackend(maxLogLevel, outputLoglevel, outputTimestamp, outputTimeoffsets, true)
-	, m_dir(dir)
+	, m_dir(std::move(dir))
 	, m_maxFilesInDir(maxFilesInDir)
 	, m_maxMessagesInFile(maxMessagesInFile)
 {

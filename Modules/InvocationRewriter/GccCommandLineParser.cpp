@@ -58,7 +58,7 @@ void GccCommandLineParser::UpdateInfo()
 
 			continue;
 		}
-		else if (!IsIgnored(arg))
+		if (!IsIgnored(arg))
 		{
 			if (m_invocation.m_inputNameIndex != -1)
 			{

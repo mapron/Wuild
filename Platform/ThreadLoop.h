@@ -36,7 +36,7 @@ public:
 	bool IsRunning() const;
 
 	/// start thread execution; thread will repeat calling quant() until stopping.
-	void Exec(QuantFunction quant, int64_t sleepUS = 1000);
+	void Exec(const QuantFunction& quant, int64_t sleepUS = 1000);
 
 	/// Stop() interrupts thread synchronously.
 	void Stop();

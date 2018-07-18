@@ -20,7 +20,7 @@
 
 #include <algorithm>
 #include <vector>
-#include <stdint.h>
+#include <cstdint>
 #include <memory>
 #include <cstring>
 
@@ -142,7 +142,7 @@ bool TcpSocket::Connect ()
 		const bool inProgress = SocketCheckConnectionPending(err);
 		if (inProgress)
 		{
-			struct timeval timeout;
+			struct timeval timeout{};
 			SET_TIMEVAL_US(timeout, m_params.m_connectTimeout);
 			fd_set select_set;
 			FD_ZERO( &select_set );
@@ -150,7 +150,7 @@ bool TcpSocket::Connect ()
 			int valopt;
 			socklen_t valopt_len = sizeof(valopt);
 
-			if (select( static_cast<int>(m_impl->m_socket + 1), 0, &select_set, 0, &timeout ) <= 0 || !FD_ISSET( m_impl->m_socket, &select_set ) ||
+			if (select( static_cast<int>(m_impl->m_socket + 1), nullptr, &select_set, nullptr, &timeout ) <= 0 || !FD_ISSET( m_impl->m_socket, &select_set ) ||
 				getsockopt( m_impl->m_socket, SOL_SOCKET, SO_ERROR, SOCK_OPT_ARG (&valopt), &valopt_len ) < 0 || valopt
 					)
 			{
@@ -291,7 +291,7 @@ bool TcpSocket::IsSocketReadReady()
 	FD_SET( m_impl->m_socket, &set );
 
 	struct timeval timeout = { 0, 0 };
-	int selected = select( static_cast<int>(m_impl->m_socket + 1U), &set, 0, 0, &timeout );
+	int selected = select( static_cast<int>(m_impl->m_socket + 1U), &set, nullptr, nullptr, &timeout );
 	if (selected < 0)
 	{
 		Syslogger(m_logContext) << "Disconnect from IsSocketReadReady" ;
@@ -310,9 +310,9 @@ bool TcpSocket::SelectRead (const TimePoint &timeout)
 	fd_set selected;
 	FD_ZERO( &selected );
 	FD_SET( m_impl->m_socket, &selected );
-	struct timeval timeoutTV;
+	struct timeval timeoutTV{};
 	SET_TIMEVAL_US(timeoutTV, timeout);
-	res = select( static_cast<int>(m_impl->m_socket + 1), &selected, 0, 0, &timeoutTV ) > 0 && FD_ISSET( m_impl->m_socket, &selected );
+	res = select( static_cast<int>(m_impl->m_socket + 1), &selected, nullptr, nullptr, &timeoutTV ) > 0 && FD_ISSET( m_impl->m_socket, &selected );
 	return res;
 }
 
@@ -370,7 +370,7 @@ bool TcpSocketPrivate::SetBlocking(bool blocking)
 
 bool TcpSocketPrivate::SetRecieveBuffer(uint32_t size)
 {
-	int valopt = static_cast<int>(size);
+	auto valopt = static_cast<int>(size);
 	socklen_t valopt_len = sizeof(valopt);
 	return setsockopt(m_socket, SOL_SOCKET, SO_RCVBUF, SOCK_OPT_ARG &valopt, valopt_len) == 0;
 }
@@ -386,7 +386,7 @@ uint32_t TcpSocketPrivate::GetRecieveBuffer()
 }
 bool TcpSocketPrivate::SetSendBuffer(uint32_t size)
 {
-	int valopt = static_cast<int>(size);
+	auto valopt = static_cast<int>(size);
 	socklen_t valopt_len = sizeof(valopt);
 	return setsockopt(m_socket, SOL_SOCKET, SO_SNDBUF, SOCK_OPT_ARG &valopt, valopt_len) == 0;
 }

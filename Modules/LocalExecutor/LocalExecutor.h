@@ -32,7 +32,7 @@ namespace Wuild
 /// Uses ninja's SubprocessSet.
 class LocalExecutor : public ILocalExecutor
 {
-	LocalExecutor(IInvocationRewriter::Ptr invocationRewriter, const std::string & tempPath);
+	LocalExecutor(IInvocationRewriter::Ptr invocationRewriter, std::string  tempPath);
 public:
 	static Ptr Create(IInvocationRewriter::Ptr invocationRewriter, const std::string & tempPath)
 	{ return Ptr(new LocalExecutor(invocationRewriter, tempPath)); }

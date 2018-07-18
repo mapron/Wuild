@@ -15,6 +15,8 @@
 
 #include <ByteOrderStream.h>
 
+#include <utility>
+
 namespace Wuild
 {
 
@@ -40,9 +42,9 @@ SocketFrame::State ToolProxyRequest::WriteInternal(ByteOrderDataStreamWriter &st
 	return stOk;
 }
 
-ToolProxyResponse::ToolProxyResponse(const std::string &stdOut, bool result)
+ToolProxyResponse::ToolProxyResponse(std::string stdOut, bool result)
 	: m_result(result)
-	, m_stdOut(stdOut)
+	, m_stdOut(std::move(stdOut))
 {
 
 }

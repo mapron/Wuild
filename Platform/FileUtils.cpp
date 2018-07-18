@@ -17,10 +17,11 @@
 #include "Syslogger.h"
 #include "ThreadUtils.h"
 
-#include <assert.h>
-#include <stdio.h>
+#include <cassert>
+#include <cstdio>
 #include <algorithm>
 #include <fstream>
+#include <memory>
 #include <streambuf>
 
 #ifdef HAS_BOOST
@@ -47,16 +48,16 @@ using fserr = std::error_code;
 #include <direct.h>
 #else
 #include <unistd.h>
-#include <errno.h>
+#include <cerrno>
 inline int GetLastError() { return errno; }
 #endif
 
 namespace {
-static const size_t CHUNK = 16384;
+const size_t CHUNK = 16384;
 #ifdef _WIN32
 static const char PATH_LIST_SEPARTOR = ';';
 #else
-static const char PATH_LIST_SEPARTOR = ':';
+const char PATH_LIST_SEPARTOR = ':';
 #endif
 }
 
@@ -106,7 +107,7 @@ FileInfo::FileInfo(const FileInfo &rh)
 
 FileInfo &FileInfo::operator =(const FileInfo &rh)
 {
-	m_impl.reset(new FileInfoPrivate(*rh.m_impl));
+	m_impl = std::make_unique<FileInfoPrivate>(*rh.m_impl);
 	return *this;
 }
 
@@ -116,10 +117,7 @@ FileInfo::FileInfo(const std::string &filename)
 	m_impl->m_path = filename;
 }
 
-FileInfo::~FileInfo()
-{
-
-}
+FileInfo::~FileInfo() = default;
 
 void FileInfo::SetPath(const std::string &path)
 {

@@ -17,6 +17,7 @@
 #include "ThreadUtils.h"
 
 #include <functional>
+#include <utility>
 
 namespace Wuild
 {
@@ -32,7 +33,7 @@ SocketFrameService::~SocketFrameService()
 {
 	Syslogger(m_logContext) << "SocketFrameService::~SocketFrameService()";
 	Stop(); ///< @warning stop thread before any deinitialization
-	for (auto workerPtr : m_workers)
+	for (const auto& workerPtr : m_workers)
 	{
 		workerPtr->Stop(); ///< @warning stop thread before any deinitialization
 		if (m_handlerDestroyCallback)
@@ -42,7 +43,7 @@ SocketFrameService::~SocketFrameService()
 	m_listenters.clear();
 }
 
-int SocketFrameService::QueueFrameToAll(SocketFrameHandler *sender, SocketFrame::Ptr message)
+int SocketFrameService::QueueFrameToAll(SocketFrameHandler *sender, const SocketFrame::Ptr& message)
 {
 	Syslogger(m_logContext) << "QueueFrameToAll";
 	int ret = 0;
@@ -132,7 +133,7 @@ void SocketFrameService::AddWorker(IDataSocket::Ptr client, int threadId)
 		m_handlerInitCallback(handler.get());
 
 	if (threadId > -1)
-		handler->SetChannel(client);
+		handler->SetChannel(std::move(client));
 
 	handler->Start();
 	m_workers.push_back(handler);
@@ -145,30 +146,30 @@ bool SocketFrameService::IsConnected()
 
 size_t SocketFrameService::GetActiveConnectionsCount()
 {
-	if (!m_workers.size())
+	if (m_workers.empty())
 		return 0;
 
 	std::lock_guard<std::mutex> lock(m_workersLock);
 	size_t res = 0;
-	for (auto workerPtr : m_workers)
+	for (const auto& workerPtr : m_workers)
 		if (workerPtr->IsActive())
 			res++;
 	return res;
 }
 
-void SocketFrameService::RegisterFrameReader(SocketFrameHandler::IFrameReader::Ptr reader)
+void SocketFrameService::RegisterFrameReader(const SocketFrameHandler::IFrameReader::Ptr& reader)
 {
 	m_readers.push_back(reader);
 }
 
 void SocketFrameService::SetHandlerInitCallback(SocketFrameService::HandlerInitCallback callback)
 {
-	m_handlerInitCallback = callback;
+	m_handlerInitCallback = std::move(callback);
 }
 
 void SocketFrameService::SetHandlerDestroyCallback(HandlerDestroyCallback callback)
 {
-	m_handlerDestroyCallback = callback;
+	m_handlerDestroyCallback = std::move(callback);
 }
 
 }

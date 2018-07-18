@@ -17,6 +17,7 @@
 #include <iostream>
 #include <iomanip>
 #include <algorithm>
+#include <memory>
 
 namespace Wuild
 {
@@ -37,14 +38,14 @@ Syslogger::Syslogger(int logLevel)
 	: m_logLevel(logLevel)
 {
 	if (g_loggerBackend->LogEnabled(logLevel))
-		m_stream.reset(new std::ostringstream());
+		m_stream = std::make_unique<std::ostringstream>();
 }
 
 Syslogger::Syslogger(const std::string &context, int logLevel)
 {
 	if (g_loggerBackend->LogEnabled(logLevel))
 	{
-		m_stream.reset(new std::ostringstream());
+		m_stream = std::make_unique<std::ostringstream>();
 		if (!context.empty())
 		   *m_stream << "{" << context << "} ";
 	}

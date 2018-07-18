@@ -18,12 +18,12 @@
 #include <SocketFrameService.h>
 #include <ThreadUtils.h>
 
+#include <memory>
+
 namespace Wuild
 {
 
-CoordinatorServer::CoordinatorServer()
-{
-}
+CoordinatorServer::CoordinatorServer() = default;
 
 CoordinatorServer::~CoordinatorServer()
 {
@@ -42,7 +42,6 @@ bool CoordinatorServer::SetConfig(const CoordinatorServer::Config &config)
 	return true;
 }
 
-
 void CoordinatorServer::Start()
 {
 	SocketFrameHandlerSettings settings;
@@ -51,8 +50,7 @@ void CoordinatorServer::Start()
 										+ CoordinatorToolServerStatus::s_version
 										+ CoordinatorToolServerSession::s_version
 										;
-	m_server.reset(new SocketFrameService( settings,  m_config.m_listenPort ));
-	//m_server->RegisterFrameReader();
+	m_server = std::make_unique<SocketFrameService>( settings,  m_config.m_listenPort );
 
 	m_server->RegisterFrameReader(SocketFrameReaderTemplate<CoordinatorListRequest>::Create([this](const CoordinatorListRequest& inputMessage, SocketFrameHandler::OutputCallback outputCallback){
 		(void)inputMessage;

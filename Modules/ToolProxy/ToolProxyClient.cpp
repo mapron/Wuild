@@ -22,13 +22,12 @@
 
 #include <algorithm>
 #include <iostream>
+#include <memory>
 
 namespace Wuild
 {
 
-ToolProxyClient::ToolProxyClient()
-{
-}
+ToolProxyClient::ToolProxyClient() = default;
 
 ToolProxyClient::~ToolProxyClient()
 {
@@ -52,7 +51,7 @@ bool ToolProxyClient::Start(TimePoint connectionTimeout)
 {
 	SocketFrameHandlerSettings settings;
 	settings.m_writeFailureLogLevel = Syslogger::Info;
-	m_client.reset(new SocketFrameHandler( settings ));
+	m_client = std::make_unique<SocketFrameHandler>( settings );
 	m_client->RegisterFrameReader(SocketFrameReaderTemplate<ToolProxyResponse>::Create());
 
 	m_client->SetTcpChannel("localhost", m_config.m_listenPort);

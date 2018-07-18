@@ -18,8 +18,8 @@
 #include "TcpSocket.h"
 #include "FileUtils.h"
 
-#include <signal.h>
-#include <string.h>
+#include <csignal>
+#include <cstring>
 #include <sys/stat.h>
 
 #ifndef _WIN32

@@ -26,7 +26,7 @@ class TcpSocket;
 class TcpListener : public IDataListener
 {
 public:
-	TcpListener (const TcpListenerParams & params);
+	TcpListener (TcpListenerParams  params);
 	~TcpListener ();
 
 	static IDataListener::Ptr Create(const TcpListenerParams & params);

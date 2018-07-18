@@ -16,20 +16,14 @@
 #include <Syslogger.h>
 
 #include <algorithm>
-#include <assert.h>
+#include <cassert>
 
 namespace Wuild
 {
 
-ToolBalancer::ToolBalancer()
-{
+ToolBalancer::ToolBalancer() = default;
 
-}
-
-ToolBalancer::~ToolBalancer()
-{
-
-}
+ToolBalancer::~ToolBalancer() = default;
 
 void ToolBalancer::SetRequiredTools(const StringVector &requiredToolIds)
 {

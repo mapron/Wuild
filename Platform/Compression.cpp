@@ -27,13 +27,13 @@ namespace Wuild
 {
 
 namespace {
-static const size_t CHUNK = 16384;
+const size_t CHUNK = 16384;
 // TODO: on windows, recieving ERROR_SHARING_VIOLATION when attempting to rename temporary file.
-static const size_t g_renameAttempts = 50;
-static const int64_t g_renameUsleep = 100000;
+const size_t g_renameAttempts = 50;
+const int64_t g_renameUsleep = 100000;
 
-static const size_t messageMaxBytes   = 1024;
-static const size_t ringBufferBytes   = 1024 * 256 + messageMaxBytes;
+const size_t messageMaxBytes   = 1024;
+const size_t ringBufferBytes   = 1024 * 256 + messageMaxBytes;
 
 #ifdef USE_ZLIB
 /* Compress from file source to file dest until EOF on source.
@@ -42,7 +42,7 @@ static const size_t ringBufferBytes   = 1024 * 256 + messageMaxBytes;
    level is supplied, Z_VERSION_ERROR if the version of zlib.h and the
    version of the library linked do not match, or Z_ERRNO if there is
    an error reading or writing the files. */
-static int def(std::istream & source, std::vector<uint8_t> & dest, int level)
+int def(std::istream & source, std::vector<uint8_t> & dest, int level)
 {
 	int ret, flush;
 	unsigned have;
@@ -96,7 +96,7 @@ static int def(std::istream & source, std::vector<uint8_t> & dest, int level)
    invalid or incomplete, Z_VERSION_ERROR if the version of zlib.h and
    the version of the library linked do not match, or Z_ERRNO if there
    is an error reading or writing the files. */
-static int inf(const std::vector<uint8_t> & source, std::ostream & dest)
+int inf(const std::vector<uint8_t> & source, std::ostream & dest)
 {
 	int ret;
 	unsigned have;
@@ -159,12 +159,12 @@ static int inf(const std::vector<uint8_t> & source, std::ostream & dest)
 
 struct ByteArrayHolderBufWriter : std::basic_streambuf<char, typename std::char_traits<char>> {
 	 typedef std::basic_streambuf<char, typename std::char_traits<char>> base_type;
-	 typedef typename base_type::int_type int_type;
-	 typedef typename base_type::traits_type traits_type;
+	 using int_type = typename base_type::int_type;
+	 using traits_type = typename base_type::traits_type;
 
 	ByteArrayHolderBufWriter(ByteArrayHolder& holder) : m_holder(holder) {}
 
-	 virtual int_type overflow(int_type ch) {
+	 int_type overflow(int_type ch) override {
 		 if(traits_type::eq_int_type(ch, traits_type::eof()))
 			 return traits_type::eof();
 		 m_holder.ref().push_back(traits_type::to_char_type(ch));

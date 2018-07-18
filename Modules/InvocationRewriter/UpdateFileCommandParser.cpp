@@ -14,7 +14,7 @@
 #include "UpdateFileCommandParser.h"
 #include <StringUtils.h>
 
-#include <assert.h>
+#include <cassert>
 
 namespace Wuild
 {
@@ -28,7 +28,7 @@ void UpdateFileCommandParser::UpdateInfo()
 		m_invocation.m_inputNameIndex  = m_invocation.m_outputNameIndex = m_invocation.m_args.size() - 1;
 }
 
-void UpdateFileCommandParser::SetInvokeType(ToolInvocation::InvokeType type)
+void UpdateFileCommandParser::SetInvokeType(ToolInvocation::InvokeType  /*type*/)
 {
 	assert(!"Unsupported logic.");
 }

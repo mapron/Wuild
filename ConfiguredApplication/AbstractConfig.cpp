@@ -157,7 +157,7 @@ double AbstractConfig::GetDouble(const std::string & group, const std::string & 
 	if (!val)
 		return defValue;
 
-	return std::stod(val->c_str());
+	return std::stod(*val);
 }
 
 std::string AbstractConfig::GetString(const std::string & group, const std::string &key, const std::string &defValue) const
@@ -192,9 +192,9 @@ bool AbstractConfig::GetBool(const std::string & group, const std::string &key, 
 std::string AbstractConfig::DumpAllValues() const
 {
 	std::ostringstream os;
-	for (const auto group : m_data)
+	for (const auto& group : m_data)
 	{
-		if (group.first != "")
+		if (!group.first.empty())
 		{
 			os << "\n\n[" << group.first << "]";
 		}
@@ -221,11 +221,11 @@ const std::string *AbstractConfig::Find(const std::string &group, const std::str
 {
 	auto groupIt = m_data.find(group);
 	if (groupIt == m_data.end())
-		return group == "" ? nullptr : Find("", key);
+		return group.empty() ? nullptr : Find("", key);
 
 	auto valueIt =  groupIt->second.find(key);
 	if (valueIt == groupIt->second.end())
-		return group == "" ? nullptr : Find("", key);
+		return group.empty() ? nullptr : Find("", key);
 
 	return &(valueIt->second);
 }

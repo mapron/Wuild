@@ -78,7 +78,7 @@ bool TcpEndPoint::Resolve()
 
 	if (any)
 	{
-		sockaddr_in * sin = (sockaddr_in *)m_impl->ai->ai_addr;
+		auto * sin = (sockaddr_in *)m_impl->ai->ai_addr;
 #ifdef _WIN32
 		sin->sin_addr.S_un.S_addr = htonl(INADDR_ANY);
 #else

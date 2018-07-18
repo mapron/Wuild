@@ -17,6 +17,8 @@
 #include <ByteOrderStream.h>
 #include <ThreadUtils.h>
 
+#include <memory>
+
 using namespace Wuild;
 
 class TestFrame : public SocketFrameExt
@@ -86,8 +88,8 @@ class TestService
 	TimePoint m_waitForConnectedClientsTimeout = TimePoint (1.0);
 public:
 	void setServer(int port);
-	void addClient(std::string ip, int port);
-	void sendHello(std::string hello, int repeats);
+	void addClient(const std::string& ip, int port);
+	void sendHello(const std::string& hello, int repeats);
 	void start();
 
 };
@@ -111,7 +113,7 @@ void TestService::setServer(int port)
 	settings.m_recommendedSendBufferSize    = bufferSize;
 	settings.m_segmentSize = segmentSize;
 
-	m_server.reset(new SocketFrameService( settings ));
+	m_server = std::make_unique<SocketFrameService>( settings );
 	m_server->AddTcpListener(port, testHost );
 	m_server->RegisterFrameReader(SocketFrameReaderTemplate<TestFrame>::Create([](const TestFrame &inputMessage, SocketFrameHandler::OutputCallback outputCallback)
 	{
@@ -126,7 +128,7 @@ void TestService::setServer(int port)
 	m_server->Start();
 }
 
-void TestService::addClient(std::string ip, int port)
+void TestService::addClient(const std::string& ip, int port)
 {
 	Syslogger() << "setClient " << ip  << ":" <<  port;
 	SocketFrameHandlerSettings settings;
@@ -148,9 +150,9 @@ void TestService::addClient(std::string ip, int port)
 	m_clients.push_back(h);
 }
 
-void TestService::sendHello(std::string hello, int repeats)
+void TestService::sendHello(const std::string& hello, int repeats)
 {
-	for (auto client : m_clients)
+	for (const auto& client : m_clients)
 	{
 		TestFrame::Ptr frame(new TestFrame());
 		for (int r = 0; r < repeats; ++r)

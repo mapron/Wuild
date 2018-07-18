@@ -18,22 +18,19 @@
 #include <SocketFrameService.h>
 #include <ThreadUtils.h>
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <functional>
 #include <fstream>
+#include <utility>
+#include <memory>
 
 namespace Wuild
 {
 
-CoordinatorClient::CoordinatorClient()
-{
-}
+CoordinatorClient::CoordinatorClient() = default;
 
-CoordinatorClient::~CoordinatorClient()
-{
-
-}
+CoordinatorClient::~CoordinatorClient() = default;
 
 bool CoordinatorClient::SetConfig(const CoordinatorClient::Config &config)
 {
@@ -49,7 +46,7 @@ bool CoordinatorClient::SetConfig(const CoordinatorClient::Config &config)
 
 void CoordinatorClient::SetInfoArrivedCallback(CoordinatorClient::InfoArrivedCallback callback)
 {
-	m_infoArrivedCallback = callback;
+	m_infoArrivedCallback = std::move(callback);
 }
 
 void CoordinatorClient::Start()
@@ -148,7 +145,7 @@ void CoordinatorClient::CoordWorker::Quant()
 	if (m_needRequestData)
 	{
 		m_needRequestData = false;
-		m_client->QueueFrame(CoordinatorListRequest::Ptr(new CoordinatorListRequest()));
+		m_client->QueueFrame(std::make_shared<CoordinatorListRequest>());
 	}
 }
 

@@ -42,7 +42,7 @@ public:
 	{
 		return TaskPair();
 	}
-	virtual StringVector GetToolIds() const  override
+	StringVector GetToolIds() const  override
 	{
 		return StringVector({g_testTool, g_testTool2});
 	}
@@ -109,7 +109,7 @@ int main(int argc, char** argv)
 
 	std::atomic_int totalFinished {0}, totalCount {0};
 	auto callback = [&totalFinished, &totalCount]( const RemoteToolClient::TaskExecutionInfo& info){
-		if (info.m_stdOutput.size())
+		if (!info.m_stdOutput.empty())
 			std::cout << info.m_stdOutput << std::endl << std::flush;
 
 		std::cout << info.GetProfilingStr() << " \n";
@@ -118,7 +118,7 @@ int main(int argc, char** argv)
 		   Application::Interrupt(1 - info.m_result);
 	};
 	auto callbackFail = [&totalFinished, &totalCount]( const RemoteToolClient::TaskExecutionInfo& info){
-		if (info.m_stdOutput.size())
+		if (!info.m_stdOutput.empty())
 			std::cout << info.m_stdOutput << std::endl << std::flush;
 
 		totalFinished++;

@@ -17,14 +17,16 @@
 #include <Syslogger.h>
 #include <ThreadUtils.h>
 
-#include <assert.h>
+#include <cassert>
+#include <utility>
+#include <memory>
 
 namespace Wuild
 {
 
-LocalExecutor::LocalExecutor(IInvocationRewriter::Ptr invocationRewriter, const std::string &tempPath)
-	: m_invocationRewriter(invocationRewriter)
-	, m_tempPath(tempPath)
+LocalExecutor::LocalExecutor(IInvocationRewriter::Ptr invocationRewriter, std::string tempPath)
+	: m_invocationRewriter(std::move(std::move(invocationRewriter)))
+	, m_tempPath(std::move(tempPath))
 {
 }
 
@@ -78,14 +80,12 @@ size_t LocalExecutor::GetQueueSize() const
 	return m_taskQueue.size();
 }
 
-LocalExecutor::~LocalExecutor()
-{
-}
+LocalExecutor::~LocalExecutor() = default;
 
 void LocalExecutor::CheckSubprocs()
 {
 	if (!m_subprocs)
-		m_subprocs.reset(new SubprocessSet(false));
+		m_subprocs = std::make_unique<SubprocessSet>(false);
 }
 
 

@@ -55,7 +55,7 @@ public:
 	bool                m_result = false;
 	std::string         m_stdOut;
 
-	ToolProxyResponse  (const std::string & stdOut = std::string(), bool result = false);
+	ToolProxyResponse  (std::string  stdOut = std::string(), bool result = false);
 
 	void                LogTo(std::ostream& os) const override;
 	uint8_t             FrameTypeId() const override { return s_frameTypeId;}

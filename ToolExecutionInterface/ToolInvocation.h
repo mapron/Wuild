@@ -29,7 +29,7 @@ public:
 		std::string m_toolExecutable;   //!< full tool executable path
 	};
 public:
-	ToolInvocation(const StringVector & args = StringVector(), InvokeType  type = InvokeType::Unknown);
+	ToolInvocation(StringVector  args = StringVector(), InvokeType  type = InvokeType::Unknown);
 	ToolInvocation(const std::string & args, InvokeType  type = InvokeType::Unknown);
 
 	void SetArgsString(const std::string & args);

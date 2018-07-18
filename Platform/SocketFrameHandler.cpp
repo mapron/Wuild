@@ -21,9 +21,10 @@
 #include <stdexcept>
 #include <sstream>
 #include <set>
-#include <assert.h>
+#include <utility>
+#include <cassert>
 
-#define BUFFER_RATIO 8 / 10
+#define BUFFER_RATIO 8 / 10 // do not add parentesis! todo: make less ugly?
 
 namespace Wuild
 {
@@ -140,7 +141,7 @@ void SocketFrameHandler::SetTcpChannel(const std::string& host, int port, TimePo
 
 void SocketFrameHandler::SetChannel(IDataSocket::Ptr channel)
 {
-	m_channel = channel;
+	m_channel = std::move(channel);
 	UpdateLogContext();
 }
 
@@ -152,16 +153,16 @@ void SocketFrameHandler::DisconnectChannel()
 
 void SocketFrameHandler::SetChannelNotifier(StateNotifierCallback stateNotifier)
 {
-	m_stateNotifier = stateNotifier;
+	m_stateNotifier = std::move(stateNotifier);
 }
 
 void SocketFrameHandler::SetConnectionStatusNotifier(SocketFrameHandler::ConnectionStatusCallback callback)
 {
-	m_connStatusNotifier = callback;
+	m_connStatusNotifier = std::move(callback);
 }
 // Application logic:
 
-void SocketFrameHandler::QueueFrame(SocketFrame::Ptr message, SocketFrameHandler::ReplyNotifier replyNotifier, TimePoint timeout)
+void SocketFrameHandler::QueueFrame(const SocketFrame::Ptr& message, const SocketFrameHandler::ReplyNotifier& replyNotifier, TimePoint timeout)
 {
 	if (replyNotifier)
 	{
@@ -172,7 +173,7 @@ void SocketFrameHandler::QueueFrame(SocketFrame::Ptr message, SocketFrameHandler
 	m_framesQueueOutput.push(message);
 }
 
-void SocketFrameHandler::RegisterFrameReader(SocketFrameHandler::IFrameReader::Ptr reader)
+void SocketFrameHandler::RegisterFrameReader(const SocketFrameHandler::IFrameReader::Ptr& reader)
 {
 	if (reader->FrameTypeId() < SocketFrame::s_minimalUserFrameId)
 		throw std::logic_error("Userframe ids should should start from " + std::to_string(SocketFrame::s_minimalUserFrameId));
@@ -254,7 +255,7 @@ bool SocketFrameHandler::ReadFrames()
 		ConsumeState state = ConsumeReadBuffer();
 		if (state == ConsumeState::FatalError)
 			return false;
-		else if (state == ConsumeState::Broken)
+		if (state == ConsumeState::Broken)
 			validInput = false;
 
 		if (state != ConsumeState::Ok || m_readBuffer.EofRead())
@@ -275,7 +276,7 @@ bool SocketFrameHandler::ReadFrames()
 		ConsumeState state = ConsumeFrameBuffer();
 		if (state == ConsumeState::FatalError)
 			return false;
-		else if (state == ConsumeState::Broken)
+		if (state == ConsumeState::Broken)
 			validInput = false;
 
 		if (state != ConsumeState::Ok || m_frameDataBuffer.EofRead())
@@ -344,7 +345,7 @@ SocketFrameHandler::ConsumeState SocketFrameHandler::ConsumeReadBuffer()
 	}
 	else if (m_settings.m_hasConnStatus && mtype == ServiceMessageType::ConnStatus)
 	{
-		ConnectionStatus status;
+		ConnectionStatus status{};
 		inputStream >> status.uniqueRepliesQueued;
 		if (m_connStatusNotifier)
 			m_connStatusNotifier(status);
@@ -400,7 +401,7 @@ SocketFrameHandler::ConsumeState SocketFrameHandler::ConsumeReadBuffer()
 SocketFrameHandler::ConsumeState SocketFrameHandler::ConsumeFrameBuffer()
 {
 	// determine application frame type and create appropriate reader for it.
-	uint8_t mtypei = static_cast<uint8_t>(m_pendingReadType);
+	auto mtypei = static_cast<uint8_t>(m_pendingReadType);
 	SocketFrame::Ptr incoming(m_frameReaders[mtypei]->FrameFactory());
 	SocketFrame::State framestate;
 	try
@@ -417,7 +418,7 @@ SocketFrameHandler::ConsumeState SocketFrameHandler::ConsumeFrameBuffer()
 	{
 		return ConsumeState::Incomplete;
 	}
-	else if (framestate == SocketFrame::stBroken)
+	if (framestate == SocketFrame::stBroken)
 	{
 		Syslogger(m_logContext, Syslogger::Err) << "MessageHandler: broken message recieved. ";
 		return ConsumeState::Broken;
@@ -501,7 +502,7 @@ bool SocketFrameHandler::WriteFrames()
 		ByteOrderDataStreamWriter streamWriter(buf, m_settings.m_byteOrder);
 		streamWriter << uint8_t(ServiceMessageType::ConnOptions);
 		streamWriter << size << m_settings.m_channelProtocolVersion << TimePoint(true).GetUS();
-		m_outputSegments.push_back(buf.GetHolder());
+		m_outputSegments.emplace_back(buf.GetHolder());
 	}
 
 	// get all outpgoing frames and serialize them into channel segments
@@ -517,7 +518,7 @@ bool SocketFrameHandler::WriteFrames()
 		frontMsg->Write(streamWriter);
 
 		const auto typeId = frontMsg->FrameTypeId();
-		const ByteArrayHolder & buffer = streamWriter.GetBuffer().GetHolder();
+		const ByteArrayHolder & buffer = buf.GetHolder();
 
 		//Syslogger(m_logContext, Syslogger::Info) << "buffer -> " << streamWriter.GetBuffer().ToHex();
 
@@ -613,7 +614,7 @@ bool SocketFrameHandler::IsOutputBufferEmpty()
 	return m_outputSegments.empty();
 }
 
-void SocketFrameHandler::PreprocessFrame(SocketFrame::Ptr incomingMessage)
+void SocketFrameHandler::PreprocessFrame(const SocketFrame::Ptr& incomingMessage)
 {
 	// if frame has reply callback, use it. Otherwise, call ProcessFrame on frameReader.
 	Syslogger(m_logContext, Syslogger::Info) << "incoming <- " << incomingMessage;
@@ -647,7 +648,7 @@ SocketFrameHandler::ConnectionStatus SocketFrameHandler::CalculateStatus()
 		if (segment.transaction)
 			transactions.insert(segment.transaction);
 	}
-	ConnectionStatus status;
+	ConnectionStatus status{};
 	status.uniqueRepliesQueued = static_cast<uint16_t>(transactions.size());
 	return status;
 }
@@ -666,7 +667,7 @@ void SocketFrameHandler::ReplyManager::ClearAndSendError()
 void SocketFrameHandler::ReplyManager::AddNotifier(uint64_t id, SocketFrameHandler::ReplyNotifier callback, TimePoint timeout)
 {
 	std::lock_guard<std::mutex> lock(m_mutex);
-	m_replyNotifiers[id] = callback;
+	m_replyNotifiers[id] = std::move(callback);
 	if (timeout)
 	{
 		TimePoint expiration = TimePoint(true) + timeout;

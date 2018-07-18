@@ -42,7 +42,7 @@ public:
 	std::string m_tempDir;
 
 	/// parses paramenter from commandline, reading wuild configuration, filling Config structures.
-	ConfiguredApplication(int argc, char** argv, const std::string& appName = std::string(), const std::string& defaultGroupName = std::string());
+	ConfiguredApplication(int argc, char** argv, const std::string& appName = std::string(), std::string  defaultGroupName = std::string());
 	~ConfiguredApplication();
 
 	const StringVector & GetRemainArgs() const { return m_remainArgs;}

@@ -15,10 +15,12 @@
 
 #include <StringUtils.h>
 
+#include <utility>
+
 namespace Wuild
 {
-ToolInvocation::ToolInvocation(const StringVector &args, InvokeType type)
-	: m_args(args)
+ToolInvocation::ToolInvocation(StringVector args, InvokeType type)
+	: m_args(std::move(args))
 	, m_type(type)
 {
 

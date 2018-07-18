@@ -94,13 +94,13 @@ public:
 
 	inline void ResetRead()  { m_posRead  = m_beg; m_eofRead  = false; }
 	inline void ResetWrite() { m_posWrite = m_beg; m_eofWrite = false; }
-	inline void Reset() { ResetRead(); ResetWrite(); }
+	inline void Reset()      { ResetRead(); ResetWrite(); }
 
 	inline void MarkRead (ptrdiff_t size) { m_posRead  += size; }
 	inline void MarkWrite(ptrdiff_t size) { m_posWrite += size; }
 
-	inline bool EofRead () { return m_eofRead;}
-	inline bool EofWrite() { return m_eofWrite;}
+	inline bool EofRead () const { return m_eofRead;}
+	inline bool EofWrite() const { return m_eofWrite;}
 
 	/// like a PosRead function, but returns true if space enough.
 	bool CheckRemain(size_t minimum) const

@@ -156,10 +156,10 @@ public:
 
 // Application logic:
 	///  Adding new frame to queue. If replyNotifier is set, it will called instead of IFrameReader::ProcessFrame, when reply arrived or failure occurs.
-	void   QueueFrame(SocketFrame::Ptr message, ReplyNotifier replyNotifier = ReplyNotifier(), TimePoint timeout = TimePoint());
+	void   QueueFrame(const SocketFrame::Ptr& message, const ReplyNotifier& replyNotifier = ReplyNotifier(), TimePoint timeout = TimePoint());
 
 	/// Register new frame reader. FrameId should start from s_minimalUserFrameId!
-	void   RegisterFrameReader(IFrameReader::Ptr reader);
+	void   RegisterFrameReader(const IFrameReader::Ptr& reader);
 
 //Logging:
 	void   SetLogContext(const std::string & context);
@@ -203,7 +203,7 @@ protected:
 	bool                        CheckAndCreateConnection();
 	bool                        IsOutputBufferEmpty();
 
-	void                        PreprocessFrame(SocketFrame::Ptr incomingMessage);
+	void                        PreprocessFrame(const SocketFrame::Ptr& incomingMessage);
 	ConnectionStatus            CalculateStatus();
 
 protected:

@@ -14,11 +14,12 @@
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #endif
 #include "TcpListener.h"
-
 #include "Tcp_private.h"
 #include "TcpConnectionParams_private.h"
 #include "TcpSocket.h"
 #include "Syslogger.h"
+
+#include <utility>
 
 namespace Wuild
 {
@@ -27,9 +28,9 @@ class TcpListenerPrivate : public TcpSocketPrivate
 {
 };
 
-TcpListener::TcpListener(const TcpListenerParams & params)
+TcpListener::TcpListener(TcpListenerParams  params)
 	: m_impl(new TcpListenerPrivate())
-	, m_params(params)
+	, m_params(std::move(params))
 {
 	SocketEngineCheck();
 	m_logContext = m_params.m_endPoint.GetShortInfo();
@@ -130,9 +131,9 @@ bool TcpListener::IsListenerReadReady()
 	FD_SET( m_impl->m_socket, &set );
 
 	//select() modifies timeout.
-	struct timeval timeout;
+	struct timeval timeout{};
 	SET_TIMEVAL_US(timeout, m_params.m_connectTimeout);
-	int selected = select( static_cast<int>(m_impl->m_socket + 1), &set, 0, 0, &timeout );
+	int selected = select( static_cast<int>(m_impl->m_socket + 1), &set, nullptr, nullptr, &timeout );
 	if (selected < 0)
 	{
 		Syslogger(m_logContext) << "Disconnect from IsListenerReadReady" ;
@@ -147,7 +148,7 @@ bool TcpListener::DoAccept(TcpSocket *client)
 {
 	SOCKET Socket = INVALID_SOCKET;
 
-	struct sockaddr_in incoming_address;
+	struct sockaddr_in incoming_address{};
 	socklen_t incoming_length = sizeof( incoming_address );
 	Socket = accept( m_impl->m_socket, (struct sockaddr*)&incoming_address, &incoming_length );
 	long value = 0;

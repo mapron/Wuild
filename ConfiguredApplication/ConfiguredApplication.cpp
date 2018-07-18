@@ -21,6 +21,10 @@
 #include <Syslogger.h>
 #include <FileUtils.h>
 
+#include <utility>
+
+#include <memory>
+
 namespace
 {
 	const std::string g_commandLinePrefix = "--wuild-";
@@ -38,13 +42,13 @@ namespace
 namespace Wuild
 {
 
-ConfiguredApplication::ConfiguredApplication(int argc, char **argv, const std::string &appName, const std::string &defaultGroupName)
-	: m_defaultGroupName(defaultGroupName)
+ConfiguredApplication::ConfiguredApplication(int argc, char **argv, const std::string &appName, std::string defaultGroupName)
+	: m_defaultGroupName(std::move(defaultGroupName))
 {
 	if (!appName.empty())
 		Application::Instance().SetAppName(appName);
 
-	m_config.reset(new AbstractConfig());
+	m_config = std::make_unique<AbstractConfig>();
 	AbstractConfig & config = *m_config;
 	const auto inputArgs = StringUtils::StringVectorFromArgv(argc, argv);
 	m_remainArgs = config.ReadCommandLine(inputArgs, g_commandLinePrefix);
@@ -96,9 +100,7 @@ ConfiguredApplication::ConfiguredApplication(int argc, char **argv, const std::s
 	m_tempDir = m_config->GetString(m_defaultGroupName, "tempDir", Application::Instance().GetTempDir());
 }
 
-ConfiguredApplication::~ConfiguredApplication()
-{
-}
+ConfiguredApplication::~ConfiguredApplication() = default;
 
 int ConfiguredApplication::GetRemainArgc() const
 {
@@ -120,32 +122,32 @@ bool ConfiguredApplication::InitLogging(const LoggerConfig &loggerConfig)
 		{
 		case LoggerConfig::LogType::Syslog:
 	#ifdef __linux__
-			backend.reset(new LoggerBackendSyslog(loggerConfig.m_maxLogLevel,
+			backend = std::make_unique<LoggerBackendSyslog>(loggerConfig.m_maxLogLevel,
 												  loggerConfig.m_outputLoglevel,
 												  loggerConfig.m_outputTimestamp,
-												  loggerConfig.m_outputTimeoffsets));
+												  loggerConfig.m_outputTimeoffsets);
 			break;
 	#endif
 			//fallthrough
 		case LoggerConfig::LogType::Cout:
 		case LoggerConfig::LogType::Cerr:
 		case LoggerConfig::LogType::Printf:
-			backend.reset(new LoggerBackendConsole(loggerConfig.m_maxLogLevel,
+			backend = std::make_unique<LoggerBackendConsole>(loggerConfig.m_maxLogLevel,
 												loggerConfig.m_outputLoglevel,
 												loggerConfig.m_outputTimestamp,
 												loggerConfig.m_outputTimeoffsets,
 												loggerConfig.m_logType == LoggerConfig::LogType::Printf ? LoggerBackendConsole::Type::Printf :
 													(loggerConfig.m_logType == LoggerConfig::LogType::Cerr ?  LoggerBackendConsole::Type::Cerr :  LoggerBackendConsole::Type::Cout)
-												   ));
+												   );
 		break;
 		case LoggerConfig::LogType::Files:
-			backend.reset(new LoggerBackendFiles(loggerConfig.m_maxLogLevel,
+			backend = std::make_unique<LoggerBackendFiles>(loggerConfig.m_maxLogLevel,
 												 loggerConfig.m_outputLoglevel,
 												 loggerConfig.m_outputTimestamp,
 												 loggerConfig.m_outputTimeoffsets,
 												 loggerConfig.m_maxFilesInDir,
 												 loggerConfig.m_maxMessagesInFile,
-												 loggerConfig.m_dir));
+												 loggerConfig.m_dir);
 			break;
 		default:
 			break;

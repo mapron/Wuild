@@ -44,7 +44,7 @@ public:
 	virtual     ~SocketFrameService();
 
 	/// Sends message to all connected clients.
-	int    QueueFrameToAll(SocketFrameHandler* sender, SocketFrame::Ptr message);
+	int    QueueFrameToAll(SocketFrameHandler* sender, const SocketFrame::Ptr& message);
 
 	/// Creates new tcp port listener.
 	void   AddTcpListener(int port, const std::string & host="*", const StringVector & whiteList = StringVector());
@@ -62,7 +62,7 @@ public:
 	size_t GetActiveConnectionsCount();
 
 	/// Register frame reader for all clients. @see SocketFrameHandler::RegisterFrameReader
-	void   RegisterFrameReader(SocketFrameHandler::IFrameReader::Ptr reader);
+	void   RegisterFrameReader(const SocketFrameHandler::IFrameReader::Ptr& reader);
 
 	/// Sets callback for new client connection
 	void   SetHandlerInitCallback(HandlerInitCallback callback);

@@ -19,7 +19,7 @@
 
 #include <thread>
 #include <atomic>
-#include <assert.h>
+#include <cassert>
 
 namespace Wuild
 {
@@ -52,7 +52,7 @@ bool ThreadLoop::IsRunning() const
 	return m_impl->m_condition;
 }
 
-void ThreadLoop::Exec(ThreadLoop::QuantFunction quant, int64_t sleepUS)
+void ThreadLoop::Exec(const ThreadLoop::QuantFunction& quant, int64_t sleepUS)
 {
 	Stop();
 	m_impl->m_condition = true;

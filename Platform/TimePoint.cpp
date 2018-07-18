@@ -13,7 +13,7 @@
 
 #include "TimePoint.h"
 
-#include <stdio.h>
+#include <cstdio>
 #include <chrono>
 #include <sstream>
 #include <iomanip>
@@ -79,7 +79,7 @@ int days_from_civil(civil c) {
    //          "This algorithm has not been ported to a 16 bit signed integer");
 	c.y -= c.m <= 2;
 	const int era = (c.y >= 0 ? c.y : c.y-399) / 400;
-	const unsigned yoe = static_cast<unsigned>(c.y - era * 400);      // [0, 399]
+	const auto yoe = static_cast<unsigned>(c.y - era * 400);      // [0, 399]
 	const unsigned doy = (153*(c.m + (c.m > 2 ? -3 : 9)) + 2)/5 + c.d-1;  // [0, 365]
 	const unsigned doe = yoe * 365 + yoe/4 - yoe/100 + doy;         // [0, 146096]
 	return era * 146097 + static_cast<int>(doe) - 719468;
@@ -97,7 +97,7 @@ civil civil_from_days(int z)
    //          "This algorithm has not been ported to a 16 bit signed integer");
 	z += 719468;
 	const int era = (z >= 0 ? z : z - 146096) / 146097;
-	const unsigned doe = static_cast<unsigned>(z - era * 146097);          // [0, 146096]
+	const auto doe = static_cast<unsigned>(z - era * 146097);          // [0, 146096]
 	const unsigned yoe = (doe - doe/1460 + doe/36524 - doe/146096) / 365;  // [0, 399]
 	const int y = static_cast<int>(yoe) + era * 400;
 	const unsigned doy = doe - (365*yoe + yoe/4 - yoe/100);                // [0, 365]
@@ -148,14 +148,14 @@ std::tm TimePoint::GetTm() const
 
 	t += std::chrono::seconds(seconds);//seconds( (int)system_clock::to_time_t(tp) );
 	// d is days since 1970-01-01
-	days d = round_down<days>(t);
+	auto d = round_down<days>(t);
 	// t is now time duration since midnight of day d
 	t -= d;
 	// break d down into year/month/day
 
 	civil c = civil_from_days(d.count());
 	// start filling in the tm with calendar info
-	std::tm tm;
+	std::tm tm{};
 	tm.tm_year = c.y - 1900;
 	tm.tm_mon = c.m - 1;
 	tm.tm_mday = c.d;

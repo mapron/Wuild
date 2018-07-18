@@ -84,7 +84,7 @@ int main(int argc, char** argv)
 			}
 
 			auto callback = [&rcClient]( const Wuild::RemoteToolClient::TaskExecutionInfo& info){
-				if (info.m_stdOutput.size())
+				if (!info.m_stdOutput.empty())
 					std::cout << info.m_stdOutput << std::endl << std::flush;
 				rcClient.FinishSession();
 				std::cout << rcClient.GetSessionInformation()  << " \n";

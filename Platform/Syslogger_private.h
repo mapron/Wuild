@@ -150,7 +150,7 @@ public:
 					   bool outputTimeoffsets,
 					   int maxFilesInDir,
 					   int maxMessagesInFile,
-					   const std::string & dir);
+					   std::string  dir);
 	~LoggerBackendFiles();
 	void FlushMessageInternal(const std::string & message, int ) const override;
 

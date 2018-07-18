@@ -20,6 +20,8 @@
 #include <ThreadUtils.h>
 
 #include <algorithm>
+#include <utility>
+#include <memory>
 
 namespace Wuild
 {
@@ -41,7 +43,7 @@ public:
 RemoteToolServer::RemoteToolServer(ILocalExecutor::Ptr executor)
 	: m_impl(new RemoteToolServerImpl())
 {
-	 m_impl->m_executor = executor;
+	 m_impl->m_executor = std::move(executor);
 }
 
 RemoteToolServer::~RemoteToolServer()
@@ -81,7 +83,7 @@ void RemoteToolServer::Start()
 	settings.m_recommendedSendBufferSize    = g_recommendedBufferSize;
 	settings.m_segmentSize = 8192;
 	settings.m_hasConnStatus = true;
-	m_impl->m_server.reset(new SocketFrameService( settings, m_config.m_listenPort, m_config.m_hostsWhiteList ));
+	m_impl->m_server = std::make_unique<SocketFrameService>( settings, m_config.m_listenPort, m_config.m_hostsWhiteList );
 
 	m_impl->m_server->SetHandlerInitCallback([this](SocketFrameHandler * handler){
 
@@ -95,7 +97,7 @@ void RemoteToolServer::Start()
 			StartTask(inputMessage.m_clientId, sessionId);
 			LocalExecutorTask::Ptr taskCC(new LocalExecutorTask());
 			taskCC->m_invocation = inputMessage.m_invocation;
-			taskCC->m_inputData = std::move(inputMessage.m_fileData);
+			taskCC->m_inputData = inputMessage.m_fileData;
 			taskCC->m_compressionInput = inputMessage.m_compression;
 			auto compressionOut = taskCC->m_compressionOutput = m_config.m_compression;
 			taskCC->m_callback = [outputCallback, this, sessionId, compressionOut](LocalExecutorResult::Ptr result)

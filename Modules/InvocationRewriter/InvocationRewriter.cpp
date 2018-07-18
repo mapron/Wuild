@@ -26,9 +26,7 @@
 namespace Wuild
 {
 
-InvocationRewriter::InvocationRewriter()
-{
-}
+InvocationRewriter::InvocationRewriter() = default;
 
 void InvocationRewriter::SetConfig(const IInvocationRewriter::Config &config)
 {
@@ -82,7 +80,7 @@ ToolInvocation InvocationRewriter::CompleteInvocation(const ToolInvocation &orig
 	ToolInvocation inv;
 	inv.m_args.clear();
 	inv.m_ignoredArgs = original.m_ignoredArgs;
-	for (auto arg : original.m_args)
+	for (const auto& arg : original.m_args)
 	{
 		StringVector argSplit;
 		StringUtils::SplitString(StringUtils::Trim(arg), argSplit, ' ', false, true); //TODO: paths with spaces not supported!
@@ -123,7 +121,7 @@ ToolInvocation InvocationRewriter::FilterFlags(const ToolInvocation &original) c
 			info.m_parser->RemoveLocalFlags();
 			return info.m_parser->GetToolInvocation();
 		 }
-		 else if (flags.m_type == ToolInvocation::InvokeType::Compile)
+		 if (flags.m_type == ToolInvocation::InvokeType::Compile)
 		 {
 			info.m_parser->SetToolInvocation(flags);
 			info.m_parser->RemovePrepocessorFlags();
