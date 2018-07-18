@@ -29,7 +29,7 @@ public:
 
 public:
 	ThreadLoop();
-	ThreadLoop(ThreadLoop&& rh);
+	ThreadLoop(ThreadLoop&& rh) noexcept;
 	~ThreadLoop();
 
 	/// thread is performing action (and was not stopped)

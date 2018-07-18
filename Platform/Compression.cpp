@@ -141,7 +141,7 @@ int inf(const std::vector<uint8_t> & source, std::ostream & dest)
 				return ret;
 			}
 			have = CHUNK - strm.avail_out;
-			dest.write((const char*)(out), have);
+			dest.write(reinterpret_cast<const char*>(out), have);
 			if ( dest.fail() ) {
 				(void)inflateEnd(&strm);
 				return Z_ERRNO;
@@ -158,7 +158,7 @@ int inf(const std::vector<uint8_t> & source, std::ostream & dest)
 #endif
 
 struct ByteArrayHolderBufWriter : std::basic_streambuf<char, typename std::char_traits<char>> {
-	 typedef std::basic_streambuf<char, typename std::char_traits<char>> base_type;
+	 using base_type = std::basic_streambuf<char, typename std::char_traits<char>>;
 	 using int_type = typename base_type::int_type;
 	 using traits_type = typename base_type::traits_type;
 

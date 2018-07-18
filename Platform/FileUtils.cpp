@@ -255,7 +255,7 @@ bool FileInfo::WriteFile(const ByteArrayHolder &data, bool createTmpCopy)
 #ifndef _WIN32
 		std::ofstream outFile;
 		outFile.open(writePath, std::ios::binary | std::ios::out);
-		outFile.write((const char*)data.data(), data.size());
+		outFile.write(reinterpret_cast<const char*>(data.data()), data.size());
 		outFile.close();
 #else
 		auto fileHandle = CreateFileA((LPTSTR) writePath.c_str(), // file name

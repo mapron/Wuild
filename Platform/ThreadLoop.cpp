@@ -37,7 +37,7 @@ ThreadLoop::ThreadLoop()
 
 }
 
-ThreadLoop::ThreadLoop(ThreadLoop &&rh)
+ThreadLoop::ThreadLoop(ThreadLoop &&rh) noexcept
 	: m_impl(std::move(rh.m_impl))
 {
 }

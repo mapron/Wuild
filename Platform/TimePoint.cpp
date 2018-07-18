@@ -114,7 +114,7 @@ unsigned weekday_from_days(int z)
 }
 
 using namespace std::chrono;
-typedef duration<int, std::ratio<24 * 3600> > days;
+using days = duration<int, std::ratio<24 * 3600> >;
 
 namespace Wuild
 {

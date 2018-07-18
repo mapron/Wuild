@@ -423,7 +423,7 @@ SocketFrameHandler::ConsumeState SocketFrameHandler::ConsumeFrameBuffer()
 		Syslogger(m_logContext, Syslogger::Err) << "MessageHandler: broken message recieved. ";
 		return ConsumeState::Broken;
 	}
-	else if (framestate == SocketFrame::stOk)
+	if (framestate == SocketFrame::stOk)
 	{
 		// handle read frame
 		PreprocessFrame(incoming);
