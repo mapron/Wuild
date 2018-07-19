@@ -16,6 +16,7 @@
 #include <RemoteToolClient.h>
 #include <LocalExecutor.h>
 #include <FileUtils.h>
+#include <VersionChecker.h>
 
 /*
  * Test Wuild compiler and coordinator configuration. Acts just as first configured toolchain.
@@ -37,11 +38,26 @@ int main(int argc, char** argv)
 	const auto args = app.GetRemainArgs();
 
 	auto localExecutor = LocalExecutor::Create(TestConfiguration::s_invocationRewriter, app.m_tempDir);
+	
+	auto versionChecker = VersionChecker::Create(localExecutor);
+	auto toolsConfig = TestConfiguration::s_invocationRewriter->GetConfig();
+	for (const auto & toolId : toolsConfig.m_toolIds)
+	{
+		ToolInvocation::Id id;
+		id.m_toolId = toolId;
+		id = TestConfiguration::s_invocationRewriter->CompleteToolId(id);
+		if (id.m_toolExecutable.empty())
+			continue;
+		
+		auto toolType = versionChecker->GuessToolType(id);
+		auto version = versionChecker->GetToolVersion(id, toolType);
+		Syslogger(Syslogger::Notice) << "tool[" << id.m_toolId << "] version=" << version;
+	}
 
 	std::string err;
 	LocalExecutorTask::Ptr original(new LocalExecutorTask());
 	original->m_readOutput = original->m_writeInput = false;
-	original->m_invocation = ToolInvocation( args ).SetExecutable(TestConfiguration::s_invocationRewriter->GetConfig().GetFirstToolName());
+	original->m_invocation = ToolInvocation( args ).SetExecutable(toolsConfig.GetFirstToolName());
 	auto tasks = localExecutor->SplitTask(original, err);
 	if (!tasks.first)
 	{

@@ -34,6 +34,10 @@ public:
 		Syslogger(Syslogger::Info) << "AddTask ";
 		task->m_callback(res);
 	}
+	void SyncExecTask(LocalExecutorTask::Ptr) override
+	{
+		assert(!"Not implemented for test.");
+	}
 	size_t GetQueueSize() const override
 	{
 		return 0;

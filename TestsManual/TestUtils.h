@@ -42,7 +42,7 @@ public:
 
 	ToolInvocation CompleteInvocation(const ToolInvocation & original) const override { return original; }
 	ToolInvocation PrepareRemote(const ToolInvocation & original) const override { return original; }
-
+	ToolInvocation::Id CompleteToolId(const ToolInvocation::Id & original) const override { return original; }
 	bool CheckRemotePossibleForFlags(const ToolInvocation & original) const override { return true; }
 	ToolInvocation FilterFlags(const ToolInvocation & original) const override { return original; }
 

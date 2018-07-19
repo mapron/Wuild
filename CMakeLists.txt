@@ -206,7 +206,9 @@ AddTarget(NAME ToolProxy SUBDIR Modules/ CSRC *.cpp *.h
 AddTarget(NAME InvocationRewriter SUBDIR Modules/ CSRC *.cpp *.h
 	DEPS Configs Platform ToolExecutionInterface
 	)
-
+AddTarget(NAME VersionChecker SUBDIR Modules/ CSRC *.cpp *.h
+	DEPS Configs Platform ToolExecutionInterface
+	)
 AddTarget(NAME LocalExecutor SUBDIR Modules/  CSRC *.cpp *.h
 	DEPS ninja_subprocess Configs Platform InvocationRewriter ToolExecutionInterface
 	)
@@ -216,7 +218,7 @@ AddTarget(NAME ConfiguredApplication CSRC *.cpp *.h
 	)
 
 set(main_deps
-	ConfiguredApplication Configs LocalExecutor InvocationRewriter ToolExecutionInterface ToolProxy RemoteTool Coordinator Platform ninja_subprocess ninja_lib
+	ConfiguredApplication Configs VersionChecker LocalExecutor InvocationRewriter ToolExecutionInterface ToolProxy RemoteTool Coordinator Platform ninja_subprocess ninja_lib
 	)
 
 foreach (testname AllConfigs Balancer Compiler Coordinator Inflate Networking ToolServer )
