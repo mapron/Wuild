@@ -16,6 +16,7 @@
 #include "Tcp_private.h"
 
 #include <string>
+#include <vector>
 
 namespace Wuild
 {
@@ -38,10 +39,16 @@ namespace Wuild
 		{
 			return ::bind( sock, ai->ai_addr, static_cast<int>(ai->ai_addrlen));
 		}
+		static std::string AddrToString(struct in_addr * sockinaddr )
+		{
+			std::vector<char> ipinput(INET_ADDRSTRLEN + 1);
+			const char * str = inet_ntop(AF_INET, sockinaddr, ipinput.data(), INET_ADDRSTRLEN);
+			return str ? str : "";
+		}
 		std::string ToString() const
 		{
 			sockaddr_in * sockin = (sockaddr_in *)ai->ai_addr;
-			return inet_ntoa( sockin->sin_addr ) ;
+			return AddrToString(&sockin->sin_addr);
 		}
 
 	private:

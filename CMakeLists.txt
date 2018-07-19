@@ -52,6 +52,10 @@ else()
 	list(APPEND sys_deps -lpthread)
 endif()
 
+if (MSVC)
+	add_compile_options(/WX) #warning as error.
+endif()
+
 if (APPLE)
 	list(APPEND sys_deps -stdlib=libc++ -lc++)
 	add_definitions(-D_LIBCPP_ENABLE_CXX17_REMOVED_AUTO_PTR)
@@ -111,6 +115,7 @@ if (USE_ZLIB_COMPRESSION)
 	else()
 		AddTarget(NAME zlib_static ROOT ${ZLIB_ROOT}/ CSRC *.c)
 		list(APPEND COMPRESSION_LIBS zlib_static)
+		target_compile_options(zlib_static PRIVATE  /wd4996)
 	endif()
 	list(APPEND COMPRESSION_DEFINES -DUSE_ZLIB)
 endif()
@@ -163,6 +168,9 @@ AddTarget(NAME ninja_lib ROOT ${NINJA_ROOT}/ CSRC ${ninja_lib_src} *.h
 	EXCLUDE remote_executor_impl.h
 	DEPS ninja_subprocess
 	)
+if (MSVC)
+	target_compile_options(ninja_lib PRIVATE /wd4091 /wd4800 /wd4996)
+endif()
 
 AddTarget(NAME Platform CSRC *.cpp *.h
 	INCLUDES

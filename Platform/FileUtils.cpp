@@ -385,7 +385,11 @@ std::string GetCWD()
 
 void SetCWD(const std::string &cwd)
 {
+#ifdef _WIN32
+	_chdir(cwd.c_str());
+#else
 	chdir(cwd.c_str());
+#endif
 }
 
 

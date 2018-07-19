@@ -156,7 +156,7 @@ bool TcpListener::DoAccept(TcpSocket *client)
 	setsockopt( Socket, SOL_SOCKET, SO_KEEPALIVE, SOCK_OPT_ARG &value, sizeof(value) );
 
 	// TODO: inet_ntop?
-	const std::string peerIp = (incoming_length == sizeof(sockaddr_in) ?  inet_ntoa( incoming_address.sin_addr ) : std::string());
+	const std::string peerIp = (incoming_length == sizeof(sockaddr_in) ?  TcpEndPointPrivate::AddrToString( &incoming_address.sin_addr ) : std::string());
 	std::string err;
 	if (!m_params.IsAccepted(peerIp, err))
 	{
