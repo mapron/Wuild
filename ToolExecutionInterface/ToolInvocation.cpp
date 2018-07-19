@@ -20,8 +20,8 @@
 namespace Wuild
 {
 ToolInvocation::ToolInvocation(StringVector args, InvokeType type)
-	: m_args(std::move(args))
-	, m_type(type)
+	: m_type(type)
+	, m_args(std::move(args))
 {
 
 }

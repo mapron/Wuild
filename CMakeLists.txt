@@ -54,6 +54,8 @@ endif()
 
 if (MSVC)
 	add_compile_options(/WX) #warning as error.
+else()
+    add_compile_options(-Werror -Wall -Wno-error=sign-compare)
 endif()
 
 if (APPLE)
