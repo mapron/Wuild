@@ -35,12 +35,10 @@ int main(int argc, char** argv)
 	auto versionChecker = VersionChecker::Create(localExecutor);
 	const auto toolsVersions = versionChecker->DetermineToolVersions(invocationRewriter);
 
-	RemoteToolServer rcService(localExecutor);
+	RemoteToolServer rcService(localExecutor, toolsVersions);
 	if (!rcService.SetConfig(toolServerConfig))
 		return 1;
 	
-	rcService.SetToolVersionMap(toolsVersions);
-
 	rcService.Start();
 
 	return ExecAppLoop();

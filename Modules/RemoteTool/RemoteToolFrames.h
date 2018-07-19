@@ -63,7 +63,6 @@ public:
 	State               WriteInternal(ByteOrderDataStreamWriter &stream) const override;
 };
 
-
 class ToolsVersionRequest : public SocketFrameExt
 {
 public:
@@ -75,7 +74,6 @@ public:
 
 	State               ReadInternal(ByteOrderDataStreamReader &) override { return stOk;}
 	State               WriteInternal(ByteOrderDataStreamWriter &) const override { return stOk;}
-
 };
 
 class ToolsVersionResponse : public SocketFrameExt

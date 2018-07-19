@@ -40,10 +40,11 @@ public:
 	std::map<SocketFrameHandler*, int64_t> m_sessionsIds;
 };
 
-RemoteToolServer::RemoteToolServer(ILocalExecutor::Ptr executor)
+RemoteToolServer::RemoteToolServer(ILocalExecutor::Ptr executor, const IVersionChecker::VersionMap & versionMap)
 	: m_impl(new RemoteToolServerImpl())
+	, m_toolVersionMap(versionMap)
 {
-	 m_impl->m_executor = std::move(executor);
+	m_impl->m_executor = std::move(executor);
 }
 
 RemoteToolServer::~RemoteToolServer()
@@ -61,11 +62,6 @@ bool RemoteToolServer::SetConfig(const RemoteToolServer::Config &config)
 	}
 	m_config = config;
 	return true;
-}
-
-void RemoteToolServer::SetToolVersionMap(const IVersionChecker::VersionMap & versionMap)
-{
-	m_toolVersionMap = versionMap;
 }
 
 void RemoteToolServer::Start()

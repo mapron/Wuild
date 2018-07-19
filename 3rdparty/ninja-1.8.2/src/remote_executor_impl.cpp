@@ -144,7 +144,11 @@ void RemoteExecutor::RunIfNeeded(const std::vector<std::string> &toolIds)
     m_hasStart = true;
     if (!m_remoteService)
     {
-        m_remoteService.reset(new RemoteToolClient(m_invocationRewriter));
+		auto localExecutor = LocalExecutor::Create(m_invocationRewriter, m_app.m_tempDir);
+		
+		const auto toolsVersions = VersionChecker::Create(localExecutor)->DetermineToolVersions(m_invocationRewriter);
+		
+        m_remoteService.reset(new RemoteToolClient(m_invocationRewriter, toolsVersions));
         if (!m_remoteService->SetConfig(m_remoteToolConfig))
             return;
     }

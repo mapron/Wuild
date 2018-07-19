@@ -16,6 +16,7 @@
 #include <RemoteToolClient.h>
 #include <LocalExecutor.h>
 #include <FileUtils.h>
+#include <VersionChecker.h>
 
 #include <iostream>
 
@@ -52,8 +53,11 @@ int main(int argc, char** argv)
 	RemoteToolClient::Config config;
 	if (!app.GetRemoteToolClientConfig(config))
 		return 1;
+	
+	auto localExecutor = LocalExecutor::Create(invocationRewriter, app.m_tempDir);
+	const auto toolsVersions = VersionChecker::Create(localExecutor)->DetermineToolVersions(invocationRewriter);	
 
-	RemoteToolClient rcClient(invocationRewriter);
+	RemoteToolClient rcClient(invocationRewriter, toolsVersions);
 	config.m_queueTimeout = TimePoint(5.0);
 
 	if (!rcClient.SetConfig(config))
