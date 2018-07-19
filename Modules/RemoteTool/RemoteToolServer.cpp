@@ -63,6 +63,11 @@ bool RemoteToolServer::SetConfig(const RemoteToolServer::Config &config)
 	return true;
 }
 
+void RemoteToolServer::SetToolVersionMap(const IVersionChecker::VersionMap & versionMap)
+{
+	m_toolVersionMap = versionMap;
+}
+
 void RemoteToolServer::Start()
 {
 	ToolServerInfo & info = m_impl->m_info;
@@ -112,6 +117,12 @@ void RemoteToolServer::Start()
 				outputCallback(response);
 			};
 			m_impl->m_executor->AddTask(taskCC);
+		}));
+		
+		handler->RegisterFrameReader(SocketFrameReaderTemplate<ToolsVersionRequest>::Create([this](const ToolsVersionRequest& , SocketFrameHandler::OutputCallback outputCallback){
+			ToolsVersionResponse::Ptr response(new ToolsVersionResponse());
+			response->m_versions = m_toolVersionMap;
+			outputCallback(response);			
 		}));
 	});
 

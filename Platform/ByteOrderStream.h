@@ -17,6 +17,7 @@
 #include "ByteOrderBuffer.h"
 
 #include <deque>
+#include <map>
 #include <type_traits>
 
 namespace Wuild {
@@ -130,6 +131,21 @@ public:
 		return *this;
 	}
 
+	template<typename K, typename V>
+	inline ByteOrderDataStreamReader& operator >> (std::map<K, V> &data)
+	{
+		uint32_t size = 0;
+		*this >> size;
+		for (uint32_t i = 0; i < size; ++i)
+		{
+			K key; V value;
+			*this >> key >> value;
+			data[key] = value;
+		}
+
+		return *this;
+	}
+
 	bool ReadPascalString(std::string & str)
 	{
 		size_t size = this->ReadScalar<uint32_t>();
@@ -184,7 +200,7 @@ public:
 	{
 		uint32_t size = static_cast<uint32_t>(data.size());
 		*this << size;
-		for (auto & element : data)
+		for (const auto & element : data)
 			*this << element;
 		return *this;
 	}
@@ -193,8 +209,18 @@ public:
 	{
 		uint32_t size = static_cast<uint32_t>(data.size());
 		*this << size;
-		for (auto & element : data)
+		for (const auto & element : data)
 			*this << element;
+		return *this;
+	}
+
+	template<typename K, typename V>
+	inline ByteOrderDataStreamWriter& operator << (const std::map<K, V> &data)
+	{
+		uint32_t size = static_cast<uint32_t>(data.size());
+		*this << size;
+		for (const auto & elementPair : data)
+			*this << elementPair.first << elementPair.second;
 		return *this;
 	}
 

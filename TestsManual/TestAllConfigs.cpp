@@ -40,20 +40,11 @@ int main(int argc, char** argv)
 	auto localExecutor = LocalExecutor::Create(TestConfiguration::s_invocationRewriter, app.m_tempDir);
 	
 	auto versionChecker = VersionChecker::Create(localExecutor);
-	auto toolsConfig = TestConfiguration::s_invocationRewriter->GetConfig();
+	const auto & toolsConfig = TestConfiguration::s_invocationRewriter->GetConfig();
+	const auto toolsVersions = versionChecker->DetermineToolVersions(TestConfiguration::s_invocationRewriter);
 	for (const auto & toolId : toolsConfig.m_toolIds)
-	{
-		ToolInvocation::Id id;
-		id.m_toolId = toolId;
-		id = TestConfiguration::s_invocationRewriter->CompleteToolId(id);
-		if (id.m_toolExecutable.empty())
-			continue;
-		
-		auto toolType = versionChecker->GuessToolType(id);
-		auto version = versionChecker->GetToolVersion(id, toolType);
-		Syslogger(Syslogger::Notice) << "tool[" << id.m_toolId << "] version=" << version;
-	}
-
+		Syslogger(Syslogger::Notice) << "tool[" << toolId << "] version=" << toolsVersions.at(toolId);
+	
 	std::string err;
 	LocalExecutorTask::Ptr original(new LocalExecutorTask());
 	original->m_readOutput = original->m_writeInput = false;

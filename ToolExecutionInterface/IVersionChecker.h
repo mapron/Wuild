@@ -14,6 +14,9 @@
 #pragma once
 
 #include "ToolInvocation.h"
+#include "IInvocationRewriter.h"
+
+#include <map>
 
 namespace Wuild
 {
@@ -23,6 +26,7 @@ class IVersionChecker
 public:
 	using Ptr = std::shared_ptr<IVersionChecker>;
 	using Version = std::string;
+	using VersionMap = std::map<std::string, Version>; //!< toolId=>Version
 	enum class ToolType { Unknown, GCC, Clang, MSVC };
 
 public:
@@ -33,6 +37,9 @@ public:
 	
 	/// Determine full tool version. If ToolType is Unknown, empty string is returned.
 	virtual Version GetToolVersion(const ToolInvocation::Id & toolId, ToolType type) const = 0;
+	
+	/// For each id in rewriter config, determine version using GetToolVersion and place key in map.
+	virtual VersionMap DetermineToolVersions(IInvocationRewriter::Ptr rewriter) const = 0;
 };
 
 }

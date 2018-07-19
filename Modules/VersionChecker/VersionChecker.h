@@ -14,7 +14,8 @@
 #pragma once
 
 #include "IVersionChecker.h"
-#include "ILocalExecutor.h"
+
+#include <ILocalExecutor.h>
 
 namespace Wuild
 {
@@ -28,6 +29,8 @@ public:
 	ToolType GuessToolType(const ToolInvocation::Id & toolId) const override;
 	
 	Version GetToolVersion(const ToolInvocation::Id & toolId, ToolType type) const override;
+	
+	VersionMap DetermineToolVersions(IInvocationRewriter::Ptr rewriter) const override;
 	
 private:
 	ILocalExecutor::Ptr m_localExecutor;

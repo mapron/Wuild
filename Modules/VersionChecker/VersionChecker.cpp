@@ -82,4 +82,26 @@ IVersionChecker::Version VersionChecker::GetToolVersion(const ToolInvocation::Id
 	return result;
 }
 
+IVersionChecker::VersionMap VersionChecker::DetermineToolVersions(IInvocationRewriter::Ptr rewriter) const
+{
+	const std::vector<std::string> & toolIds = rewriter->GetConfig().m_toolIds;
+	VersionMap result;
+	for (const auto & toolId : toolIds)
+	{
+		ToolInvocation::Id id;
+		id.m_toolId = toolId;
+		id = rewriter->CompleteToolId(id);
+		if (id.m_toolExecutable.empty())
+		{
+			result[toolId] = "";
+			continue;
+		}
+		
+		const auto toolType = GuessToolType(id);
+		const auto version = GetToolVersion(id, toolType);
+		result[toolId] = version;
+	}
+	return result;
+}
+
 }
