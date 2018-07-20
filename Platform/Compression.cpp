@@ -28,12 +28,6 @@ namespace Wuild
 
 namespace {
 const size_t CHUNK = 16384;
-// TODO: on windows, recieving ERROR_SHARING_VIOLATION when attempting to rename temporary file.
-const size_t g_renameAttempts = 50;
-const int64_t g_renameUsleep = 100000;
-
-const size_t messageMaxBytes   = 1024;
-const size_t ringBufferBytes   = 1024 * 256 + messageMaxBytes;
 
 #ifdef USE_ZLIB
 /* Compress from file source to file dest until EOF on source.

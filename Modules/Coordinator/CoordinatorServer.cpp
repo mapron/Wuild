@@ -59,7 +59,7 @@ void CoordinatorServer::Start()
 
 	m_server->SetHandlerInitCallback([this](SocketFrameHandler * handler){
 
-		handler->RegisterFrameReader(SocketFrameReaderTemplate<CoordinatorToolServerSession>::Create([this, handler](const CoordinatorToolServerSession& inputMessage, SocketFrameHandler::OutputCallback){
+		handler->RegisterFrameReader(SocketFrameReaderTemplate<CoordinatorToolServerSession>::Create([this](const CoordinatorToolServerSession& inputMessage, SocketFrameHandler::OutputCallback){
 			std::lock_guard<std::mutex> lock(m_infoMutex);
 			if (inputMessage.m_isFinished)
 			{

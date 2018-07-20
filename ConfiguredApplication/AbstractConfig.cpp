@@ -33,7 +33,6 @@ namespace
 	const char g_comment = ';';
 	const char g_iniGroupStart = '[';
 	const char g_groupCommandLineSeparator = '-';
-	const char g_variableStart = '$';
 	const std::string g_assign = ":=";
 }
 

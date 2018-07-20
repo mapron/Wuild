@@ -84,7 +84,6 @@ class TestService
 	std::unique_ptr<SocketFrameService> m_server;
 	std::vector<SocketFrameHandler::Ptr> m_clients;
 
-	bool m_waitForConnectedClients = true;
 	TimePoint m_waitForConnectedClientsTimeout = TimePoint (1.0);
 public:
 	void setServer(int port);
