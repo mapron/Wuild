@@ -25,13 +25,13 @@ class VersionChecker : public IVersionChecker
 public:
 	static Ptr Create(ILocalExecutor::Ptr localExecutor)
 	{ return Ptr(new VersionChecker(std::move(localExecutor))); }
-	
+
 	ToolType GuessToolType(const ToolInvocation::Id & toolId) const override;
-	
+
 	Version GetToolVersion(const ToolInvocation::Id & toolId, ToolType type) const override;
-	
+
 	VersionMap DetermineToolVersions(IInvocationRewriter::Ptr rewriter) const override;
-	
+
 private:
 	ILocalExecutor::Ptr m_localExecutor;
 };

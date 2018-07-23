@@ -114,11 +114,11 @@ void RemoteToolServer::Start()
 			};
 			m_impl->m_executor->AddTask(taskCC);
 		}));
-		
+
 		handler->RegisterFrameReader(SocketFrameReaderTemplate<ToolsVersionRequest>::Create([this](const ToolsVersionRequest& , SocketFrameHandler::OutputCallback outputCallback){
 			ToolsVersionResponse::Ptr response(new ToolsVersionResponse());
 			response->m_versions = m_toolVersionMap;
-			outputCallback(response);			
+			outputCallback(response);
 		}));
 	});
 

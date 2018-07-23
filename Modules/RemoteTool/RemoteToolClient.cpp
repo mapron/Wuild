@@ -396,7 +396,7 @@ void RemoteToolClient::CheckRemoteToolVersions(const IVersionChecker::VersionMap
 			continue; // OK, it's non-versioned tool
 		if (localVersion == remoteVersion)
 			continue; // OK, most common situation
-		
+
 		Syslogger(Syslogger::Err) << "Tool id=" << toolId << " has local version='" << localVersion << "' and remote version='" << remoteVersion << "'";
 		m_compilerVersionSuitable = false;
 	}

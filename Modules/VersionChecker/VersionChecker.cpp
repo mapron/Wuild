@@ -23,29 +23,29 @@ namespace Wuild
 VersionChecker::VersionChecker(ILocalExecutor::Ptr localExecutor)
 	: m_localExecutor(std::move(localExecutor))
 {
-	
+
 }
 
 IVersionChecker::ToolType VersionChecker::GuessToolType(const ToolInvocation::Id &toolId) const
 {
 	if (toolId.m_toolExecutable.empty())
 		throw std::logic_error("Tool id should be resolved before use.");
-	
+
 	const std::string executableName = FileInfo(toolId.m_toolExecutable).GetFullname();
-		
+
 	if (executableName.find("cl.exe") != std::string::npos)
 		return ToolType::MSVC;
-	
+
 	if (executableName.find("clang") != std::string::npos)
 		return ToolType::Clang;
-	
+
 	static const std::vector<std::string> s_gccNames {"gcc", "g++", "mingw"};
 	for (const auto & gccName : s_gccNames)
 	{
 		if (executableName.find(gccName) != std::string::npos)
 			return ToolType::GCC;
 	}
-	
+
 	return ToolType::Unknown;
 }
 
@@ -53,9 +53,9 @@ IVersionChecker::Version VersionChecker::GetToolVersion(const ToolInvocation::Id
 {
 	if (type == ToolType::Unknown)
 		return IVersionChecker::Version();
-	
+
 	static const std::regex versionRegex("\\d+\\.[0-9.]+");
-	
+
 	auto versionCheckTask = std::make_shared<LocalExecutorTask>();
 	versionCheckTask->m_readOutput = versionCheckTask->m_writeInput = false;
 	versionCheckTask->m_invocation.m_id = toolId;
@@ -63,22 +63,22 @@ IVersionChecker::Version VersionChecker::GetToolVersion(const ToolInvocation::Id
 	if (type == ToolType::Clang || type == ToolType::GCC)
 	{
 		versionCheckTask->m_callback = [&result](LocalExecutorResult::Ptr taskResult){
-			std::smatch match;			
-			if (std::regex_search(taskResult->m_stdOut, match, versionRegex)) 
-				result = match[0].str(); 
+			std::smatch match;
+			if (std::regex_search(taskResult->m_stdOut, match, versionRegex))
+				result = match[0].str();
 		};
 	}
 	if (type == ToolType::Clang)
 	{
-		versionCheckTask->m_invocation.m_args = {"--version"};		
-		m_localExecutor->SyncExecTask(versionCheckTask);
-	} 
-	else if (type == ToolType::GCC)
-	{
-		versionCheckTask->m_invocation.m_args = {"-dumpfullversion"};		
+		versionCheckTask->m_invocation.m_args = {"--version"};
 		m_localExecutor->SyncExecTask(versionCheckTask);
 	}
-	
+	else if (type == ToolType::GCC)
+	{
+		versionCheckTask->m_invocation.m_args = {"-dumpfullversion"};
+		m_localExecutor->SyncExecTask(versionCheckTask);
+	}
+
 	return result;
 }
 
@@ -96,7 +96,7 @@ IVersionChecker::VersionMap VersionChecker::DetermineToolVersions(IInvocationRew
 			result[toolId] = "";
 			continue;
 		}
-		
+
 		const auto toolType = GuessToolType(id);
 		const auto version = GetToolVersion(id, toolType);
 		result[toolId] = version;
