@@ -42,16 +42,16 @@ void LocalExecutor::AddTask(LocalExecutorTask::Ptr task)
 	if (!m_thread.IsRunning())
 		Start();
 	m_busyState = true;
-	m_taskQueue.push(task);	
+	m_taskQueue.push(task);
 }
 
 void LocalExecutor::SyncExecTask(LocalExecutorTask::Ptr task)
 {
 	if (m_busyState)
 		throw std::logic_error("Using SyncExecTask along with AddTask is not allowed");
-	
+
 	AddTask(task);
-	
+
 	std::unique_lock<std::mutex> lock(m_busyStateMutex);
 	m_busyStateCond.wait(lock, [this]{
 		return !m_busyState;
@@ -213,7 +213,8 @@ void LocalExecutor::Quant()
 			if (!result->m_result)
 				result->m_stdOut = "Failed to read file " + task->m_outputFile.GetPath();
 		}
-		Syslogger(Syslogger::Notice) << task->GetShortErrorInfo() << " -> " << task->m_outputFile.GetPath() << compressionInfo.str();
+		if (!task->m_outputFile.GetPath().empty())
+			Syslogger(Syslogger::Notice) << task->GetShortErrorInfo() << " -> " << task->m_outputFile.GetPath() << compressionInfo.str();
 
 		assert(bool(task->m_callback));
 		task->m_callback(result);

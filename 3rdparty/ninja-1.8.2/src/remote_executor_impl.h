@@ -36,6 +36,7 @@ class RemoteExecutor: public IRemoteExecutor
     Wuild::IInvocationRewriter::Ptr m_invocationRewriter;
     Wuild::RemoteToolClient::Config m_remoteToolConfig;
     std::shared_ptr<Wuild::RemoteToolClient> m_remoteService;
+    Wuild::IVersionChecker::VersionMap m_toolsVersions;
 
 #ifdef TEST_CLIENT
     Wuild::ILocalExecutor::Ptr m_localExecutor;
@@ -56,7 +57,7 @@ public:
     RemoteExecutor(Wuild::ConfiguredApplication & app);
 
     void SetVerbose(bool verbose);
-	double GetMaxLoadAverage() const;
+    double GetMaxLoadAverage() const;
 
     bool PreprocessCode(const std::vector<std::string> & originalRule,
                         const std::vector<std::string> & ignoredArgs,

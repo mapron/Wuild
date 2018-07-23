@@ -30,6 +30,12 @@ RemoteExecutor::RemoteExecutor(ConfiguredApplication &app) : m_app(app)
 
     m_invocationRewriter = InvocationRewriter::Create(compilerConfig);
 
+    {
+        auto localExecutor = LocalExecutor::Create(m_invocationRewriter, m_app.m_tempDir);
+        m_toolsVersions    = VersionChecker::Create(localExecutor)->DetermineToolVersions(m_invocationRewriter);
+    }
+
+
 #ifdef  TEST_CLIENT
     m_remoteService.reset(new RemoteToolClient(m_invocationRewriter));
     if (!m_remoteService->SetConfig(m_remoteToolConfig))
@@ -61,16 +67,16 @@ RemoteExecutor::RemoteExecutor(ConfiguredApplication &app) : m_app(app)
 void RemoteExecutor::SetVerbose(bool verbose)
 {
     if (verbose && !Syslogger::IsLogLevelEnabled(Syslogger::Info))
-		m_app.m_loggerConfig.m_maxLogLevel = Syslogger::Info;
-	
-	m_app.m_loggerConfig.m_logType = LoggerConfig::LogType::Printf;
-	
-	m_app.InitLogging(m_app.m_loggerConfig);
+        m_app.m_loggerConfig.m_maxLogLevel = Syslogger::Info;
+
+    m_app.m_loggerConfig.m_logType = LoggerConfig::LogType::Printf;
+
+    m_app.InitLogging(m_app.m_loggerConfig);
 }
 
 double RemoteExecutor::GetMaxLoadAverage() const
 {
-	return m_app.m_remoteToolClientConfig.m_maxLoadAverage;
+    return m_app.m_remoteToolClientConfig.m_maxLoadAverage;
 }
 
 bool RemoteExecutor::PreprocessCode(const std::vector<std::string> &originalRule, const std::vector<std::string> &ignoredArgs, std::string &toolId, std::vector<std::string> &preprocessRule, std::vector<std::string> &compileRule) const
@@ -144,11 +150,7 @@ void RemoteExecutor::RunIfNeeded(const std::vector<std::string> &toolIds)
     m_hasStart = true;
     if (!m_remoteService)
     {
-		auto localExecutor = LocalExecutor::Create(m_invocationRewriter, m_app.m_tempDir);
-		
-		const auto toolsVersions = VersionChecker::Create(localExecutor)->DetermineToolVersions(m_invocationRewriter);
-		
-        m_remoteService.reset(new RemoteToolClient(m_invocationRewriter, toolsVersions));
+        m_remoteService.reset(new RemoteToolClient(m_invocationRewriter, m_toolsVersions));
         if (!m_remoteService->SetConfig(m_remoteToolConfig))
             return;
     }
@@ -238,7 +240,7 @@ void RemoteExecutor::Abort()
 
 std::set<Edge *> RemoteExecutor::GetActiveEdges()
 {
-	return m_activeEdges;
+    return m_activeEdges;
 }
 
 RemoteExecutor::~RemoteExecutor()
