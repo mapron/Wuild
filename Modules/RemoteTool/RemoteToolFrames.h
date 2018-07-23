@@ -63,4 +63,32 @@ public:
 	State               WriteInternal(ByteOrderDataStreamWriter &stream) const override;
 };
 
+class ToolsVersionRequest : public SocketFrameExt
+{
+public:
+	static const uint32_t s_version = 1;
+	static const uint8_t s_frameTypeId = s_minimalUserFrameId + 3;
+	using Ptr = std::shared_ptr<ToolsVersionRequest>;
+
+	uint8_t             FrameTypeId() const override { return s_frameTypeId;}
+
+	State               ReadInternal(ByteOrderDataStreamReader &) override { return stOk;}
+	State               WriteInternal(ByteOrderDataStreamWriter &) const override { return stOk;}
+};
+
+class ToolsVersionResponse : public SocketFrameExt
+{
+public:
+	static const uint32_t s_version = 1;
+	static const uint8_t s_frameTypeId = s_minimalUserFrameId + 4; // I believe some day constexpr counters will be easier: http://b.atch.se/posts/constexpr-counter/
+	using Ptr = std::shared_ptr<ToolsVersionResponse>;
+
+	std::map<std::string, std::string> m_versions;
+
+	uint8_t             FrameTypeId() const override { return s_frameTypeId;}
+
+	State               ReadInternal(ByteOrderDataStreamReader &stream) override;
+	State               WriteInternal(ByteOrderDataStreamWriter &stream) const override;
+};
+
 }

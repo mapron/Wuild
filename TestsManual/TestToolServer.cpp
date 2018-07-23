@@ -16,6 +16,7 @@
 #include <RemoteToolClient.h>
 #include <RemoteToolServer.h>
 #include <LocalExecutor.h>
+#include <VersionChecker.h>
 
 const int g_toolsServerTestPort = 12345;
 const Wuild::CompressionType g_compType = Wuild::CompressionType::LZ4;
@@ -52,14 +53,16 @@ int main(int argc, char** argv)
 	toolServerConfig.m_listenPort = g_toolsServerTestPort;
 	toolServerConfig.m_coordinator.m_enabled = false;
 	toolServerConfig.m_compression.m_type = g_compType;
-
-	RemoteToolServer rcServer(localExecutor);
+	
+	const auto toolsVersions = VersionChecker::Create(localExecutor)->DetermineToolVersions(TestConfiguration::s_invocationRewriter);	
+	
+	RemoteToolServer rcServer(localExecutor, toolsVersions);
 	if (!rcServer.SetConfig(toolServerConfig))
 		return 1;
 
 	rcServer.Start();
 
-	RemoteToolClient rcClient(TestConfiguration::s_invocationRewriter);
+	RemoteToolClient rcClient(TestConfiguration::s_invocationRewriter, toolsVersions);
 	ToolServerInfo toolServerInfo;
 	toolServerInfo.m_connectionHost = "localhost";
 	toolServerInfo.m_connectionPort = g_toolsServerTestPort;

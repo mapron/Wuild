@@ -13,9 +13,9 @@
 
 #pragma once
 
-#include "ILocalExecutor.h"
-#include "CoordinatorClient.h"
-
+#include <ILocalExecutor.h>
+#include <IVersionChecker.h>
+#include <CoordinatorClient.h>
 #include <RemoteToolServerConfig.h>
 
 #include <functional>
@@ -31,7 +31,7 @@ public:
 	using Config = RemoteToolServerConfig;
 
 public:
-	RemoteToolServer(ILocalExecutor::Ptr executor);
+	RemoteToolServer(ILocalExecutor::Ptr executor, const IVersionChecker::VersionMap & versionMap);
 	~RemoteToolServer();
 
 	bool SetConfig(const Config & config);
@@ -42,10 +42,11 @@ protected:
 	void StartTask(const std::string & clientId, int64_t sessionId);
 	void FinishTask(int64_t sessionId, bool remove);
 	void UpdateInfo();
-	std::atomic<uint16_t> m_runningTasks {0};
-	Config m_config;
-	std::unique_ptr<RemoteToolServerImpl> m_impl;
 
+	std::unique_ptr<RemoteToolServerImpl> m_impl;
+	std::atomic<uint16_t>       m_runningTasks {0};
+	Config                      m_config;
+	IVersionChecker::VersionMap m_toolVersionMap;
 };
 
 }

@@ -16,6 +16,7 @@
 #include <ToolProxyServer.h>
 #include <RemoteToolClient.h>
 #include <LocalExecutor.h>
+#include <VersionChecker.h>
 
 int main(int argc, char** argv)
 {
@@ -33,12 +34,13 @@ int main(int argc, char** argv)
 	RemoteToolClient::Config config;
 	if (!app.GetRemoteToolClientConfig(config))
 		return 1;
+	
+	auto localExecutor = LocalExecutor::Create(invocationRewriter, app.m_tempDir);
+	const auto toolsVersions = VersionChecker::Create(localExecutor)->DetermineToolVersions(invocationRewriter);	
 
-	RemoteToolClient rcClient(invocationRewriter);
+	RemoteToolClient rcClient(invocationRewriter, toolsVersions);
 	if (!rcClient.SetConfig(config))
 		return 1;
-
-	auto localExecutor = LocalExecutor::Create(invocationRewriter, app.m_tempDir);
 
 	ToolProxyServer proxyServer(localExecutor, rcClient);
 	if (!proxyServer.SetConfig(proxyConfig))

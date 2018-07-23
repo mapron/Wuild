@@ -21,12 +21,13 @@
 #include <InvocationRewriter.h>
 #include <ThreadUtils.h>
 #include <Syslogger.h>
+#include <LocalExecutor.h>
+#include <VersionChecker.h>
 #include <iostream>
 
 //#define TEST_CLIENT
 #ifdef TEST_CLIENT
 #include <RemoteToolServer.h>
-#include <LocalExecutor.h>
 #endif
 
 class RemoteExecutor: public IRemoteExecutor

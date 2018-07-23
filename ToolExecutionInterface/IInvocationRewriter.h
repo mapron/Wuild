@@ -47,7 +47,11 @@ public:
 	/// Normalizes invocation struct, making possible to replace input/output files. Substitute toolId if possible.
 	virtual ToolInvocation CompleteInvocation(const ToolInvocation & original) const = 0;
 
+	/// Performs substitution of toolId executable if possible.
+	virtual ToolInvocation::Id CompleteToolId(const ToolInvocation::Id & original) const = 0;
+	
 	virtual bool CheckRemotePossibleForFlags(const ToolInvocation & original) const = 0;
+	
 	/// Remove preprocessor flags from splitted compilation phase; also remove extra preprocessor flags which not supported for distributed build.
 	virtual ToolInvocation FilterFlags(const ToolInvocation & original) const = 0;
 

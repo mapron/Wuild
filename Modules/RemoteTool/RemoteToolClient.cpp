@@ -157,6 +157,11 @@ public:
 			}
 			else
 			{
+				if (!this->m_parent->m_compilerVersionSuitable)
+				{
+					info.m_result = false;
+					info.m_stdOutput = "Invalid compiler configurations. Search log for details.\n";
+				}
 				task.m_callback(info);
 			}
 		};
@@ -171,8 +176,10 @@ public:
 };
 
 
-RemoteToolClient::RemoteToolClient(IInvocationRewriter::Ptr invocationRewriter)
-	: m_impl(new RemoteToolClientImpl()), m_invocationRewriter(std::move(std::move(invocationRewriter)))
+RemoteToolClient::RemoteToolClient(IInvocationRewriter::Ptr invocationRewriter, const IVersionChecker::VersionMap & versionMap)
+	: m_impl(new RemoteToolClientImpl())
+	, m_invocationRewriter(std::move(invocationRewriter))
+	, m_toolVersionMap(versionMap)
 {
 	m_impl->m_parent = this;
 	m_impl->m_coordinator.SetInfoArrivedCallback([this](const CoordinatorInfo& info){
@@ -275,6 +282,7 @@ void RemoteToolClient::AddClient(const ToolServerInfo &info, bool start)
 	settings.m_hasConnStatus = true;
 	SocketFrameHandler::Ptr handler(new SocketFrameHandler( settings ));
 	handler->RegisterFrameReader(SocketFrameReaderTemplate<RemoteToolResponse>::Create());
+	handler->RegisterFrameReader(SocketFrameReaderTemplate<ToolsVersionResponse>::Create());
 	handler->SetTcpChannel(info.m_connectionHost, info.m_connectionPort);
 
 	handler->SetChannelNotifier([&balancer, index, this](bool state){
@@ -285,7 +293,19 @@ void RemoteToolClient::AddClient(const ToolServerInfo &info, bool start)
 		balancer.SetServerSideLoad(index, status.uniqueRepliesQueued);
 		AvailableCheck();
 	});
-
+	auto versionFrameCallback = [this, info](SocketFrame::Ptr responseFrame, SocketFrameHandler::ReplyState state, const std::string & errorInfo)
+	{
+		if (state == SocketFrameHandler::ReplyState::Timeout || state == SocketFrameHandler::ReplyState::Error)
+		{
+			Syslogger(Syslogger::Err) << "Error on requesting toolserver " << info.m_connectionHost << ", " << errorInfo;
+		}
+		else
+		{
+			ToolsVersionResponse::Ptr result = std::dynamic_pointer_cast<ToolsVersionResponse>(responseFrame);
+			this->CheckRemoteToolVersions(result->m_versions);
+		}
+	};
+	handler->QueueFrame(ToolsVersionRequest::Ptr(new ToolsVersionRequest()), versionFrameCallback, m_config.m_requestTimeout);
 
 	{
 		std::lock_guard<std::mutex> lock2(m_impl->m_clientsMutex);
@@ -359,6 +379,26 @@ void RemoteToolClient::AvailableCheck()
 		const auto free  = m_impl->m_balancer.GetFreeThreads();
 		const auto total = m_impl->m_balancer.GetTotalThreads();
 		Syslogger(Syslogger::Notice) << "Recieved info from coordinator: total remote threads=" << total << ", free=" << free;
+	}
+}
+
+void RemoteToolClient::CheckRemoteToolVersions(const IVersionChecker::VersionMap &versionMap)
+{
+	for (const auto & versionPair : versionMap)
+	{
+		const auto & toolId = versionPair.first;
+		const auto & remoteVersion = versionPair.second;
+		const auto localIt = m_toolVersionMap.find(toolId);
+		if (localIt == m_toolVersionMap.end())
+			continue; // OK, we do not have such a tool locally.
+		const auto & localVersion = localIt->second;
+		if (localVersion.empty() && remoteVersion.empty())
+			continue; // OK, it's non-versioned tool
+		if (localVersion == remoteVersion)
+			continue; // OK, most common situation
+
+		Syslogger(Syslogger::Err) << "Tool id=" << toolId << " has local version='" << localVersion << "' and remote version='" << remoteVersion << "'";
+		m_compilerVersionSuitable = false;
 	}
 }
 

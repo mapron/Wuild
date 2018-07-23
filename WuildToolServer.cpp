@@ -15,6 +15,7 @@
 
 #include <RemoteToolServer.h>
 #include <LocalExecutor.h>
+#include <VersionChecker.h>
 
 int main(int argc, char** argv)
 {
@@ -30,11 +31,14 @@ int main(int argc, char** argv)
 		return 1;
 
 	auto localExecutor = LocalExecutor::Create(invocationRewriter, app.m_tempDir);
+	
+	auto versionChecker = VersionChecker::Create(localExecutor);
+	const auto toolsVersions = versionChecker->DetermineToolVersions(invocationRewriter);
 
-	RemoteToolServer rcService(localExecutor);
+	RemoteToolServer rcService(localExecutor, toolsVersions);
 	if (!rcService.SetConfig(toolServerConfig))
 		return 1;
-
+	
 	rcService.Start();
 
 	return ExecAppLoop();

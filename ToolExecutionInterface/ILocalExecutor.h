@@ -26,8 +26,11 @@ public:
 
 	virtual ~ILocalExecutor() = default;
 
-	/// Schedule task for execution. task contains callback to call when finished. Return value is current number of queued tasks.
+	/// Schedule task for execution. task contains callback to call when finished. 
 	virtual void AddTask(LocalExecutorTask::Ptr task) = 0;
+	
+	/// Caller thread will blocked until task finished. Precondition: queue must be empty.
+	virtual void SyncExecTask(LocalExecutorTask::Ptr task) = 0;
 
 	/// Try to split task to preprocessing and compilation tasks. Returns empty TaskPair on fail.
 	virtual TaskPair SplitTask(LocalExecutorTask::Ptr task, std::string & err) = 0;

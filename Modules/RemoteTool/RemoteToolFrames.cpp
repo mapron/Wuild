@@ -127,4 +127,16 @@ SocketFrame::State RemoteToolResponse::WriteInternal(ByteOrderDataStreamWriter &
 	return stOk;
 }
 
+SocketFrame::State ToolsVersionResponse::ReadInternal(ByteOrderDataStreamReader &stream)
+{
+	stream >> m_versions;
+	return stOk;
+}
+
+SocketFrame::State ToolsVersionResponse::WriteInternal(ByteOrderDataStreamWriter &stream) const
+{
+	stream << m_versions;
+	return stOk;
+}
+
 }

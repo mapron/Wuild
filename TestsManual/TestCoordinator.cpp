@@ -17,6 +17,7 @@
 #include <RemoteToolServer.h>
 #include <RemoteToolClient.h>
 #include <ThreadUtils.h>
+#include <VersionChecker.h>
 
 const std::string g_testTool = "testTool", g_testTool2 = "testTool2";
 using namespace Wuild;
@@ -33,6 +34,10 @@ public:
 			usleep(2000000);
 		Syslogger(Syslogger::Info) << "AddTask ";
 		task->m_callback(res);
+	}
+	void SyncExecTask(LocalExecutorTask::Ptr) override
+	{
+		assert(!"Not implemented for test.");
 	}
 	size_t GetQueueSize() const override
 	{
@@ -90,12 +95,14 @@ int main(int argc, char** argv)
 	clientConfig.m_minimalRemoteTasks = 1;
 	clientConfig.m_queueTimeout = TimePoint(2.0);
 	clientConfig.m_requestTimeout = TimePoint(1.0);
+	
+	const auto toolsVersions = VersionChecker::Create(executor)->DetermineToolVersions(TestConfiguration::s_invocationRewriter);
 
-	RemoteToolServer rcServer(executor);
+	RemoteToolServer rcServer(executor, toolsVersions);
 	if (!rcServer.SetConfig(toolServerConfig))
 		return 1;
 
-	RemoteToolClient rcClient(TestConfiguration::s_invocationRewriter);
+	RemoteToolClient rcClient(TestConfiguration::s_invocationRewriter, toolsVersions);
 	if (!rcClient.SetConfig(clientConfig))
 		return 1;
 

@@ -20,6 +20,7 @@
 #include <RemoteToolClientConfig.h>
 #include <ToolInvocation.h>
 #include <IInvocationRewriter.h>
+#include <IVersionChecker.h>
 
 #include <functional>
 #include <atomic>
@@ -55,7 +56,7 @@ public:
 	using InvokeCallback = std::function<void(const TaskExecutionInfo& )>;
 
 public:
-	RemoteToolClient(IInvocationRewriter::Ptr invocationRewriter);
+	RemoteToolClient(IInvocationRewriter::Ptr invocationRewriter, const IVersionChecker::VersionMap & versionMap);
 	~RemoteToolClient();
 
 	bool SetConfig(const Config & config);
@@ -78,6 +79,7 @@ public:
 protected:
 	void UpdateSessionInfo(const TaskExecutionInfo& executionResult);
 	void AvailableCheck();
+	void CheckRemoteToolVersions(const IVersionChecker::VersionMap & versionMap);
 
 	ThreadLoop m_thread;
 
@@ -92,11 +94,13 @@ protected:
 	std::mutex m_sessionInfoMutex;
 	std::mutex m_availableCheckMutex;
 
+	bool m_compilerVersionSuitable = true;
 	bool m_remoteIsAvailable = false;
 	RemoteAvailableCallback m_remoteAvailableCallback;
 	Config m_config;
 	//StringVector m_requiredToolIds;
 	IInvocationRewriter::Ptr m_invocationRewriter;
+	IVersionChecker::VersionMap m_toolVersionMap;
 };
 
 }

@@ -40,6 +40,8 @@ public:
 						 std::string * remoteToolId = nullptr) override;
 
    ToolInvocation CompleteInvocation(const ToolInvocation & original) const override;
+   
+   ToolInvocation::Id CompleteToolId(const ToolInvocation::Id & original) const override;
 
    bool CheckRemotePossibleForFlags(const ToolInvocation & original) const override;
    ToolInvocation FilterFlags(const ToolInvocation & original) const override;

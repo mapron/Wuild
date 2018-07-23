@@ -20,6 +20,7 @@
 #include <map>
 #include <atomic>
 #include <mutex>
+#include <condition_variable>
 
 // ninja classes.
 struct Subprocess;
@@ -34,11 +35,12 @@ class LocalExecutor : public ILocalExecutor
 {
 	LocalExecutor(IInvocationRewriter::Ptr invocationRewriter, std::string  tempPath);
 public:
-	static Ptr Create(IInvocationRewriter::Ptr invocationRewriter, const std::string & tempPath)
-	{ return Ptr(new LocalExecutor(invocationRewriter, tempPath)); }
+	static Ptr Create(IInvocationRewriter::Ptr invocationRewriter, std::string tempPath)
+	{ return Ptr(new LocalExecutor(invocationRewriter, std::move(tempPath))); }
 
 public:
 	void AddTask(LocalExecutorTask::Ptr task) override;
+	void SyncExecTask(LocalExecutorTask::Ptr task) override;
 	TaskPair SplitTask(LocalExecutorTask::Ptr task, std::string & err) override;
 	StringVector GetToolIds() const override;
 	void SetThreadCount(int threads) override;
@@ -57,6 +59,10 @@ private:
 	mutable std::mutex m_queueMutex;
 	using Guard = std::lock_guard<std::mutex>;
 	std::queue<LocalExecutorTask::Ptr> m_taskQueue;
+	
+	std::atomic_bool        m_busyState {false}; //!< Executor is doing some job
+	std::condition_variable m_busyStateCond;
+	std::mutex              m_busyStateMutex;
 
 	std::shared_ptr<IInvocationRewriter> m_invocationRewriter;
 	std::string m_tempPath;

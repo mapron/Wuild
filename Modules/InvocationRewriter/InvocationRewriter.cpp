@@ -97,6 +97,15 @@ ToolInvocation InvocationRewriter::CompleteInvocation(const ToolInvocation &orig
 	return inv;
 }
 
+ToolInvocation::Id InvocationRewriter::CompleteToolId(const ToolInvocation::Id &original) const
+{
+	ToolInfo info = CompileInfoById(original);
+	if (info.m_valid)
+		return info.m_id;
+	
+	return original;
+}
+
 bool InvocationRewriter::CheckRemotePossibleForFlags(const ToolInvocation & original) const
 {
 	ToolInfo info = CompileInfoById(original.m_id);
