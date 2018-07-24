@@ -145,6 +145,10 @@ void BuildStatus::BuildEdgeFinished(Edge* edge,
 
     printer_.PrintOnNewLine("FAILED: " + outputs + "\n");
     printer_.PrintOnNewLine(edge->EvaluateCommand() + "\n");
+	if (edge->pp_egde_)
+	{
+		printer_.PrintOnNewLine("Preprocess: " + edge->pp_egde_->EvaluateCommand() + "\n");
+	}
   }
 
   if (!output.empty()) {

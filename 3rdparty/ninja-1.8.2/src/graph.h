@@ -164,6 +164,7 @@ struct Edge {
   void Dump(const char* prefix="") const;
 
   const Rule* rule_;
+  Edge* pp_egde_ = nullptr; // preprocess for current edge, if any.
   Pool* pool_;
   vector<Node*> inputs_;
   vector<Node*> outputs_;

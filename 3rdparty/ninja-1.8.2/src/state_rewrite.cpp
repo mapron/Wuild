@@ -125,6 +125,7 @@ void RewriteStateRules(State *state, IRemoteExecutor * const remoteExecutor)
 
             Edge* edge_pp = state->AddEdge(replacement.pp);
             Edge* edge_cc = state->AddEdge(replacement.cc);
+			edge_cc->pp_egde_ = edge_pp;
 
             edge_cc->is_remote_ = true; // allow remote excution of compiler.
             edge_cc->use_temporary_inputs_ = true;  // clean preprocessed files on success.
