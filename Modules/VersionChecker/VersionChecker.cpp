@@ -39,13 +39,12 @@ IVersionChecker::ToolType VersionChecker::GuessToolType(const ToolInvocation::Id
 	if (executableName.find("clang") != std::string::npos)
 		return ToolType::Clang;
 
-	static const std::vector<std::string> s_gccNames {"gcc", "g++", "mingw"};
+	static const std::vector<std::string> s_gccNames {"gcc", "g++", "mingw", "g__~1"}; // "g__~1" is Windows short name.
 	for (const auto & gccName : s_gccNames)
 	{
 		if (executableName.find(gccName) != std::string::npos)
 			return ToolType::GCC;
 	}
-
 	return ToolType::Unknown;
 }
 
@@ -54,52 +53,52 @@ IVersionChecker::Version VersionChecker::GetToolVersion(const ToolInvocation::Id
 	if (type == ToolType::Unknown)
 		return IVersionChecker::Version();
 
-	static const std::regex versionRegex("\\d+\\.[0-9.]+");
+	static const std::regex versionRegexGnu("\\d+\\.[0-9.]+");
+	static const std::regex versionRegexCl(R"(\d+\.\d+\.\d+\.\d+ for \w+)");
 
 	auto versionCheckTask = std::make_shared<LocalExecutorTask>();
 	versionCheckTask->m_readOutput = versionCheckTask->m_writeInput = false;
 	versionCheckTask->m_invocation.m_id = toolId;
 	IVersionChecker::Version result;
-	if (type == ToolType::Clang || type == ToolType::GCC)
-	{
-		versionCheckTask->m_callback = [&result](LocalExecutorResult::Ptr taskResult){
-			std::smatch match;
-			if (std::regex_search(taskResult->m_stdOut, match, versionRegex))
-				result = match[0].str();
-		};
-	}
+
+	versionCheckTask->m_callback = [&result, type](LocalExecutorResult::Ptr taskResult){
+		std::smatch match;
+		if (std::regex_search(taskResult->m_stdOut, match, type == ToolType::MSVC ? versionRegexCl : versionRegexGnu))
+			result = match[0].str();
+	};
+	
 	if (type == ToolType::Clang)
-	{
 		versionCheckTask->m_invocation.m_args = {"--version"};
-		m_localExecutor->SyncExecTask(versionCheckTask);
-	}
 	else if (type == ToolType::GCC)
-	{
-		versionCheckTask->m_invocation.m_args = {"-dumpfullversion"};
-		m_localExecutor->SyncExecTask(versionCheckTask);
-	}
+		versionCheckTask->m_invocation.m_args = {"-dumpfullversion", "-dumpversion"};
+
+	m_localExecutor->SyncExecTask(versionCheckTask);
 
 	return result;
 }
 
 IVersionChecker::VersionMap VersionChecker::DetermineToolVersions(IInvocationRewriter::Ptr rewriter) const
 {
-	const std::vector<std::string> & toolIds = rewriter->GetConfig().m_toolIds;
 	VersionMap result;
-	for (const auto & toolId : toolIds)
+	for (const InvocationRewriterConfig::Tool & tool : rewriter->GetConfig().m_tools)
 	{
+		if (!tool.m_version.empty())
+		{
+			result[tool.m_id] = tool.m_version;
+			continue;
+		}
 		ToolInvocation::Id id;
-		id.m_toolId = toolId;
+		id.m_toolId = tool.m_id;
 		id = rewriter->CompleteToolId(id);
 		if (id.m_toolExecutable.empty())
 		{
-			result[toolId] = "";
+			result[tool.m_id] = "";
 			continue;
 		}
 
 		const auto toolType = GuessToolType(id);
 		const auto version = GetToolVersion(id, toolType);
-		result[toolId] = version;
+		result[tool.m_id] = version;
 	}
 	return result;
 }
