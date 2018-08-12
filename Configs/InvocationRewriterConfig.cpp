@@ -18,6 +18,7 @@
 
 namespace Wuild
 {
+const std::string InvocationRewriterConfig::VERSION_NO_CHECK = "NO_CHECK";
 
 std::string InvocationRewriterConfig::GetFirstToolId() const
 {

@@ -402,6 +402,9 @@ void RemoteToolClient::CheckRemoteToolVersions(const IVersionChecker::VersionMap
 
 		if (localVersion == remoteVersion)
 			continue; // OK, most common situation
+		
+		if (localVersion == InvocationRewriterConfig::VERSION_NO_CHECK || remoteVersion == InvocationRewriterConfig::VERSION_NO_CHECK)
+			continue;
 
 		Syslogger(Syslogger::Err) << "Tool id=" << toolId << " has local version='" << localVersion
 								  << "' and remote version='" << remoteVersion << "' on '" << hostname  << "'";

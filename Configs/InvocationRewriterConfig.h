@@ -19,6 +19,9 @@ namespace Wuild
 class InvocationRewriterConfig : public IConfig
 {
 public:
+	static const std::string VERSION_NO_CHECK;
+	
+public:
 	enum class ToolchainType { GCC, MSVC, UpdateFile };
 	struct Tool
 	{
