@@ -45,10 +45,12 @@ bool ToolProxyServer::SetConfig(const ToolProxyServer::Config &config)
 }
 
 
-void ToolProxyServer::Start()
+void ToolProxyServer::Start(std::function<void()> interruptCallback)
 {
 	m_executor->SetThreadCount(m_config.m_threadCount);
-	m_server = std::make_unique<SocketFrameService>( SocketFrameHandlerSettings{}, m_config.m_listenPort );
+	m_server = std::make_unique<SocketFrameService>(  );
+	m_server->AddTcpListener(m_config.m_listenPort, "*", {}, interruptCallback);
+	
 	m_server->RegisterFrameReader(SocketFrameReaderTemplate<ToolProxyRequest>::Create([this](const ToolProxyRequest& inputMessage, SocketFrameHandler::OutputCallback outputCallback){
 
 		// TODO: we assume that proxy server is used to build only one working directory at once.
@@ -60,49 +62,68 @@ void ToolProxyServer::Start()
 
 		LocalExecutorTask::Ptr original(new LocalExecutorTask());
 		original->m_invocation = inputMessage.m_invocation;
+		
 		original->m_readOutput = original->m_writeInput = false;
 		std::string err;
 		ILocalExecutor::TaskPair tasks = m_executor->SplitTask(original, err);
+		UpdateRunningJobs(+1);
 		if (tasks.first)
 		{
 			LocalExecutorTask::Ptr taskPP = tasks.first;
 
-			taskPP->m_callback = [&rcClient=m_rcClient, &executor=m_executor, taskCC=tasks.second, outputCallback] ( LocalExecutorResult::Ptr localResult ) {
-
+			taskPP->m_callback = [this, taskCC=tasks.second, outputCallback] ( LocalExecutorResult::Ptr localResult ) {
 				if (!localResult->m_result)
 				{
 					outputCallback(std::make_shared<ToolProxyResponse>(localResult->m_stdOut));
+					UpdateRunningJobs(-1);
 					return;
 				}
-
-				if (rcClient.GetFreeRemoteThreads() > 0)
+				if (m_rcClient.GetFreeRemoteThreads() > 0)
 				{
 					auto inputFilename = taskCC->m_invocation.GetInput();
-					auto remoteCallback = [outputCallback, inputFilename]( const Wuild::RemoteToolClient::TaskExecutionInfo& info) {
+					auto remoteCallback = [this, outputCallback, inputFilename]( const Wuild::RemoteToolClient::TaskExecutionInfo& info) {
 						FileInfo(inputFilename).Remove();
 						outputCallback(std::make_shared<ToolProxyResponse>(info.m_stdOutput, info.m_result));
+						UpdateRunningJobs(-1);
 					};
-					rcClient.InvokeTool(taskCC->m_invocation, remoteCallback);
+					m_rcClient.InvokeTool(taskCC->m_invocation, remoteCallback);
 				}
 				else
 				{
-					taskCC->m_callback = [outputCallback]( LocalExecutorResult::Ptr localResult ) {
+					taskCC->m_callback = [this, outputCallback]( LocalExecutorResult::Ptr localResult ) {
 						outputCallback(std::make_shared<ToolProxyResponse>(localResult->m_stdOut, localResult->m_result));
+						UpdateRunningJobs(-1);
 					};
-					executor->AddTask(taskCC);
+					m_executor->AddTask(taskCC);
 				}
 			};
 			m_executor->AddTask(taskPP);
 		}
 		else
 		{
-			original->m_callback = [outputCallback] ( LocalExecutorResult::Ptr localResult ) {
+			original->m_callback = [outputCallback, this] ( LocalExecutorResult::Ptr localResult ) {
 				outputCallback(std::make_shared<ToolProxyResponse>(localResult->m_stdOut, localResult->m_result));
+				UpdateRunningJobs(-1);
 			};
 			m_executor->AddTask(original);
 		}
 	}));
-
+	m_runningJobsUpdate = TimePoint(true);
+	
 	m_server->Start();
+	
+	m_inactiveChecker.Exec([this, interruptCallback]
+	{
+		std::lock_guard<std::mutex> lock(m_runningMutex);
+		if (m_runningJobs == 0 && m_runningJobsUpdate.GetElapsedTime() > m_config.m_inactiveTimeout)
+			interruptCallback();
+	}, 100000 /*us*/);
+}
+
+void ToolProxyServer::UpdateRunningJobs(int delta)
+{
+	std::lock_guard<std::mutex> lock(m_runningMutex);
+	m_runningJobsUpdate = TimePoint(true);
+	m_runningJobs += delta;
 }
 }

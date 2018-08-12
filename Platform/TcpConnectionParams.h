@@ -14,6 +14,7 @@
 #pragma once
 #include <memory>
 #include <vector>
+#include <functional>
 
 #include "TimePoint.h"
 
@@ -66,7 +67,8 @@ struct TcpListenerParams : public TcpConnectionParams
 	bool                     m_reuseSockets = true;            //!< Reuse socket on listen, if possible. Helpful if program terminates and run again shortly.
 	bool                     m_skipFailedConnection = true;    //!< Do not retry recreate listener on fail.
 	std::vector<TcpEndPoint> m_whiteList;                      //!< This hosts are allowed to connect. If empty, any host is allowed.
-
+	std::function<void()>    m_connectionFailureCallback; 
+	
 	bool Resolve();
 	void AddWhiteListPoint(int port, const std::string & host = std::string());
 	bool IsAccepted(const std::string & host, std::string & allowed);

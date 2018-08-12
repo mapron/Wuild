@@ -71,6 +71,8 @@ bool TcpListener::HasPendingConnections()
 
 	if (!StartListen())
 	{
+		if (m_params.m_connectionFailureCallback)
+			m_params.m_connectionFailureCallback();
 		Syslogger(m_logContext, Syslogger::Err) << "Failed to listen on " << m_params.m_endPoint.GetShortInfo() ;
 		return false;
 	}

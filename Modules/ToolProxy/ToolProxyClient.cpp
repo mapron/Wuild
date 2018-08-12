@@ -24,6 +24,26 @@
 #include <iostream>
 #include <memory>
 
+#ifndef _WIN32
+#include <unistd.h>
+#endif
+
+namespace 
+{
+void StartDetached(const std::string & command)
+{
+	if (!Wuild::FileInfo(command).Exists())
+		return;
+#ifdef __APPLE__
+	const std::string shell = "open -a " + command + " &";
+	system(shell.c_str());
+#elif !defined(_WIN32)
+	const std::string shell = command + " &";
+	system(shell.c_str());
+#endif
+}
+}
+
 namespace Wuild
 {
 
@@ -47,7 +67,7 @@ bool ToolProxyClient::SetConfig(const ToolProxyClient::Config &config)
 	return true;
 }
 
-bool ToolProxyClient::Start(TimePoint connectionTimeout)
+bool ToolProxyClient::Start()
 {
 	SocketFrameHandlerSettings settings;
 	settings.m_writeFailureLogLevel = Syslogger::Info;
@@ -63,7 +83,23 @@ bool ToolProxyClient::Start(TimePoint connectionTimeout)
 	m_client->Start();
 
 	std::unique_lock<std::mutex> lock(m_connectionStateMutex);
-	m_connectionStateCond.wait_for(lock, std::chrono::microseconds(connectionTimeout.GetUS()), [this]{
+	std::chrono::milliseconds processRand(0);
+	#ifndef _WIN32
+	    // additional sleep for 1..100 ms depending on process id.
+		srand( getpid() );
+		processRand = std::chrono::milliseconds(1 + rand() % 100);
+	#endif
+	
+	m_connectionStateCond.wait_for(lock, processRand + std::chrono::microseconds(m_config.m_clientConnectionTimeout.GetUS()), [this]{
+		return !!m_connectionState;
+	});
+	
+	if (!m_connectionState)
+	{
+		StartDetached(m_config.m_startCommand);
+	}
+	
+	m_connectionStateCond.wait_for(lock, processRand + std::chrono::microseconds(m_config.m_clientConnectionTimeout.GetUS()), [this]{
 		return !!m_connectionState;
 	});
 

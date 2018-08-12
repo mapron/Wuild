@@ -43,7 +43,6 @@ class SocketFrameHandler;
 /// Settings for FrameHandler - network channel layer
 struct SocketFrameHandlerSettings
 {
-	typedef std::function<bool(std::vector<SocketFrame::Ptr>&)> ConnectCallbackType;
 	SocketFrameHandlerSettings();
 
 	uint32_t       m_channelProtocolVersion = 1;		          //!< Channel protocol version. Client and server must have the same.

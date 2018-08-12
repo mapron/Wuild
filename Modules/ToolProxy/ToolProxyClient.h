@@ -42,7 +42,7 @@ public:
 
 	bool SetConfig(const Config & config);
 
-	bool Start(TimePoint connectionTimeout = TimePoint(1.0));
+	bool Start();
 
 	/// Invoke local compile task. It's not splitted.
 	void RunTask(const StringVector & args);

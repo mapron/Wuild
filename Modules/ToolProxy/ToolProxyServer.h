@@ -18,6 +18,7 @@
 #include <ToolProxyServerConfig.h>
 #include <RemoteToolClient.h>
 #include <ILocalExecutor.h>
+#include <ThreadLoop.h>
 
 #include <mutex>
 
@@ -43,14 +44,20 @@ public:
 	~ToolProxyServer();
 
 	bool SetConfig(const Config & config);
-	void Start();
-
-protected:
+	void Start(std::function<void()> interruptCallback);
+private:
+	void UpdateRunningJobs(int delta);
+	
+private:
 	ILocalExecutor::Ptr m_executor;
 	RemoteToolClient & m_rcClient;
 	Config m_config;
 	std::string m_cwd;
 	std::unique_ptr<SocketFrameService> m_server;
+	ThreadLoop m_inactiveChecker;
+	int m_runningJobs = 0;
+	TimePoint m_runningJobsUpdate;
+	std::mutex m_runningMutex;
 };
 
 }

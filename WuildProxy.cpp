@@ -47,7 +47,9 @@ int main(int argc, char** argv)
 		return 1;
 
 	rcClient.Start();
-	proxyServer.Start();
+	proxyServer.Start([]{
+		Application::Interrupt(1);
+	});
 
 	return ExecAppLoop();
 }

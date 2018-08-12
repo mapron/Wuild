@@ -372,11 +372,15 @@ void ConfiguredApplication::ReadToolProxyServerConfig()
 	const std::string defaultGroup("proxy");
 	m_toolProxyServerConfig.m_listenPort   = m_config->GetInt   (defaultGroup, "listenPort");
 	m_toolProxyServerConfig.m_toolId       = m_config->GetString(defaultGroup, "toolId");
+	m_toolProxyServerConfig.m_startCommand = m_config->GetString(defaultGroup, "startCommand", Application::Instance().GetExecutablePath()	+ "/WuildProxy");	
 	m_toolProxyServerConfig.m_threadCount  = m_config->GetInt   (defaultGroup, "threadCount", m_toolProxyServerConfig.m_threadCount);
 
 	int proxyClientTimeoutMS = m_config->GetInt(defaultGroup, "proxyClientTimeoutMS");
 	if (proxyClientTimeoutMS)
 		m_toolProxyServerConfig.m_proxyClientTimeout = TimePoint(proxyClientTimeoutMS / 1000.);
+	int inactiveTimeoutMS = m_config->GetInt(defaultGroup, "inactiveTimeoutMS");
+	if (inactiveTimeoutMS)
+		m_toolProxyServerConfig.m_inactiveTimeout = TimePoint(inactiveTimeoutMS / 1000.);
 }
 
 }

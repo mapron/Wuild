@@ -47,7 +47,7 @@ public:
 	int    QueueFrameToAll(SocketFrameHandler* sender, const SocketFrame::Ptr& message);
 
 	/// Creates new tcp port listener.
-	void   AddTcpListener(int port, const std::string & host="*", const StringVector & whiteList = StringVector());
+	void   AddTcpListener(int port, const std::string & host="*", const StringVector & whiteList = StringVector(), std::function<void()> connectionFailureCallback = {});
 
 	/// Starts new processing thread, calling Quant().
 	void   Start();

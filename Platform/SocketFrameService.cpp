@@ -61,7 +61,7 @@ int SocketFrameService::QueueFrameToAll(SocketFrameHandler *sender, const Socket
 	return ret;
 }
 
-void SocketFrameService::AddTcpListener(int port, const std::string & host, const StringVector & whiteList)
+void SocketFrameService::AddTcpListener(int port, const std::string & host, const StringVector & whiteList, std::function<void()> connectionFailureCallback)
 {
 	TcpListenerParams params;
 	params.m_endPoint.SetPoint(port, host);
@@ -70,6 +70,7 @@ void SocketFrameService::AddTcpListener(int port, const std::string & host, cons
 	params.m_recommendedSendBufferSize    = m_settings.m_recommendedSendBufferSize;
 	for (const auto & host : whiteList)
 		params.AddWhiteListPoint(port, host);
+	params.m_connectionFailureCallback = connectionFailureCallback;
 
 	auto listener = TcpListener::Create(params);
 	if (!m_logContext.empty())
