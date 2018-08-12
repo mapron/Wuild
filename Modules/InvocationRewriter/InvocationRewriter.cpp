@@ -77,9 +77,9 @@ bool InvocationRewriter::SplitInvocation(const ToolInvocation & original, ToolIn
 
 ToolInvocation InvocationRewriter::CompleteInvocation(const ToolInvocation &original) const
 {
-	ToolInvocation inv;
+	ToolInvocation inv = original;
+	inv.m_type = ToolInvocation::InvokeType::Unknown;
 	inv.m_args.clear();
-	inv.m_ignoredArgs = original.m_ignoredArgs;
 	for (const auto& arg : original.m_args)
 	{
 		StringVector argSplit;

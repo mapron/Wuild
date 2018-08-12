@@ -60,7 +60,7 @@ void SplitString(const std::string & str, StringVector & outList, char delim, bo
 	while (std::getline(ss, item, delim))
 	{
 		if (trimEach)
-			Trim(item);
+			item = Trim(item);
 		if (skipEmpty && item.empty())
 			continue;
 

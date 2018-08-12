@@ -41,6 +41,9 @@ public:
 	bool SetOutput(const std::string & filename);
 	std::string GetOutput() const;
 
+	void SetEnvironment(const StringVector & env);
+	const StringVector & GetEnvironment() const;
+
 	ToolInvocation & SetId(const std::string & toolId);
 	ToolInvocation & SetExecutable(const std::string & toolExecutable);
 
@@ -49,6 +52,7 @@ public:
 	InvokeType   m_type = InvokeType::Unknown;
 	StringVector m_args;
 	StringVector m_ignoredArgs;
+	StringVector m_envVars;
 	int          m_inputNameIndex  = -1;
 	int          m_outputNameIndex = -1;
 };

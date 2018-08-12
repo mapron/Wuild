@@ -14,7 +14,6 @@
 #pragma once
 
 #include "ToolInvocation.h"
-#include "IInvocationRewriter.h"
 
 #include <map>
 
@@ -34,12 +33,9 @@ public:
 	
 	/// Guess tool type by executable name.
 	virtual ToolType GuessToolType(const ToolInvocation::Id & toolId) const = 0;
-	
-	/// Determine full tool version. If ToolType is Unknown, empty string is returned.
-	virtual Version GetToolVersion(const ToolInvocation::Id & toolId, ToolType type) const = 0;
-	
+
 	/// For each id in toolIds, determine version using GetToolVersion and place key in map.
-	virtual VersionMap DetermineToolVersions(IInvocationRewriter::Ptr rewriter, const std::vector<std::string> & toolIds) const = 0;
+	virtual VersionMap DetermineToolVersions(const std::vector<std::string> & toolIds) const = 0;
 };
 
 }

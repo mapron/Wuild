@@ -162,7 +162,7 @@ void LocalExecutor::Quant()
 				}
 				task->m_invocation = inv;
 				task->m_executionStart = TimePoint(true);
-				Subprocess * addsubproc = m_subprocs->Add(cmd);
+				Subprocess * addsubproc = m_subprocs->Add(cmd, false, task->m_invocation.GetEnvironment());
 				if (!addsubproc)
 				{
 					task->ErrorResult("Failed to execute: " + cmd );

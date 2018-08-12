@@ -281,6 +281,7 @@ void ConfiguredApplication::ReadInvocationRewriterConfig()
 		unit.m_removeRemote= m_config->GetString(defaultGroup, id + "_removeRemote");
 		unit.m_remoteAlias = m_config->GetString(defaultGroup, id + "_remoteAlias");
 		unit.m_version     = m_config->GetString(defaultGroup, id + "_version");
+		unit.m_envCommand  = m_config->GetString(defaultGroup, id + "_env");
 
 		std::string type = m_config->GetString(defaultGroup, id + "_type", "gcc"); // "gcc" or "msvc"
 		if (type == "msvc" || unit.m_id.find("ms") == 0)

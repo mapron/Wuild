@@ -36,7 +36,7 @@ int main(int argc, char** argv)
 		return 1;
 	
 	auto localExecutor = LocalExecutor::Create(invocationRewriter, app.m_tempDir);
-	const auto toolsVersions = VersionChecker::Create(localExecutor)->DetermineToolVersions(invocationRewriter, {proxyConfig.m_toolId});
+	const auto toolsVersions = VersionChecker::Create(localExecutor, invocationRewriter)->DetermineToolVersions({proxyConfig.m_toolId});
 
 	RemoteToolClient rcClient(invocationRewriter, toolsVersions);
 	if (!rcClient.SetConfig(config))

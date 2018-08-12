@@ -12,6 +12,7 @@
  */
 
 #include "VersionChecker.h"
+#include "MsvcEnvironment.h"
 
 #include <FileUtils.h>
 #include <Syslogger.h>
@@ -21,8 +22,9 @@
 namespace Wuild
 {
 
-VersionChecker::VersionChecker(ILocalExecutor::Ptr localExecutor)
+VersionChecker::VersionChecker(ILocalExecutor::Ptr localExecutor, IInvocationRewriter::Ptr rewriter)
 	: m_localExecutor(std::move(localExecutor))
+	, m_rewriter(std::move(rewriter))
 {
 
 }
@@ -49,7 +51,37 @@ IVersionChecker::ToolType VersionChecker::GuessToolType(const ToolInvocation::Id
 	return ToolType::Unknown;
 }
 
-IVersionChecker::Version VersionChecker::GetToolVersion(const ToolInvocation::Id &toolId, IVersionChecker::ToolType type) const
+IVersionChecker::VersionMap VersionChecker::DetermineToolVersions(const std::vector<std::string> & toolIds) const
+{
+	VersionMap result;
+	for (const InvocationRewriterConfig::Tool & tool : m_rewriter->GetConfig().m_tools)
+	{
+		if (!toolIds.empty() && std::find(toolIds.cbegin(), toolIds.cend(), tool.m_id) == toolIds.cend())
+			continue;
+
+		if (!tool.m_version.empty())
+		{
+			result[tool.m_id] = tool.m_version;
+			continue;
+		}
+		ToolInvocation::Id id;
+		id.m_toolId = tool.m_id;
+		id = m_rewriter->CompleteToolId(id);
+		if (id.m_toolExecutable.empty())
+		{
+			result[tool.m_id] = "";
+			continue;
+		}
+
+		const auto toolType = GuessToolType(id);
+		const auto version = GetToolVersion(id, tool.m_envCommand, toolType);
+		result[tool.m_id] = version;
+	}
+	return result;
+}
+
+
+IVersionChecker::Version VersionChecker::GetToolVersion(const ToolInvocation::Id &toolId, const std::string & envCommand, IVersionChecker::ToolType type) const
 {
 	if (type == ToolType::Unknown)
 		return IVersionChecker::Version();
@@ -60,18 +92,19 @@ IVersionChecker::Version VersionChecker::GetToolVersion(const ToolInvocation::Id
 	auto versionCheckTask = std::make_shared<LocalExecutorTask>();
 	versionCheckTask->m_readOutput = versionCheckTask->m_writeInput = false;
 	versionCheckTask->m_invocation.m_id = toolId;
+	if (!envCommand.empty())
+		versionCheckTask->m_invocation.SetEnvironment(ExtractVsVars(envCommand, m_localExecutor));
+
 	IVersionChecker::Version result;
 
 	versionCheckTask->m_callback = [&result, type](LocalExecutorResult::Ptr taskResult){
 		std::smatch match;
-		// Syslogger(Syslogger::Warning) << taskResult->m_stdOut << " matching '" << (type == ToolType::MSVC ? R"(\d+\.\d+\.\d+\.\d+ for \w+)" : "\\d+\\.[0-9.]+") << "'";
 		if (std::regex_search(taskResult->m_stdOut, match, type == ToolType::MSVC ? versionRegexCl : versionRegexGnu))
 		{
 			result = match[0].str();
-			Syslogger(Syslogger::Warning) << "match=" << result;
 		}
 	};
-	
+
 	if (type == ToolType::Clang)
 		versionCheckTask->m_invocation.m_args = {"--version"};
 	else if (type == ToolType::GCC)
@@ -79,37 +112,6 @@ IVersionChecker::Version VersionChecker::GetToolVersion(const ToolInvocation::Id
 
 	m_localExecutor->SyncExecTask(versionCheckTask);
 
-	return result;
-}
-
-IVersionChecker::VersionMap VersionChecker::DetermineToolVersions(IInvocationRewriter::Ptr rewriter, const std::vector<std::string> & toolIds) const
-{
-	VersionMap result;
-	for (const InvocationRewriterConfig::Tool & tool : rewriter->GetConfig().m_tools)
-	{
-		if (std::find(toolIds.cbegin(), toolIds.cend(), tool.m_id) == toolIds.cend())
-			continue;
-
-		if (!tool.m_version.empty())
-		{
-			result[tool.m_id] = tool.m_version;
-			continue;
-		}
-		ToolInvocation::Id id;
-		id.m_toolId = tool.m_id;
-		id = rewriter->CompleteToolId(id);
-		if (id.m_toolExecutable.empty())
-		{
-			Syslogger(Syslogger::Warning) << tool.m_id << "->''";
-			result[tool.m_id] = "";
-			continue;
-		}
-
-		const auto toolType = GuessToolType(id);
-		const auto version = GetToolVersion(id, toolType);
-		Syslogger(Syslogger::Warning) << tool.m_id << "->" << version;
-		result[tool.m_id] = version;
-	}
 	return result;
 }
 
