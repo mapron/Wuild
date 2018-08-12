@@ -56,7 +56,7 @@ SocketFrame::State SocketFrame::Read(ByteOrderDataStreamReader &stream)
 
 SocketFrame::State SocketFrame::Write(ByteOrderDataStreamWriter &stream) const
 {
-	ptrdiff_t initialOffset;
+	ptrdiff_t initialOffset = 0;
 	if (m_writeLength)
 	{
 		m_length = 0;

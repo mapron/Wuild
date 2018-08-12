@@ -388,7 +388,8 @@ void SetCWD(const std::string &cwd)
 #ifdef _WIN32
 	_chdir(cwd.c_str());
 #else
-	chdir(cwd.c_str());
+	if (chdir(cwd.c_str()) != 0)
+		Syslogger(Syslogger::Err) << "Failed change current dir " << cwd;		
 #endif
 }
 

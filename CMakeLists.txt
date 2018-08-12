@@ -22,6 +22,7 @@ set(LZ4_STREAM_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/lz4_stream)
 
 
 #configure options
+option( WARNING_AS_ERROR "" ON )
 option( USE_ZLIB_COMPRESSION "" ON )
 option( USE_LZ4_COMPRESSION "" ON )
 option( USE_SYSTEM_ZLIB "Use system zlib library." ON )
@@ -52,10 +53,12 @@ else()
 	list(APPEND sys_deps -lpthread)
 endif()
 
-if (MSVC)
-	add_compile_options(/WX) #warning as error.
-else()
-    add_compile_options(-Werror -Wall -Wno-error=sign-compare)
+if (WARNING_AS_ERROR)
+    if (MSVC)
+        add_compile_options(/WX) #warning as error.
+    else()
+        add_compile_options(-Werror -Wall -Wno-error=sign-compare)
+    endif()
 endif()
 
 if (APPLE)
