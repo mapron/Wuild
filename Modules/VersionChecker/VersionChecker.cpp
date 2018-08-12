@@ -14,6 +14,7 @@
 #include "VersionChecker.h"
 
 #include <FileUtils.h>
+#include <Syslogger.h>
 
 #include <regex>
 
@@ -63,8 +64,12 @@ IVersionChecker::Version VersionChecker::GetToolVersion(const ToolInvocation::Id
 
 	versionCheckTask->m_callback = [&result, type](LocalExecutorResult::Ptr taskResult){
 		std::smatch match;
+		// Syslogger(Syslogger::Warning) << taskResult->m_stdOut << " matching '" << (type == ToolType::MSVC ? R"(\d+\.\d+\.\d+\.\d+ for \w+)" : "\\d+\\.[0-9.]+") << "'";
 		if (std::regex_search(taskResult->m_stdOut, match, type == ToolType::MSVC ? versionRegexCl : versionRegexGnu))
+		{
 			result = match[0].str();
+			Syslogger(Syslogger::Warning) << "match=" << result;
+		}
 	};
 	
 	if (type == ToolType::Clang)
@@ -77,11 +82,14 @@ IVersionChecker::Version VersionChecker::GetToolVersion(const ToolInvocation::Id
 	return result;
 }
 
-IVersionChecker::VersionMap VersionChecker::DetermineToolVersions(IInvocationRewriter::Ptr rewriter) const
+IVersionChecker::VersionMap VersionChecker::DetermineToolVersions(IInvocationRewriter::Ptr rewriter, const std::vector<std::string> & toolIds) const
 {
 	VersionMap result;
 	for (const InvocationRewriterConfig::Tool & tool : rewriter->GetConfig().m_tools)
 	{
+		if (std::find(toolIds.cbegin(), toolIds.cend(), tool.m_id) == toolIds.cend())
+			continue;
+
 		if (!tool.m_version.empty())
 		{
 			result[tool.m_id] = tool.m_version;
@@ -92,12 +100,14 @@ IVersionChecker::VersionMap VersionChecker::DetermineToolVersions(IInvocationRew
 		id = rewriter->CompleteToolId(id);
 		if (id.m_toolExecutable.empty())
 		{
+			Syslogger(Syslogger::Warning) << tool.m_id << "->''";
 			result[tool.m_id] = "";
 			continue;
 		}
 
 		const auto toolType = GuessToolType(id);
 		const auto version = GetToolVersion(id, toolType);
+		Syslogger(Syslogger::Warning) << tool.m_id << "->" << version;
 		result[tool.m_id] = version;
 	}
 	return result;

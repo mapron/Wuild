@@ -33,10 +33,10 @@ namespace Wuild
 /// Uses ninja's SubprocessSet.
 class LocalExecutor : public ILocalExecutor
 {
-	LocalExecutor(IInvocationRewriter::Ptr invocationRewriter, std::string  tempPath);
+	LocalExecutor(IInvocationRewriter::Ptr invocationRewriter, std::string tempPath, const std::shared_ptr<SubprocessSet> & subprocessSet);
 public:
-	static Ptr Create(IInvocationRewriter::Ptr invocationRewriter, std::string tempPath)
-	{ return Ptr(new LocalExecutor(invocationRewriter, std::move(tempPath))); }
+	static Ptr Create(IInvocationRewriter::Ptr invocationRewriter, std::string tempPath, const std::shared_ptr<SubprocessSet> & subprocessSet = nullptr)
+	{ return Ptr(new LocalExecutor(invocationRewriter, std::move(tempPath), subprocessSet)); }
 
 public:
 	void AddTask(LocalExecutorTask::Ptr task) override;
@@ -66,7 +66,7 @@ private:
 
 	std::shared_ptr<IInvocationRewriter> m_invocationRewriter;
 	std::string m_tempPath;
-	std::unique_ptr<SubprocessSet> m_subprocs;
+	std::shared_ptr<SubprocessSet> m_subprocs;
 	std::map<Subprocess*, LocalExecutorTask::Ptr> m_subprocToTask;
 	ThreadLoop m_thread;
 };

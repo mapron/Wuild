@@ -30,7 +30,7 @@ public:
 
 	Version GetToolVersion(const ToolInvocation::Id & toolId, ToolType type) const override;
 
-	VersionMap DetermineToolVersions(IInvocationRewriter::Ptr rewriter) const override;
+	VersionMap DetermineToolVersions(IInvocationRewriter::Ptr rewriter, const std::vector<std::string> & toolIds) const override;
 
 private:
 	ILocalExecutor::Ptr m_localExecutor;

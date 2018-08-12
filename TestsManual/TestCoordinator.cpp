@@ -96,7 +96,7 @@ int main(int argc, char** argv)
 	clientConfig.m_queueTimeout = TimePoint(2.0);
 	clientConfig.m_requestTimeout = TimePoint(1.0);
 	
-	const auto toolsVersions = VersionChecker::Create(executor)->DetermineToolVersions(TestConfiguration::s_invocationRewriter);
+	const auto toolsVersions = VersionChecker::Create(executor)->DetermineToolVersions(TestConfiguration::s_invocationRewriter, TestConfiguration::s_invocationRewriter->GetConfig().m_toolIds);
 
 	RemoteToolServer rcServer(executor, toolsVersions);
 	if (!rcServer.SetConfig(toolServerConfig))

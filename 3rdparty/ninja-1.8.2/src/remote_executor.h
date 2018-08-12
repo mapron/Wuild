@@ -15,8 +15,10 @@
 #include <vector>
 #include <string>
 #include <set>
+#include <memory>
 
 struct Edge;
+struct SubprocessSet;
 
 class IRemoteExecutor
 {
@@ -35,7 +37,7 @@ public:
     virtual std::string FilterPreprocessorFlags(const std::string & toolId, const std::string & flags) const = 0;
     virtual std::string FilterCompilerFlags(const std::string & toolId, const std::string & flags) const = 0;
 
-    virtual void RunIfNeeded(const std::vector<std::string> & toolIds) = 0;
+    virtual void RunIfNeeded(const std::vector<std::string> & toolIds, const std::shared_ptr<SubprocessSet> & subprocessSet) = 0;
     virtual int GetMinimalRemoteTasks() const = 0;
     virtual void SleepSome() const = 0;
 

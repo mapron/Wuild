@@ -54,7 +54,7 @@ int main(int argc, char** argv)
 	toolServerConfig.m_coordinator.m_enabled = false;
 	toolServerConfig.m_compression.m_type = g_compType;
 	
-	const auto toolsVersions = VersionChecker::Create(localExecutor)->DetermineToolVersions(TestConfiguration::s_invocationRewriter);	
+	const auto toolsVersions = VersionChecker::Create(localExecutor)->DetermineToolVersions(TestConfiguration::s_invocationRewriter, TestConfiguration::s_invocationRewriter->GetConfig().m_toolIds);
 	
 	RemoteToolServer rcServer(localExecutor, toolsVersions);
 	if (!rcServer.SetConfig(toolServerConfig))

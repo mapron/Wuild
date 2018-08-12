@@ -55,7 +55,7 @@ int main(int argc, char** argv)
 		return 1;
 	
 	auto localExecutor = LocalExecutor::Create(invocationRewriter, app.m_tempDir);
-	const auto toolsVersions = VersionChecker::Create(localExecutor)->DetermineToolVersions(invocationRewriter);	
+	const auto toolsVersions = VersionChecker::Create(localExecutor)->DetermineToolVersions(invocationRewriter, invocationRewriter->GetConfig().m_toolIds);
 
 	RemoteToolClient rcClient(invocationRewriter, toolsVersions);
 	config.m_queueTimeout = TimePoint(5.0);

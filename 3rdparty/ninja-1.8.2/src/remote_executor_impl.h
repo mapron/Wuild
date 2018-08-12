@@ -36,7 +36,6 @@ class RemoteExecutor: public IRemoteExecutor
     Wuild::IInvocationRewriter::Ptr m_invocationRewriter;
     Wuild::RemoteToolClient::Config m_remoteToolConfig;
     std::shared_ptr<Wuild::RemoteToolClient> m_remoteService;
-    Wuild::IVersionChecker::VersionMap m_toolsVersions;
 
 #ifdef TEST_CLIENT
     Wuild::ILocalExecutor::Ptr m_localExecutor;
@@ -70,7 +69,7 @@ public:
     std::string FilterPreprocessorFlags(const std::string & toolId, const std::string & flags) const override;
 
     std::string FilterCompilerFlags(const std::string & toolId, const std::string & flags) const override;
-    void RunIfNeeded(const std::vector<std::string> & toolIds) override;
+    void RunIfNeeded(const std::vector<std::string> & toolIds, const std::shared_ptr<SubprocessSet> & subprocessSet) override;
     void SleepSome() const  override;
     int GetMinimalRemoteTasks() const override;
 

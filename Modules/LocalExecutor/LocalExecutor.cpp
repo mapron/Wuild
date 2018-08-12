@@ -24,9 +24,10 @@
 namespace Wuild
 {
 
-LocalExecutor::LocalExecutor(IInvocationRewriter::Ptr invocationRewriter, std::string tempPath)
+LocalExecutor::LocalExecutor(IInvocationRewriter::Ptr invocationRewriter, std::string tempPath, const std::shared_ptr<SubprocessSet> & subprocessSet)
 	: m_invocationRewriter(std::move(std::move(invocationRewriter)))
 	, m_tempPath(std::move(tempPath))
+	, m_subprocs(subprocessSet)
 {
 }
 
@@ -98,7 +99,7 @@ LocalExecutor::~LocalExecutor() = default;
 void LocalExecutor::CheckSubprocs()
 {
 	if (!m_subprocs)
-		m_subprocs = std::make_unique<SubprocessSet>(false);
+		m_subprocs = std::make_shared<SubprocessSet>(false);
 }
 
 

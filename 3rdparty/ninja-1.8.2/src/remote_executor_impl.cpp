@@ -30,11 +30,6 @@ RemoteExecutor::RemoteExecutor(ConfiguredApplication &app) : m_app(app)
 
     m_invocationRewriter = InvocationRewriter::Create(compilerConfig);
 
-    {
-        auto localExecutor = LocalExecutor::Create(m_invocationRewriter, m_app.m_tempDir);
-        m_toolsVersions    = VersionChecker::Create(localExecutor)->DetermineToolVersions(m_invocationRewriter);
-    }
-
 
 #ifdef  TEST_CLIENT
     m_remoteService.reset(new RemoteToolClient(m_invocationRewriter));
@@ -142,7 +137,7 @@ std::string RemoteExecutor::FilterCompilerFlags(const std::string &toolId, const
     return m_invocationRewriter->FilterFlags(ToolInvocation(flags, ToolInvocation::InvokeType::Compile).SetId(toolId)).GetArgsString(false);
 }
 
-void RemoteExecutor::RunIfNeeded(const std::vector<std::string> &toolIds)
+void RemoteExecutor::RunIfNeeded(const std::vector<std::string> &toolIds, const std::shared_ptr<SubprocessSet> & subprocessSet)
 {
     if (!m_remoteEnabled || m_hasStart)
         return;
@@ -150,7 +145,9 @@ void RemoteExecutor::RunIfNeeded(const std::vector<std::string> &toolIds)
     m_hasStart = true;
     if (!m_remoteService)
     {
-        m_remoteService.reset(new RemoteToolClient(m_invocationRewriter, m_toolsVersions));
+        auto localExecutor = LocalExecutor::Create(m_invocationRewriter, m_app.m_tempDir, subprocessSet);
+        auto toolsVersions = VersionChecker::Create(localExecutor)->DetermineToolVersions(m_invocationRewriter, toolIds);
+        m_remoteService.reset(new RemoteToolClient(m_invocationRewriter, toolsVersions));
         if (!m_remoteService->SetConfig(m_remoteToolConfig))
             return;
     }

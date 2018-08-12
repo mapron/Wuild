@@ -38,8 +38,8 @@ public:
 	/// Determine full tool version. If ToolType is Unknown, empty string is returned.
 	virtual Version GetToolVersion(const ToolInvocation::Id & toolId, ToolType type) const = 0;
 	
-	/// For each id in rewriter config, determine version using GetToolVersion and place key in map.
-	virtual VersionMap DetermineToolVersions(IInvocationRewriter::Ptr rewriter) const = 0;
+	/// For each id in toolIds, determine version using GetToolVersion and place key in map.
+	virtual VersionMap DetermineToolVersions(IInvocationRewriter::Ptr rewriter, const std::vector<std::string> & toolIds) const = 0;
 };
 
 }

@@ -33,7 +33,7 @@ int main(int argc, char** argv)
 	auto localExecutor = LocalExecutor::Create(invocationRewriter, app.m_tempDir);
 	
 	auto versionChecker = VersionChecker::Create(localExecutor);
-	const auto toolsVersions = versionChecker->DetermineToolVersions(invocationRewriter);
+	const auto toolsVersions = versionChecker->DetermineToolVersions(invocationRewriter, invocationRewriter->GetConfig().m_toolIds);
 
 	RemoteToolServer rcService(localExecutor, toolsVersions);
 	if (!rcService.SetConfig(toolServerConfig))

@@ -79,7 +79,7 @@ public:
 protected:
 	void UpdateSessionInfo(const TaskExecutionInfo& executionResult);
 	void AvailableCheck();
-	void CheckRemoteToolVersions(const IVersionChecker::VersionMap & versionMap);
+	void CheckRemoteToolVersions(const IVersionChecker::VersionMap & versionMap, const std::string & hostname);
 
 	ThreadLoop m_thread;
 
@@ -101,6 +101,7 @@ protected:
 	//StringVector m_requiredToolIds;
 	IInvocationRewriter::Ptr m_invocationRewriter;
 	IVersionChecker::VersionMap m_toolVersionMap;
+	StringVector m_requiredToolIds;
 };
 
 }

@@ -524,7 +524,7 @@ void Plan::Dump() {
 }
 
 struct RealCommandRunner : public CommandRunner {
-  explicit RealCommandRunner(const BuildConfig& config) : config_(config) {}
+  explicit RealCommandRunner(const BuildConfig& config, const std::shared_ptr<SubprocessSet> & subprocs) : config_(config), subprocs_(subprocs) {}
   virtual ~RealCommandRunner() {}
   virtual bool CanRunMore();
   virtual bool StartCommand(Edge* edge);
@@ -533,7 +533,7 @@ struct RealCommandRunner : public CommandRunner {
   virtual void Abort();
 
   const BuildConfig& config_;
-  SubprocessSet subprocs_;
+  std::shared_ptr<SubprocessSet> subprocs_;
   map<Subprocess*, Edge*> subproc_to_edge_;
 };
 
@@ -546,20 +546,20 @@ vector<Edge*> RealCommandRunner::GetActiveEdges() {
 }
 
 void RealCommandRunner::Abort() {
-  subprocs_.Clear();
+  subprocs_->Clear();
 }
 
 bool RealCommandRunner::CanRunMore() {
   size_t subproc_number =
-      subprocs_.running_.size() + subprocs_.finished_.size();
+      subprocs_->running_.size() + subprocs_->finished_.size();
   return (int)subproc_number < config_.parallelism
-    && ((subprocs_.running_.empty() || config_.max_load_average <= 0.0f)
+    && ((subprocs_->running_.empty() || config_.max_load_average <= 0.0f)
         || GetLoadAverage() < config_.max_load_average);
 }
 
 bool RealCommandRunner::StartCommand(Edge* edge) {
   string command = edge->EvaluateCommand();
-  Subprocess* subproc = subprocs_.Add(command, edge->use_console());
+  Subprocess* subproc = subprocs_->Add(command, edge->use_console());
   if (!subproc)
     return false;
   subproc_to_edge_.insert(make_pair(subproc, edge));
@@ -569,8 +569,8 @@ bool RealCommandRunner::StartCommand(Edge* edge) {
 
 bool RealCommandRunner::WaitForCommand(Result* result) {
   Subprocess* subproc;
-  while ((subproc = subprocs_.NextFinished()) == NULL) {
-    bool interrupted = subprocs_.DoWork();
+  while ((subproc = subprocs_->NextFinished()) == NULL) {
+    bool interrupted = subprocs_->DoWork();
     if (interrupted)
       return false;
   }
@@ -677,13 +677,15 @@ bool Builder::Build(string* err) {
         toolIdsSet.insert(rule->toolId_);
   }
   std::vector<std::string> toolIds(toolIdsSet.begin(), toolIdsSet.end());
-
+  std::shared_ptr<SubprocessSet> subprocessSet;
   // Set up the command runner if we haven't done so already.
   if (!command_runner_.get()) {
     if (config_.dry_run)
       command_runner_.reset(new DryRunCommandRunner);
-    else
-      command_runner_.reset(new RealCommandRunner(config_));
+    else {
+        subprocessSet.reset(new SubprocessSet);
+      command_runner_.reset(new RealCommandRunner(config_, subprocessSet));
+    }
   }
 
   // We are about to start the build process.
@@ -691,7 +693,7 @@ bool Builder::Build(string* err) {
 
   int minimal_remote_tasks = remote_runner_->GetMinimalRemoteTasks();
   if (minimal_remote_tasks != -1 && remote_commands > minimal_remote_tasks)
-      remote_runner_->RunIfNeeded(toolIds);
+      remote_runner_->RunIfNeeded(toolIds, subprocessSet);
 
 
   // This main loop runs the entire build process.

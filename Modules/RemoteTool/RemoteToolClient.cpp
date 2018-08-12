@@ -223,13 +223,14 @@ void RemoteToolClient::Start(const StringVector & requiredToolIds)
 	m_sessionInfo.m_clientId = m_config.m_clientId;
 	m_impl->m_balancer.SetRequiredTools(requiredToolIds);
 	m_impl->m_balancer.SetSessionId(m_sessionId);
+	m_requiredToolIds = requiredToolIds;
 
 	const auto & initialToolServers = m_config.m_initialToolServers;
 	for (const auto & toolserverHost : initialToolServers.m_hosts)
 	{
 		ToolServerInfo info;
 		info.m_connectionHost = toolserverHost;
-		info.m_connectionPort = initialToolServers.m_port;
+		info.m_connectionPort = static_cast<int16_t>(initialToolServers.m_port);
 		info.m_toolIds        = initialToolServers.m_toolIds;
 		AddClient(info);
 	}
@@ -302,7 +303,7 @@ void RemoteToolClient::AddClient(const ToolServerInfo &info, bool start)
 		else
 		{
 			ToolsVersionResponse::Ptr result = std::dynamic_pointer_cast<ToolsVersionResponse>(responseFrame);
-			this->CheckRemoteToolVersions(result->m_versions);
+			this->CheckRemoteToolVersions(result->m_versions, info.m_connectionHost);
 		}
 	};
 	handler->QueueFrame(ToolsVersionRequest::Ptr(new ToolsVersionRequest()), versionFrameCallback, m_config.m_requestTimeout);
@@ -382,22 +383,28 @@ void RemoteToolClient::AvailableCheck()
 	}
 }
 
-void RemoteToolClient::CheckRemoteToolVersions(const IVersionChecker::VersionMap &versionMap)
+void RemoteToolClient::CheckRemoteToolVersions(const IVersionChecker::VersionMap &versionMap, const std::string & hostname)
 {
 	for (const auto & versionPair : versionMap)
 	{
 		const auto & toolId = versionPair.first;
 		const auto & remoteVersion = versionPair.second;
+		if (std::find(m_requiredToolIds.cbegin(), m_requiredToolIds.cend(), toolId) == m_requiredToolIds.cend())
+			continue; // OK, we do not even need that tool.
+
 		const auto localIt = m_toolVersionMap.find(toolId);
 		if (localIt == m_toolVersionMap.end())
 			continue; // OK, we do not have such a tool locally.
+
 		const auto & localVersion = localIt->second;
 		if (localVersion.empty() && remoteVersion.empty())
 			continue; // OK, it's non-versioned tool
+
 		if (localVersion == remoteVersion)
 			continue; // OK, most common situation
 
-		Syslogger(Syslogger::Err) << "Tool id=" << toolId << " has local version='" << localVersion << "' and remote version='" << remoteVersion << "'";
+		Syslogger(Syslogger::Err) << "Tool id=" << toolId << " has local version='" << localVersion
+								  << "' and remote version='" << remoteVersion << "' on '" << hostname  << "'";
 		m_compilerVersionSuitable = false;
 	}
 }
