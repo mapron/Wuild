@@ -27,6 +27,9 @@
 #else
 #include <Windows.h>
 #endif
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#endif
 
 namespace Wuild
 {
@@ -107,7 +110,16 @@ int Application::GetExitCode()
 
 std::string Application::GetExecutablePath ()
 {
-	#ifndef _WIN32
+	#ifdef __APPLE__
+	char path[4096], actualpath[4096];
+	uint32_t size = sizeof(path);
+	if (_NSGetExecutablePath(path, &size) != 0)
+		return path;
+	char * abspath = realpath(path, actualpath);
+	if (abspath)
+		return FileInfo(abspath).GetDir(true);
+	return "./";
+	#elif !defined(_WIN32)
 	int len;
 	char path[1024];
 	char* slash;
@@ -119,16 +131,7 @@ std::string Application::GetExecutablePath ()
 		return std::string("./");
 
 	path[len] = '\0';
-
-	// Get the directory in the path by stripping exe name
-
-	slash = strrchr(path, '/');
-	if(! slash || slash == path)
-		return std::string("./");
-
-	*slash = '\0';    // trip slash and exe name
-
-	return std::string(path) + "/";
+	return FileInfo(path).GetDir(true);
 	#else
 
 	WCHAR szFileName[MAX_PATH];

@@ -67,12 +67,13 @@ ConfiguredApplication::ConfiguredApplication(int argc, char **argv, const std::s
 			configPath = envPath;
 	}
 	bool unexistendConfigIsError = true;
+
 	if (configPath.empty())
 	{
 		unexistendConfigIsError = false;
 		const std::vector<std::string> configPaths {
 			Application::Instance().GetHomeDir() + "/" + g_defaultConfigSubfolder + g_defaultConfig,
-			Application::Instance().GetExecutablePath()	+ "/" + g_defaultConfig,
+			Application::Instance().GetExecutablePath()	+ g_defaultConfig,
 		};
 		for (const auto & path : configPaths)
 			if (FileInfo(path).Exists())
@@ -270,7 +271,7 @@ void ConfiguredApplication::ReadInvocationRewriterConfig()
 	const bool disableVersionChecks = m_config->GetBool(defaultGroup, "disableVersionChecks");
 	if (disableVersionChecks)
 		Syslogger(Syslogger::Warning) << "Warning: compiler version checks disabled!";
-	
+
 	m_invocationRewriterConfig.m_toolIds = m_config->GetStringList(defaultGroup, "toolIds");
 	for (const auto & id : m_invocationRewriterConfig.m_toolIds)
 	{
@@ -285,7 +286,7 @@ void ConfiguredApplication::ReadInvocationRewriterConfig()
 		unit.m_remoteAlias = m_config->GetString(defaultGroup, id + "_remoteAlias");
 		unit.m_version     = m_config->GetString(defaultGroup, id + "_version");
 		unit.m_envCommand  = m_config->GetString(defaultGroup, id + "_env");
-		
+
 		if (disableVersionChecks)
 			unit.m_version = InvocationRewriterConfig::VERSION_NO_CHECK;
 
@@ -372,7 +373,7 @@ void ConfiguredApplication::ReadToolProxyServerConfig()
 	const std::string defaultGroup("proxy");
 	m_toolProxyServerConfig.m_listenPort   = m_config->GetInt   (defaultGroup, "listenPort");
 	m_toolProxyServerConfig.m_toolId       = m_config->GetString(defaultGroup, "toolId");
-	m_toolProxyServerConfig.m_startCommand = m_config->GetString(defaultGroup, "startCommand", Application::Instance().GetExecutablePath()	+ "/WuildProxy");	
+	m_toolProxyServerConfig.m_startCommand = m_config->GetString(defaultGroup, "startCommand", Application::Instance().GetExecutablePath()	+ "WuildProxy");
 	m_toolProxyServerConfig.m_threadCount  = m_config->GetInt   (defaultGroup, "threadCount", m_toolProxyServerConfig.m_threadCount);
 
 	int proxyClientTimeoutMS = m_config->GetInt(defaultGroup, "proxyClientTimeoutMS");
