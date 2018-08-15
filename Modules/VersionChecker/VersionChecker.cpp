@@ -87,7 +87,7 @@ IVersionChecker::Version VersionChecker::GetToolVersion(const ToolInvocation::Id
 		return IVersionChecker::Version();
 
 	static const std::regex versionRegexGnu("\\d+\\.[0-9.]+");
-	static const std::regex versionRegexCl(R"(\d+\.\d+\.\d+\.\d+ for \w+)");
+	static const std::regex versionRegexCl(R"(\d+\.\d+\.\d+(\.\d+)? for \w+)");
 
 	auto versionCheckTask = std::make_shared<LocalExecutorTask>();
 	versionCheckTask->m_readOutput = versionCheckTask->m_writeInput = false;
