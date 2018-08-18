@@ -19,12 +19,13 @@ set(NINJA_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/ninja-1.8.2/src)
 set(ZLIB_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/zlib-1.2.11)
 set(LZ4_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/lz4-1.7.3)
 set(LZ4_STREAM_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/lz4_stream)
-
+set(ZSTD_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/zstd/lib)
 
 #configure options
 option( WARNING_AS_ERROR "" ON )
 option( USE_ZLIB_COMPRESSION "" ON )
 option( USE_LZ4_COMPRESSION "" ON )
+option( USE_ZSTD_COMPRESSION "" ON )
 option( USE_SYSTEM_ZLIB "Use system zlib library." ON )
 SET( BOOST_INCLUDEDIR "" CACHE PATH "Boost path to includes")
 SET( BOOST_LIBRARYDIR "" CACHE PATH "Boost path to compiled libs")
@@ -129,6 +130,14 @@ if (USE_LZ4_COMPRESSION)
 	AddTarget(NAME lz4_stream ROOT ${LZ4_STREAM_ROOT}/ CSRC *.cpp DEPS lz4_static)
 	list(APPEND COMPRESSION_LIBS lz4_stream lz4_static)
 	list(APPEND COMPRESSION_DEFINES -DUSE_LZ4)
+endif()
+
+if (USE_ZSTD_COMPRESSION)
+	AddTarget(NAME zstd_static ROOT ${ZSTD_ROOT}/ CSRC common/*.c compress/*.c  decompress/*.c
+		INCLUDES ${ZSTD_ROOT}/ ${ZSTD_ROOT}/common/
+		)
+	list(APPEND COMPRESSION_LIBS zstd_static)
+	list(APPEND COMPRESSION_DEFINES -DUSE_ZSTD)
 endif()
 
 # Source code targets.

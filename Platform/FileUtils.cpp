@@ -192,9 +192,13 @@ bool FileInfo::ReadCompressed(ByteArrayHolder &data, CompressionInfo compression
 	if (!inFile)
 		return false;
 
+	ByteArrayHolder uncompressedData;
+	if (!ReadFile(uncompressedData))
+		return false;
+
 	try
 	{
-		ReadCompressedData(inFile, data, compressionInfo);
+		CompressDataBuffer(uncompressedData, data, compressionInfo);
 	}
 	catch(std::exception &e)
 	{

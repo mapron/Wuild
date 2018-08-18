@@ -19,6 +19,11 @@
 #ifdef USE_LZ4
 #include <lz4_stream.h>
 #endif
+#ifdef USE_ZSTD
+#define ZSTD_STATIC_LINKING_ONLY
+#include <zstd.h>
+#endif
+
 
 #include <fstream>
 #include <sstream>
@@ -178,85 +183,6 @@ struct ByteArrayHolderBufReader : std::streambuf
 
 } // namespace
 
-void ReadCompressedData(std::ifstream &inFile, ByteArrayHolder &data, CompressionInfo compressionInfo)
-{
-	if (false) {}
-#ifdef USE_ZLIB
-	else if (compressionInfo.m_type == CompressionType::Gzip)
-	{
-		auto result = def(inFile, data.ref(), compressionInfo.m_level);
-		if (result != Z_OK)
-			throw std::runtime_error("Gzip deflate failed:"  + std::to_string(result));
-	}
-#endif
-#ifdef USE_LZ4
-	else if (compressionInfo.m_type == CompressionType::LZ4)
-	{
-		ByteArrayHolderBufWriter outBuffer(data);
-		std::ostream outBufferStream(&outBuffer);
-		LZ4OutputStream lz4_out_stream(outBufferStream);
-
-		std::copy(std::istreambuf_iterator<char>(inFile),
-				  std::istreambuf_iterator<char>(),
-				  std::ostreambuf_iterator<char>(lz4_out_stream));
-		lz4_out_stream.close();
-	}
-#endif
-	else if (compressionInfo.m_type == CompressionType::None)
-	{
-			ByteArrayHolderBufWriter outBuffer(data);
-			std::ostream outBufferStream(&outBuffer);
-
-			std::copy(std::istreambuf_iterator<char>(inFile),
-					  std::istreambuf_iterator<char>(),
-					  std::ostreambuf_iterator<char>(outBufferStream));
-	}
-	else
-	{
-		throw std::runtime_error("Unsupported compression type:" + std::to_string( static_cast<int>(compressionInfo.m_type)));
-	}
-}
-
-void WriteCompressedData(std::ofstream & outFile, const ByteArrayHolder &data, CompressionInfo compressionInfo)
-{
-	if (false) {}
-#ifdef USE_ZLIB
-	else if (compressionInfo.m_type == CompressionType::Gzip)
-	{
-		auto infResult = inf(data.ref(), outFile);
-		if (infResult != Z_OK)
-			throw std::runtime_error("Gzip inflate failed:"  + std::to_string(infResult));
-	}
-#endif
-#ifdef USE_LZ4
-	else if (compressionInfo.m_type == CompressionType::LZ4)
-	{
-		ByteArrayHolderBufReader buffer(data);
-		std::istream bufferStream(&buffer);
-		LZ4InputStream lz4_in_stream(bufferStream);
-
-		std::copy(std::istreambuf_iterator<char>(lz4_in_stream),
-				  std::istreambuf_iterator<char>(),
-				  std::ostreambuf_iterator<char>(outFile));
-
-	}
-#endif
-	else if (compressionInfo.m_type == CompressionType::None)
-	{
-		ByteArrayHolderBufReader buffer(data);
-		std::istream bufferStream(&buffer);
-
-		std::copy(std::istreambuf_iterator<char>(bufferStream),
-				  std::istreambuf_iterator<char>(),
-				  std::ostreambuf_iterator<char>(outFile));
-
-	}
-	else
-	{
-		throw std::runtime_error("Unsupported compression type:" + std::to_string( static_cast<int>(compressionInfo.m_type)));
-	}
-}
-
 void UncompressDataBuffer(const ByteArrayHolder & input, ByteArrayHolder & output, CompressionInfo compressionInfo)
 {
 	if (false) {}
@@ -282,6 +208,25 @@ void UncompressDataBuffer(const ByteArrayHolder & input, ByteArrayHolder & outpu
 		std::copy(std::istreambuf_iterator<char>(lz4inBufferStream),
 				  std::istreambuf_iterator<char>(),
 				  std::ostreambuf_iterator<char>(outBufferStream));
+	}
+#endif
+#ifdef USE_ZSTD
+	else if (compressionInfo.m_type == CompressionType::ZStd)
+	{
+		//size_t cSize;
+		//void* const cBuff = loadFile_orDie(fname, &cSize);
+		unsigned long long const rSize = ZSTD_findDecompressedSize(input.data(), input.size());
+		if (rSize == ZSTD_CONTENTSIZE_ERROR)
+			throw std::runtime_error("Data was not compressed by zstd.");
+		else if (rSize==ZSTD_CONTENTSIZE_UNKNOWN)
+			throw std::runtime_error("Original size unknown. Use streaming decompression instead.");
+
+		output.resize(rSize);
+
+		size_t const dSize = ZSTD_decompress(output.data(), rSize, input.data(), input.size());
+
+		if (dSize != rSize)
+			throw std::runtime_error("ZStd decompress failed:"  + std::string(ZSTD_getErrorName(dSize)));
 	}
 #endif
 	else if (compressionInfo.m_type == CompressionType::None)
@@ -320,6 +265,18 @@ void CompressDataBuffer(const ByteArrayHolder & input, ByteArrayHolder & output,
 				  std::istreambuf_iterator<char>(),
 				  std::ostreambuf_iterator<char>(lz4_out_stream));
 		lz4_out_stream.close();
+	}
+#endif
+#ifdef USE_ZSTD
+	else if (compressionInfo.m_type == CompressionType::ZStd)
+	{
+		size_t const cBuffSize = ZSTD_compressBound(input.size());
+		output.resize(cBuffSize);
+
+		size_t const cSize = ZSTD_compress(output.data(), cBuffSize, input.data(), input.size(), compressionInfo.m_level);
+		if (ZSTD_isError(cSize))
+			throw std::runtime_error("ZStd compress failed:"  + std::string(ZSTD_getErrorName(cSize)));
+		output.resize(cSize);
 	}
 #endif
 	else if (compressionInfo.m_type == CompressionType::None)

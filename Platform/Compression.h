@@ -20,19 +20,13 @@
 
 namespace Wuild {
 
-enum class CompressionType { None, LZ4, Gzip };
+enum class CompressionType { None, LZ4, Gzip, ZStd };
 
 struct CompressionInfo
 {
 	CompressionType m_type = CompressionType::None;
 	int m_level = 5;
 };
-
-/// Read file from disk and compress its contents in memory. throws std::exception.
-void ReadCompressedData(std::ifstream & inFile, ByteArrayHolder & data, CompressionInfo compressionInfo);
-
-/// Write deflated memory data to file on disk uncompressed. throws std::exception.
-void WriteCompressedData(std::ofstream & outFile, const ByteArrayHolder & data, CompressionInfo compressionInfo);
 
 void UncompressDataBuffer(const ByteArrayHolder & input, ByteArrayHolder & output, CompressionInfo compressionInfo);
 void CompressDataBuffer  (const ByteArrayHolder & input, ByteArrayHolder & output, CompressionInfo compressionInfo);
