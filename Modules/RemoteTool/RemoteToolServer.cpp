@@ -100,7 +100,7 @@ void RemoteToolServer::Start()
 			taskCC->m_invocation = inputMessage.m_invocation;
 			taskCC->m_inputData = inputMessage.m_fileData;
 			taskCC->m_compressionInput = inputMessage.m_compression;
-			auto compressionOut = taskCC->m_compressionOutput = m_config.m_compression;
+			auto compressionOut = taskCC->m_compressionOutput = m_config.m_useClientCompression ? inputMessage.m_compression : m_config.m_compression;
 			taskCC->m_callback = [outputCallback, this, sessionId, compressionOut](LocalExecutorResult::Ptr result)
 			{
 				FinishTask(sessionId, false);

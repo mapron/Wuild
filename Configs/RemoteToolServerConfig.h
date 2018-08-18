@@ -29,6 +29,7 @@ public:
 	int m_threadCount = 1;
 	CoordinatorClientConfig m_coordinator;
 	CompressionInfo m_compression;
+	bool m_useClientCompression = true;
 	bool Validate(std::ostream * errStream = nullptr) const override;
 };
 }

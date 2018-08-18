@@ -74,7 +74,7 @@ public:
 	/// Starts new remote task.
 	void InvokeTool(const ToolInvocation & invocation, const InvokeCallback& callback);
 
-	std::string GetSessionInformation() const { return m_sessionInfo.ToString(false, true); }
+	std::string GetSessionInformation() const;
 
 protected:
 	void UpdateSessionInfo(const TaskExecutionInfo& executionResult);
@@ -90,6 +90,9 @@ protected:
 	TimePoint m_lastFinish;
 	int64_t m_sessionId  = 0;
 	int64_t m_taskIndex  = 0;
+	TimePoint m_totalCompressionTime;
+	std::atomic<std::uint64_t> m_sentBytes {0};
+	std::atomic<std::uint64_t> m_recievedBytes{0};
 	ToolServerSessionInfo m_sessionInfo;
 	std::mutex m_sessionInfoMutex;
 	std::mutex m_availableCheckMutex;
@@ -98,7 +101,7 @@ protected:
 	bool m_remoteIsAvailable = false;
 	RemoteAvailableCallback m_remoteAvailableCallback;
 	Config m_config;
-	//StringVector m_requiredToolIds;
+
 	IInvocationRewriter::Ptr m_invocationRewriter;
 	IVersionChecker::VersionMap m_toolVersionMap;
 	StringVector m_requiredToolIds;

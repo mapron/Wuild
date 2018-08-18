@@ -37,6 +37,7 @@ int main(int argc, char ** argv)
 	{
 		CompressionInfo info;
 		info.m_type = compressionType;
+		info.m_level = compressionType == CompressionType::Gzip ? 6 : 9;
 		TimePoint start(true);
 		for (size_t dataSize : {1, 1000, 100000, 10000000})
 		{

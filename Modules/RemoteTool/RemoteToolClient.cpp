@@ -142,7 +142,10 @@ public:
 
 				if (info.m_result && !outputFilename.empty())
 				{
+					this->m_parent->m_recievedBytes += result->m_fileData.size();
+					TimePoint start(true);
 					info.m_result = FileInfo(outputFilename).WriteCompressed(result->m_fileData, result->m_compression);
+					this->m_parent->m_totalCompressionTime += start.GetElapsedTime();
 				}
 			}
 			m_parent->UpdateSessionInfo(info);
@@ -162,6 +165,7 @@ public:
 					info.m_result = false;
 					info.m_stdOutput = "Invalid compiler configurations. Search log for details.\n";
 				}
+
 				task.m_callback(info);
 			}
 		};
@@ -326,6 +330,7 @@ void RemoteToolClient::InvokeTool(const ToolInvocation & invocation, const Invok
 		callback(RemoteToolClient::TaskExecutionInfo("failed to read " + inputFilename));
 		return;
 	}
+	m_totalCompressionTime += start.GetElapsedTime();
 
 	RemoteToolRequest::Ptr toolRequest(new RemoteToolRequest());
 	toolRequest->m_invocation = m_invocationRewriter->PrepareRemote(invocation);
@@ -345,12 +350,24 @@ void RemoteToolClient::InvokeTool(const ToolInvocation & invocation, const Invok
 	wrap.m_attemptsRemain = m_config.m_invocationAttempts;
 	wrap.m_requestTimeout = m_config.m_requestTimeout;
 
+	m_sentBytes += inputData.size();
+
 	Syslogger(Syslogger::Info) << "QueueFrame [" << wrap.m_taskIndex << "] -> " << toolRequest->m_invocation.m_id.m_toolId
 							   << " " << toolRequest->m_invocation.GetArgsString(false)
 						<< ", balancerFree:" <<m_impl->m_balancer.GetFreeThreads()
 						<< ", pending:" << m_impl->m_pendingTasks;
 
 	m_impl->QueueTask(wrap);
+}
+
+std::string RemoteToolClient::GetSessionInformation() const
+{
+	std::ostringstream os;
+	os <<  m_sessionInfo.ToString(false, true);
+	os <<  " sent KiB: "  << m_sentBytes/1024 << ", ";
+	os <<  " recieved KiB: "  << m_recievedBytes/1024 << ", ";
+	os <<  " compression time: "  << m_totalCompressionTime.ToProfilingTime() << ", ";
+	return os.str();
 }
 
 
