@@ -10,7 +10,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.h
  */
-#include "BenchmarkUtils.h"
+/*#include "BenchmarkUtils.h"
 
 int main(int argc, char** argv)
 {
@@ -32,4 +32,64 @@ int main(int argc, char** argv)
 	Syslogger(Syslogger::Notice) << "Taken time:" << start.GetElapsedTime().ToProfilingTime();
 
 	return 0;
+}*/
+
+#include <uvw.hpp>
+#include <memory>
+
+#include <TimePoint.h>
+#include <Syslogger.h>
+
+using namespace Wuild;
+
+void listen(uvw::Loop &loop) {
+	std::shared_ptr<uvw::TcpHandle> tcp = loop.resource<uvw::TcpHandle>();
+
+	tcp->once<uvw::ListenEvent>([](const uvw::ListenEvent &, uvw::TcpHandle &srv) {
+		std::shared_ptr<uvw::TcpHandle> client = srv.loop().resource<uvw::TcpHandle>();
+
+		client->on<uvw::CloseEvent>([ptr = srv.shared_from_this()](const uvw::CloseEvent &, uvw::TcpHandle &) { ptr->close(); });
+		client->on<uvw::EndEvent>([](const uvw::EndEvent &, uvw::TcpHandle &client) { client.close(); });
+		client->on<uvw::DataEvent>([](const uvw::DataEvent & e, uvw::TcpHandle &client) {
+			Syslogger(Syslogger::Notice) << "Incoming:"<< e.length ;
+			auto dataWrite = std::unique_ptr<char[]>(new char[e.length]);
+			for (size_t i = 0; i < e.length; ++i)
+				dataWrite.get()[i] = e.data.get()[i] ^ char(0x80);
+			client.write(std::move(dataWrite), e.length);
+		});
+
+		srv.accept(*client);
+		client->read();
+	});
+
+	tcp->bind("127.0.0.1", 4242);
+	tcp->listen();
+}
+
+void conn(uvw::Loop &loop) {
+	auto tcp = loop.resource<uvw::TcpHandle>();
+
+	tcp->on<uvw::ErrorEvent>([](const uvw::ErrorEvent &, uvw::TcpHandle &) { /* handle errors */ });
+
+	tcp->once<uvw::ConnectEvent>([](const uvw::ConnectEvent &, uvw::TcpHandle &tcp) {
+		for (int i=0; i < 6; i++)
+		{
+			size_t len = 100000;
+			auto dataWrite = std::unique_ptr<char[]>(new char[len]);
+			for (size_t i = 0; i < len; ++i)
+				dataWrite.get()[i] = char(i % 256);
+			tcp.write(std::move(dataWrite), len);
+		}
+		tcp.close();
+	});
+
+	tcp->connect(std::string{"127.0.0.1"}, 4242);
+}
+
+int main(int argc, char** argv)
+{
+	auto loop = uvw::Loop::getDefault();
+	listen(*loop);
+	conn(*loop);
+	loop->run();
 }

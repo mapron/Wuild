@@ -20,6 +20,8 @@ set(ZLIB_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/zlib)
 set(LZ4_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/lz4-1.7.3)
 set(LZ4_STREAM_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/lz4_stream)
 set(ZSTD_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/zstd/lib)
+set(LIBUV_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libuv)
+set(UVW_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/uvw/src)
 
 #configure options
 option( WARNING_AS_ERROR "" ON )
@@ -81,7 +83,7 @@ endif()
 function(AddTarget)
 	set(options APP)
 	set(oneValueArgs NAME ROOT SUBDIR)
-	set(multiValueArgs CSRC INCLUDES DEPS EXCLUDE OPTIONS DEFINES)
+	set(multiValueArgs CSRC PUBLIC_INCLUDES INCLUDES DEPS EXCLUDE OPTIONS DEFINES)
 	cmake_parse_arguments(AddTarget "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )
 	set(_sources)
 	if (NOT AddTarget_ROOT)
@@ -101,6 +103,9 @@ function(AddTarget)
 	endif()
 	foreach (inc ${AddTarget_INCLUDES})
 		target_include_directories(${AddTarget_NAME} PRIVATE ${inc})
+	endforeach()
+	foreach (inc ${AddTarget_PUBLIC_INCLUDES})
+		target_include_directories(${AddTarget_NAME} PUBLIC ${inc})
 	endforeach()
 	target_include_directories(${AddTarget_NAME} INTERFACE ${AddTarget_ROOT})
 	foreach (dep ${AddTarget_DEPS})
@@ -139,6 +144,12 @@ if (USE_ZSTD_COMPRESSION)
 	list(APPEND COMPRESSION_LIBS zstd_static)
 	list(APPEND COMPRESSION_DEFINES -DUSE_ZSTD)
 endif()
+
+AddTarget(NAME libuv ROOT ${LIBUV_ROOT}/src CSRC *.c win/*.c
+	INCLUDES ${LIBUV_ROOT}/src
+	PUBLIC_INCLUDES ${LIBUV_ROOT}/include
+	OPTIONS /wd4996
+	)
 
 # Source code targets.
 set(ninja_lib_src
@@ -242,7 +253,8 @@ endforeach()
 foreach (benchname NetworkClient NetworkServer)
 	AddTarget(APP NAME Benchmark${benchname} ROOT ${CMAKE_CURRENT_SOURCE_DIR}/Benchmarks/
 		CSRC Benchmark${benchname}.cpp *.h BenchmarkUtils.cpp
-		DEPS ${main_deps} ${sys_deps}
+		DEPS ${main_deps} ${sys_deps} libuv Iphlpapi.lib Psapi.lib Userenv.lib
+		INCLUDES ${UVW_ROOT}
 		)
 endforeach()
 
