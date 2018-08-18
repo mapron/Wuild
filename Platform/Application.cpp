@@ -122,7 +122,6 @@ std::string Application::GetExecutablePath ()
 	#elif !defined(_WIN32)
 	int len;
 	char path[1024];
-	char* slash;
 
 	// Read symbolic link /proc/self/exe
 

@@ -39,7 +39,8 @@ void StartDetached(const std::string & command)
 	system(shell.c_str());
 #elif !defined(_WIN32)
 	const std::string shell = command + " &";
-	system(shell.c_str());
+	if (system(shell.c_str()) < 0)
+		Wuild::Syslogger(Wuild::Syslogger::Err) << "Failed to execute " << shell;
 #endif
 }
 }
