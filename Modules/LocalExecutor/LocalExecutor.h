@@ -53,18 +53,16 @@ private:
 	void CheckSubprocs();
 	LocalExecutorTask::Ptr GetNextTask();
 	void Quant();
+	const StringVector & GetToolIdEnvironment(const std::string & toolId);
 
 	size_t m_maxSubProcesses = 1;
 	size_t m_taskId = 0;
 	mutable std::mutex m_queueMutex;
 	using Guard = std::lock_guard<std::mutex>;
 	std::queue<LocalExecutorTask::Ptr> m_taskQueue;
-	
-	std::atomic_bool        m_busyState {false}; //!< Executor is doing some job
-	std::condition_variable m_busyStateCond;
-	std::mutex              m_busyStateMutex;
 
 	std::shared_ptr<IInvocationRewriter> m_invocationRewriter;
+	std::map<std::string, StringVector> m_toolIdEnvironment;
 	std::string m_tempPath;
 	std::shared_ptr<SubprocessSet> m_subprocs;
 	std::map<Subprocess*, LocalExecutorTask::Ptr> m_subprocToTask;

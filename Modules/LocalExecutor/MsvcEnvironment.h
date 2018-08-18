@@ -16,5 +16,5 @@
 
 namespace Wuild
 {
-StringVector ExtractVsVars(const std::string & vsvarsCommand, const ILocalExecutor::Ptr & executor);
+StringVector ExtractVsVars(const std::string & vsvarsCommand, ILocalExecutor & executor);
 }

@@ -12,7 +12,6 @@
  */
 
 #include "VersionChecker.h"
-#include "MsvcEnvironment.h"
 
 #include <FileUtils.h>
 #include <Syslogger.h>
@@ -74,14 +73,14 @@ IVersionChecker::VersionMap VersionChecker::DetermineToolVersions(const std::vec
 		}
 
 		const auto toolType = GuessToolType(id);
-		const auto version = GetToolVersion(id, tool.m_envCommand, toolType);
+		const auto version = GetToolVersion(id, toolType);
 		result[tool.m_id] = version;
 	}
 	return result;
 }
 
 
-IVersionChecker::Version VersionChecker::GetToolVersion(const ToolInvocation::Id &toolId, const std::string & envCommand, IVersionChecker::ToolType type) const
+IVersionChecker::Version VersionChecker::GetToolVersion(const ToolInvocation::Id &toolId, IVersionChecker::ToolType type) const
 {
 	if (type == ToolType::Unknown)
 		return IVersionChecker::Version();
@@ -92,8 +91,6 @@ IVersionChecker::Version VersionChecker::GetToolVersion(const ToolInvocation::Id
 	auto versionCheckTask = std::make_shared<LocalExecutorTask>();
 	versionCheckTask->m_readOutput = versionCheckTask->m_writeInput = false;
 	versionCheckTask->m_invocation.m_id = toolId;
-	if (!envCommand.empty())
-		versionCheckTask->m_invocation.SetEnvironment(ExtractVsVars(envCommand, m_localExecutor));
 
 	IVersionChecker::Version result;
 

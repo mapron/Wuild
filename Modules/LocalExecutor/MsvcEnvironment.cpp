@@ -16,24 +16,34 @@
 #include <StringUtils.h>
 #include <Syslogger.h>
 
+#include <algorithm>
+
 namespace Wuild
 {
 
-StringVector ExtractVsVars(const std::string & vsvarsCommand, const ILocalExecutor::Ptr &executor)
+StringVector ExtractVsVars(const std::string & vsvarsCommand, ILocalExecutor & executor)
 {
 	StringVector result;
 
 	auto varsCheckTask = std::make_shared<LocalExecutorTask>();
 	varsCheckTask->m_readOutput = varsCheckTask->m_writeInput = false;
+	varsCheckTask->m_setEnv = false;
 	varsCheckTask->m_invocation.m_id.m_toolExecutable = "cmd.exe";
 	std::string cmd = "/C \"" + vsvarsCommand + "\" && set";
 	varsCheckTask->m_invocation.SetArgsString(cmd);
 
 	varsCheckTask->m_callback = [&result](LocalExecutorResult::Ptr taskResult){
-		StringUtils::SplitString(taskResult->m_stdOut, result, '\n', true, true);
+		if (taskResult->m_result)
+		{
+			StringUtils::SplitString(taskResult->m_stdOut, result, '\n', true, true);
+		}
+		else
+		{
+			std::replace(taskResult->m_stdOut.begin(), taskResult->m_stdOut.end(), '\r', ' ');
+			Syslogger(Syslogger::Notice) << "ERROR: " << taskResult->m_stdOut ;
+		}
 	};
-
-	executor->SyncExecTask(varsCheckTask);
+	executor.SyncExecTask(varsCheckTask);
 
 	return result;
 }

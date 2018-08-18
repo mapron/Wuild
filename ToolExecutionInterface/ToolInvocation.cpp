@@ -79,16 +79,6 @@ std::string ToolInvocation::GetOutput() const
 	return m_args[m_outputNameIndex];
 }
 
-void ToolInvocation::SetEnvironment(const StringVector &env)
-{
-	m_envVars = env;
-}
-
-const StringVector &ToolInvocation::GetEnvironment() const
-{
-	return m_envVars;
-}
-
 ToolInvocation &ToolInvocation::SetId(const std::string &toolId)
 {
 	m_id.m_toolId = toolId;

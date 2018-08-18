@@ -32,7 +32,7 @@ public:
 	VersionMap DetermineToolVersions(const std::vector<std::string> & toolIds) const override;
 
 private:
-	Version GetToolVersion(const ToolInvocation::Id & toolId, const std::string & envCommand, ToolType type) const;
+	Version GetToolVersion(const ToolInvocation::Id & toolId, ToolType type) const;
 
 private:
 	ILocalExecutor::Ptr      m_localExecutor;

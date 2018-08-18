@@ -13,6 +13,8 @@
 
 #include "LocalExecutor.h"
 
+#include "MsvcEnvironment.h"
+
 #include <subprocess.h>
 #include <Syslogger.h>
 #include <ThreadUtils.h>
@@ -42,20 +44,32 @@ void LocalExecutor::AddTask(LocalExecutorTask::Ptr task)
 
 	if (!m_thread.IsRunning())
 		Start();
-	m_busyState = true;
+
 	m_taskQueue.push(task);
 }
 
 void LocalExecutor::SyncExecTask(LocalExecutorTask::Ptr task)
 {
-	if (m_busyState)
-		throw std::logic_error("Using SyncExecTask along with AddTask is not allowed");
+	std::atomic_bool        taskState {false};
+	std::condition_variable taskStateCond;
+	std::mutex              taskStateMutex;
+
+	auto originalCallback = task->m_callback;
+	task->m_callback = [originalCallback, &taskState, &taskStateMutex, &taskStateCond](LocalExecutorResult::Ptr result){
+		originalCallback(result);
+		std::unique_lock<std::mutex> lock(taskStateMutex);
+		taskState = true;
+		taskStateCond.notify_one();
+	};
+
+	if (task->m_setEnv) // working around subsequent SyncExecTask call. Todo: unlimined SyncExecTask recursion?
+		GetToolIdEnvironment(task->m_invocation.m_id.m_toolId);
 
 	AddTask(task);
 
-	std::unique_lock<std::mutex> lock(m_busyStateMutex);
-	m_busyStateCond.wait(lock, [this]{
-		return !m_busyState;
+	std::unique_lock<std::mutex> lock(taskStateMutex);
+	taskStateCond.wait(lock, [&taskState]{
+		return !!taskState;
 	});
 }
 
@@ -130,6 +144,9 @@ void LocalExecutor::Quant()
 			{
 				ToolInvocation inv = task->m_invocation;
 				inv = m_invocationRewriter->CompleteInvocation(inv);
+				StringVector env;
+				if (task->m_setEnv)
+					env = GetToolIdEnvironment(inv.m_id.m_toolId);
 
 				if (task->m_writeInput)
 				{
@@ -162,7 +179,7 @@ void LocalExecutor::Quant()
 				}
 				task->m_invocation = inv;
 				task->m_executionStart = TimePoint(true);
-				Subprocess * addsubproc = m_subprocs->Add(cmd, false, task->m_invocation.GetEnvironment());
+				Subprocess * addsubproc = m_subprocs->Add(cmd, false, env);
 				if (!addsubproc)
 				{
 					task->ErrorResult("Failed to execute: " + cmd );
@@ -220,12 +237,24 @@ void LocalExecutor::Quant()
 		assert(bool(task->m_callback));
 		task->m_callback(result);
 	}
-	else
+}
+
+const StringVector & LocalExecutor::GetToolIdEnvironment(const std::string & toolId)
+{
+	auto it = m_toolIdEnvironment.find(toolId);
+	if (it != m_toolIdEnvironment.end())
+		return it->second;
+
+	StringVector env;
+	for (const InvocationRewriterConfig::Tool & tool : m_invocationRewriter->GetConfig().m_tools)
 	{
-		std::unique_lock<std::mutex> lock(m_busyStateMutex);
-		m_busyState = false;
-		m_busyStateCond.notify_one();
+		if (tool.m_id == toolId && !tool.m_envCommand.empty())
+		{
+			env = ExtractVsVars(tool.m_envCommand, *this);
+		}
 	}
+	auto newit = m_toolIdEnvironment.insert(std::make_pair(toolId, env));
+	return newit.first->second;
 }
 
 }
