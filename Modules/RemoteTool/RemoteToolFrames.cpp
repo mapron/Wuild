@@ -14,59 +14,10 @@
 #include "RemoteToolFrames.h"
 
 #include <ByteOrderStream.h>
+#include <ByteOrderStreamTypes.h>
 
 namespace Wuild
 {
-
-template<>
-inline ByteOrderDataStreamReader& ByteOrderDataStreamReader::operator >> (TimePoint &point)
-{
-	point.SetUS( this->ReadScalar<int64_t>() );
-	return *this;
-}
-template<>
-inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator << (const TimePoint & point)
-{
-	*this << point.GetUS();
-	return *this;
-}
-
-template<>
-inline ByteOrderDataStreamReader& ByteOrderDataStreamReader::operator >> (ByteArrayHolder &point)
-{
-	point.resize(this->ReadScalar<uint32_t>());
-	if (point.size())
-		this->ReadBlock(point.data(), point.size());
-	return *this;
-}
-
-template<>
-inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator << (const ByteArrayHolder & point)
-{
-	uint32_t filesize = point.size();
-	*this << filesize;
-	if (filesize)
-		this->WriteBlock(point.data(), point.size());
-	return *this;
-}
-
-template<>
-inline ByteOrderDataStreamReader& ByteOrderDataStreamReader::operator >> (CompressionInfo & info)
-{
-	uint32_t level, compType;
-	*this >> compType >> level;
-	info.m_type = static_cast<CompressionType>(compType);
-	info.m_level = static_cast<int>(level);
-	return *this;
-}
-
-template<>
-inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator << (const CompressionInfo & info)
-{
-	*this << static_cast<uint32_t>(info.m_type);
-	*this << static_cast<uint32_t>(info.m_level);
-	return *this;
-}
 
 void RemoteToolRequest::LogTo(std::ostream &os) const
 {

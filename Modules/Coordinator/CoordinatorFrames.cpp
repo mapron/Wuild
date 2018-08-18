@@ -14,22 +14,10 @@
 #include "CoordinatorFrames.h"
 
 #include <ByteOrderStream.h>
+#include <ByteOrderStreamTypes.h>
 
 namespace Wuild
 {
-
-template<>
-inline ByteOrderDataStreamReader& ByteOrderDataStreamReader::operator >> (TimePoint &point)
-{
-	point.SetUS( this->ReadScalar<int64_t>() );
-	return *this;
-}
-template<>
-inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator << (const TimePoint & point)
-{
-	*this << point.GetUS();
-	return *this;
-}
 
 template<>
 inline ByteOrderDataStreamReader& ByteOrderDataStreamReader::operator >> (ToolServerInfo::ConnectedClientInfo &client)
