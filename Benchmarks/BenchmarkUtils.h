@@ -22,6 +22,7 @@
 #include <ThreadUtils.h>
 
 #include <memory>
+#include <condition_variable>
 #include <cassert>
 
 
