@@ -21,10 +21,70 @@
 #include <FileUtils.h>
 #include <StringUtils.h>
 #include <Syslogger.h>
+
 #include <algorithm>
 
 namespace Wuild
 {
+
+namespace 
+{
+
+bool IsSpace(char c) { return c == ' '  || c == '\t'; }
+bool IsQuote(char c) { return c == '\"' || c == '\''; }
+
+// not a real cmd parser funstion; it just skips quoted strings, doing no unescape.
+StringVector SplitShellCommand(const std::string & str)
+{
+	StringVector ret;
+#ifndef _WIN32
+	bool escape = false;
+#endif
+	std::string buffer;
+	buffer.reserve(str.size());
+	bool inQuoted = false;
+	
+	for (char c : str)
+	{
+	#ifndef _WIN32
+		if (escape)
+		{
+			buffer += c;
+			escape = false;
+			continue;
+		}
+
+		if (c == '\\')
+		{
+			buffer += c;
+			escape = true;
+			continue;
+		}
+	#endif
+		
+		if (IsQuote(c))
+		{
+			inQuoted = !inQuoted;
+		}
+		else if (IsSpace(c) && !inQuoted)
+		{
+			if (!buffer.empty())
+				ret.emplace_back(buffer);
+			
+			buffer.clear();
+			continue;
+		}
+		
+		// neither quote nor space
+		buffer += c;
+	}
+	
+	if (!buffer.empty())
+		ret.emplace_back(buffer);
+	
+	return ret;
+}
+}
 
 InvocationRewriter::InvocationRewriter() = default;
 
@@ -82,8 +142,7 @@ ToolInvocation InvocationRewriter::CompleteInvocation(const ToolInvocation &orig
 	inv.m_args.clear();
 	for (const auto& arg : original.m_args)
 	{
-		StringVector argSplit;
-		StringUtils::SplitString(StringUtils::Trim(arg), argSplit, ' ', false, true); //TODO: paths with spaces not supported!
+		StringVector argSplit = SplitShellCommand(arg);
 		inv.m_args.insert(inv.m_args.end(), argSplit.begin(), argSplit.end());
 	}
 
