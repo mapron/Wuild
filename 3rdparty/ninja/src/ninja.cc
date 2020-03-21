@@ -1344,6 +1344,7 @@ NORETURN void real_main(int argc, char** argv) {
   options.input_file = "build.ninja";
   options.dupe_edges_should_err = true;
 
+  Wuild::Syslogger::SetDeferredMode(true);
   Wuild::ConfiguredApplication app(argc, argv, "WuildNinja", "toolClient");
   argc = app.GetRemainArgc();
   argv = app.GetRemainArgv();
@@ -1355,6 +1356,8 @@ NORETURN void real_main(int argc, char** argv) {
   int exit_code = ReadFlags(&argc, &argv, &options, &config);
   if (exit_code >= 0)
     exit(exit_code);
+
+  Wuild::Syslogger::SetDeferredMode(false);
 
   double maxLoad = remoteExecutor.GetMaxLoadAverage();
   if (maxLoad)

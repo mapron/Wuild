@@ -44,6 +44,7 @@ public:
 
 	 /// Change default logging behaviour.
 	static void SetLoggerBackend(std::unique_ptr<ILoggerBackend> && backend);
+	static void SetDeferredMode(bool deferred);
 	static bool IsLogLevelEnabled(int logLevel);
 
 	/// Convenience wrapper for blobs. When outputting to Syslogger, output will be HEX-formatted.

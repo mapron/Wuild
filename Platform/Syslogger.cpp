@@ -18,32 +18,94 @@
 #include <iomanip>
 #include <algorithm>
 #include <memory>
+#include <atomic>
+#include <mutex>
+#include <queue>
+#include <utility>
 
 namespace Wuild
 {
 
-std::unique_ptr<ILoggerBackend> g_loggerBackend(new LoggerBackendConsole(Syslogger::Notice, false, false, false, LoggerBackendConsole::Type::Cout));
+class DeferredBackendProxy : public ILoggerBackend
+{
+public:
+	explicit DeferredBackendProxy(std::unique_ptr<ILoggerBackend> && backend)
+	{
+		SetLoggerBackend(std::move(backend));
+	}
+
+	void SetLoggerBackend(std::unique_ptr<ILoggerBackend> && backend)
+	{
+		m_loggerBackend = std::move(backend);
+	}
+
+	void SetDeferredMode(bool deferred)
+	{
+		m_deferred = deferred;
+		if (!deferred)
+		{
+			const std::unique_lock<std::mutex> guard(m_queueMutex);
+			while (!m_messagesQueue.empty())
+			{
+				const auto & message = m_messagesQueue.front();
+				m_loggerBackend->FlushMessage(message.first, message.second);
+				m_messagesQueue.pop();
+			}
+		}
+	}
+
+	bool LogEnabled(int logLevel) const override
+	{
+		return m_loggerBackend->LogEnabled(logLevel);
+	}
+
+	void FlushMessage(const std::string & message, int logLevel) const override
+	{
+		if (m_deferred)
+		{
+			const std::unique_lock<std::mutex> guard(m_queueMutex);
+			m_messagesQueue.push(std::make_pair(message, logLevel));
+		}
+		else
+		{
+			m_loggerBackend->FlushMessage(message, logLevel);
+		}
+	}
+
+private:
+	std::unique_ptr<ILoggerBackend> m_loggerBackend;
+	std::atomic_bool m_deferred {false};
+	mutable std::mutex m_queueMutex;
+	mutable std::queue<std::pair<std::string, int>> m_messagesQueue;
+};
+
+static DeferredBackendProxy g_loggerBackendProxy(std::make_unique<LoggerBackendConsole>(Syslogger::Notice, false, false, false, LoggerBackendConsole::Type::Cout));
 
 void Syslogger::SetLoggerBackend(std::unique_ptr<ILoggerBackend> && backend)
 {
-	g_loggerBackend = std::move(backend);
+	g_loggerBackendProxy.SetLoggerBackend(std::move(backend));
+}
+
+void Syslogger::SetDeferredMode(bool deferred)
+{
+	g_loggerBackendProxy.SetDeferredMode(deferred);
 }
 
 bool Syslogger::IsLogLevelEnabled(int logLevel)
 {
-	return g_loggerBackend->LogEnabled(logLevel);
+	return g_loggerBackendProxy.LogEnabled(logLevel);
 }
 
 Syslogger::Syslogger(int logLevel)
 	: m_logLevel(logLevel)
 {
-	if (g_loggerBackend->LogEnabled(logLevel))
+	if (g_loggerBackendProxy.LogEnabled(logLevel))
 		m_stream = std::make_unique<std::ostringstream>();
 }
 
 Syslogger::Syslogger(const std::string &context, int logLevel)
 {
-	if (g_loggerBackend->LogEnabled(logLevel))
+	if (g_loggerBackendProxy.LogEnabled(logLevel))
 	{
 		m_stream = std::make_unique<std::ostringstream>();
 		if (!context.empty())
@@ -54,7 +116,7 @@ Syslogger::Syslogger(const std::string &context, int logLevel)
 Syslogger::~Syslogger()
 {
 	if (m_stream)
-		g_loggerBackend->FlushMessage(m_stream->str(), m_logLevel);
+		g_loggerBackendProxy.FlushMessage(m_stream->str(), m_logLevel);
 }
 
 Syslogger::operator bool () const
