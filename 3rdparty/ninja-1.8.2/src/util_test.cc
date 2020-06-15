@@ -419,10 +419,16 @@ TEST(StripAnsiEscapeCodes, StripColors) {
 TEST(ElideMiddle, NothingToElide) {
   string input = "Nothing to elide in this short string.";
   EXPECT_EQ(input, ElideMiddle(input, 80));
+  EXPECT_EQ(input, ElideMiddle(input, 38));
+  EXPECT_EQ("", ElideMiddle(input, 0));
+  EXPECT_EQ(".", ElideMiddle(input, 1));
+  EXPECT_EQ("..", ElideMiddle(input, 2));
+  EXPECT_EQ("...", ElideMiddle(input, 3));
 }
 
 TEST(ElideMiddle, ElideInTheMiddle) {
   string input = "01234567890123456789";
   string elided = ElideMiddle(input, 10);
   EXPECT_EQ("012...789", elided);
+  EXPECT_EQ("01234567...23456789", ElideMiddle(input, 19));
 }

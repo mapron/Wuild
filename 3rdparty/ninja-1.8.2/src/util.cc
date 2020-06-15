@@ -45,7 +45,7 @@
 #elif defined(__SVR4) && defined(__sun)
 #include <unistd.h>
 #include <sys/loadavg.h>
-#elif defined(_AIX)
+#elif defined(_AIX) && !defined(__PASE__)
 #include <libperfstat.h>
 #elif defined(linux) || defined(__GLIBC__)
 #include <sys/sysinfo.h>
@@ -197,7 +197,7 @@ bool CanonicalizePath(char* path, size_t* len, uint64_t* slash_bits,
       case '\\':
         bits |= bits_mask;
         *c = '/';
-        // Intentional fallthrough.
+        NINJA_FALLTHROUGH;
       case '/':
         bits_mask <<= 1;
     }
@@ -318,13 +318,8 @@ int ReadFile(const string& path, string* contents, string* err) {
   // This makes a ninja run on a set of 1500 manifest files about 4% faster
   // than using the generic fopen code below.
   err->clear();
-  HANDLE f = ::CreateFile(path.c_str(),
-                          GENERIC_READ,
-                          FILE_SHARE_READ,
-                          NULL,
-                          OPEN_EXISTING,
-                          FILE_FLAG_SEQUENTIAL_SCAN,
-                          NULL);
+  HANDLE f = ::CreateFileA(path.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL,
+                           OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
   if (f == INVALID_HANDLE_VALUE) {
     err->assign(GetLastErrorString());
     return -ENOENT;
@@ -351,9 +346,19 @@ int ReadFile(const string& path, string* contents, string* err) {
     return -errno;
   }
 
+  struct stat st;
+  if (fstat(fileno(f), &st) < 0) {
+    err->assign(strerror(errno));
+    fclose(f);
+    return -errno;
+  }
+
+  // +1 is for the resize in ManifestParser::Load
+  contents->reserve(st.st_size + 1);
+
   char buf[64 << 10];
   size_t len;
-  while ((len = fread(buf, 1, sizeof(buf), f)) > 0) {
+  while (!feof(f) && (len = fread(buf, 1, sizeof(buf), f)) > 0) {
     contents->append(buf, len);
   }
   if (ferror(f)) {
@@ -437,8 +442,12 @@ string GetLastErrorString() {
   return msg;
 }
 
-void Win32Fatal(const char* function) {
-  Fatal("%s: %s", function, GetLastErrorString().c_str());
+void Win32Fatal(const char* function, const char* hint) {
+  if (hint) {
+    Fatal("%s: %s (%s)", function, GetLastErrorString().c_str(), hint);
+  } else {
+    Fatal("%s: %s", function, GetLastErrorString().c_str());
+  }
 }
 #endif
 
@@ -472,10 +481,17 @@ string StripAnsiEscapeCodes(const string& in) {
 
 int GetProcessorCount() {
 #ifdef _WIN32
-  SYSTEM_INFO info;
-  GetNativeSystemInfo(&info);
-  return info.dwNumberOfProcessors;
+  return GetActiveProcessorCount(ALL_PROCESSOR_GROUPS);
 #else
+#ifdef CPU_COUNT
+  // The number of exposed processors might not represent the actual number of
+  // processors threads can run on. This happens when a CPU set limitation is
+  // active, see https://github.com/ninja-build/ninja/issues/1278
+  cpu_set_t set;
+  if (sched_getaffinity(getpid(), sizeof(set), &set) == 0) {
+    return CPU_COUNT(&set);
+  }
+#endif
   return sysconf(_SC_NPROCESSORS_ONLN);
 #endif
 }
@@ -546,6 +562,10 @@ double GetLoadAverage() {
 
   return posix_compatible_load;
 }
+#elif defined(__PASE__)
+double GetLoadAverage() {
+  return -0.0f;
+}
 #elif defined(_AIX)
 double GetLoadAverage() {
   perfstat_cpu_total_t cpu_stats;
@@ -556,7 +576,7 @@ double GetLoadAverage() {
   // Calculation taken from comment in libperfstats.h
   return double(cpu_stats.loadavg[0]) / double(1 << SBITS);
 }
-#elif defined(__UCLIBC__)
+#elif defined(__UCLIBC__) || (defined(__BIONIC__) && __ANDROID_API__ < 29)
 double GetLoadAverage() {
   struct sysinfo si;
   if (sysinfo(&si) != 0)
@@ -576,9 +596,15 @@ double GetLoadAverage() {
 #endif // _WIN32
 
 string ElideMiddle(const string& str, size_t width) {
+  switch (width) {
+      case 0: return "";
+      case 1: return ".";
+      case 2: return "..";
+      case 3: return "...";
+  }
   const int kMargin = 3;  // Space for "...".
   string result = str;
-  if (result.size() + kMargin > width) {
+  if (result.size() > width) {
     size_t elide_size = (width - kMargin) / 2;
     result = result.substr(0, elide_size)
       + "..."
