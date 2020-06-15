@@ -28,8 +28,10 @@
 #include "state.h"
 #include "util.h"
 
-bool Node::Stat(DiskInterface* disk_interface, string* err) {
-  return (mtime_ = disk_interface->Stat(path_, err)) != -1;
+
+bool Node::Stat(const DiskInterface* disk_interface, string* err) {
+  mtime_ = disk_interface->Stat(path_, err);
+  return  mtime_ != -1;
 }
 
 bool DependencyScan::RecomputeDirty(Node* node, string* err) {
@@ -239,6 +241,9 @@ bool DependencyScan::RecomputeOutputDirty(const Edge* edge,
   }
 
   BuildLog::LogEntry* entry = 0;
+  Node* originalOutput = output;
+  if (output->has_buddy())
+     output = output->buddy();
 
   // Dirty if we're missing the output.
   if (!output->exists()) {
@@ -273,14 +278,26 @@ bool DependencyScan::RecomputeOutputDirty(const Edge* edge,
 
   if (build_log()) {
     bool generator = edge->GetBindingBool("generator");
-    if (entry || (entry = build_log()->LookupByOutput(output->path()))) {
-      if (!generator &&
-          BuildLog::LogEntry::HashCommand(command) != entry->command_hash) {
-        // May also be dirty due to the command changing since the last build.
-        // But if this is a generator rule, the command changing does not make us
-        // dirty.
-        EXPLAIN("command line changed for %s", output->path().c_str());
-        return true;
+    BuildLog::LogEntry* entryOriginal = build_log()->LookupByOutput(originalOutput->path());
+    if (entryOriginal && !generator && BuildLog::LogEntry::HashCommand(command) != entryOriginal->command_hash) {
+      // May also be dirty due to the command changing since the last build.
+      // But if this is a generator rule, the command changing does not make us
+      // dirty.
+      EXPLAIN("command line changed for %s", originalOutput->path().c_str());
+      return true;
+    }
+
+    if (entry || (entry = build_log()->LookupByOutput(output->path())))
+    {
+      if (originalOutput != output) // PP rule
+      {
+        Edge* edge = output->in_edge();
+        string command = edge->EvaluateCommand(/*incl_rsp_file=*/true);
+        if (entry && !generator && BuildLog::LogEntry::HashCommand(command) != entry->command_hash)
+        {
+          EXPLAIN("command line changed for %s", output->path().c_str());
+          return true;
+        }
       }
       if (most_recent_input && entry->mtime < most_recent_input->mtime()) {
         // May also be dirty due to the mtime in the log being older than the
@@ -379,10 +396,20 @@ string EdgeEnv::LookupVariable(const string& var) {
 std::string EdgeEnv::MakePathList(const Node* const* const span,
                                   const size_t size, const char sep) const {
   string result;
+  const string & cwd = GetCWD();
   for (const Node* const* i = span; i != span + size; ++i) {
     if (!result.empty())
       result.push_back(sep);
-    const string& path = (*i)->PathDecanonicalized();
+    string path = (*i)->PathDecanonicalized();
+    if (path.find(cwd) == 0)
+        path = path.substr(cwd.size());
+
+    // FIXME: dirty hack for win RC!!
+    if (path.substr(path.size()-3)  == ".rc" && path[1] != ':')
+    {
+        path = cwd + path;
+    }
+
     if (escape_in_out_ == kShellEscape) {
 #ifdef _WIN32
       GetWin32EscapedString(path, &result);
@@ -481,6 +508,8 @@ string Node::PathDecanonicalized(const string& path, uint64_t slash_bits) {
 #endif
   return result;
 }
+
+void Node::RemoveOutEdge(Edge *edge) { auto it =  std::find(out_edges_.begin(), out_edges_.end(), edge);  if (it != out_edges_.end())  out_edges_.erase(it); }
 
 void Node::Dump(const char* prefix) const {
   printf("%s <%s 0x%p> mtime: %" PRId64 "%s, (:%s), ",

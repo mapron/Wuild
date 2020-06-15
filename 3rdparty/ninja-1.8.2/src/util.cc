@@ -21,6 +21,7 @@
 #include <windows.h>
 #include <io.h>
 #include <share.h>
+#include <direct.h>
 #endif
 
 #include <assert.h>
@@ -39,6 +40,7 @@
 #endif
 
 #include <vector>
+#include <algorithm>
 
 #if defined(__APPLE__) || defined(__FreeBSD__)
 #include <sys/sysctl.h>
@@ -629,4 +631,32 @@ bool Truncate(const string& path, size_t size, string* err) {
     return false;
   }
   return true;
+}
+
+const string & GetCWD()
+{
+    static std::string workingDir;
+
+    if (workingDir.empty())
+    {
+        vector<char> cwd;
+
+        do {
+          cwd.resize(cwd.size() + 1024);
+          errno = 0;
+        } while (!getcwd(&cwd[0], cwd.size()) && errno == ERANGE);
+        if (errno != 0 && errno != ERANGE) {
+          printf("cannot determine working directory: %s\n", strerror(errno));
+          workingDir = ".";
+        }
+        else{
+            workingDir = cwd.data();
+            if (workingDir.empty())
+                workingDir = ".";
+        }
+        std::replace(workingDir.begin(), workingDir.end(), '\\', '/');
+        if (*workingDir.rbegin() != '/')
+            workingDir += '/';
+    }
+    return workingDir;
 }

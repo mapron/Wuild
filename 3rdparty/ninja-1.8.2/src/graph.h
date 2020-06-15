@@ -46,10 +46,10 @@ struct Node {
         id_(-1) {}
 
   /// Return false on error.
-  bool Stat(DiskInterface* disk_interface, string* err);
+  bool Stat(const DiskInterface* disk_interface, string* err);
 
   /// Return false on error.
-  bool StatIfNecessary(DiskInterface* disk_interface, string* err) {
+  bool StatIfNecessary(const DiskInterface* disk_interface, string* err) {
     if (status_known())
       return true;
     return Stat(disk_interface, err);
@@ -100,10 +100,16 @@ struct Node {
 
   const vector<Edge*>& out_edges() const { return out_edges_; }
   void AddOutEdge(Edge* edge) { out_edges_.push_back(edge); }
+  void RemoveOutEdge(Edge* edge);
+
+  void set_buddy(Node * buddy) { buddy_node_ = buddy; }
+  bool has_buddy() const { return !!buddy_node_;}
+  Node * buddy() const { return buddy_node_;}
 
   void Dump(const char* prefix="") const;
 
 private:
+  Node *  buddy_node_ = nullptr;
   string path_;
 
   /// Set bits starting from lowest for backslashes that were normalized to
@@ -171,6 +177,7 @@ struct Edge {
   void Dump(const char* prefix="") const;
 
   const Rule* rule_;
+  Edge* pp_egde_ = nullptr; // preprocess for current edge, if any.
   Pool* pool_;
   vector<Node*> inputs_;
   vector<Node*> outputs_;
@@ -180,6 +187,8 @@ struct Edge {
   bool outputs_ready_;
   bool deps_loaded_;
   bool deps_missing_;
+  bool is_remote_ = false;
+  bool use_temporary_inputs_ = false;
 
   const Rule& rule() const { return *rule_; }
   Pool* pool() const { return pool_; }

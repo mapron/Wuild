@@ -41,7 +41,7 @@ Subprocess::~Subprocess() {
     Finish();
 }
 
-bool Subprocess::Start(SubprocessSet* set, const string& command) {
+bool Subprocess::Start(SubprocessSet* set, const string& command, const vector<string> &) {
   int output_pipe[2];
   if (pipe(output_pipe) < 0)
     Fatal("pipe: %s", strerror(errno));
@@ -188,7 +188,11 @@ void SubprocessSet::HandlePendingInterruption() {
     interrupted_ = SIGHUP;
 }
 
-SubprocessSet::SubprocessSet() {
+SubprocessSet::SubprocessSet(bool setupSignalHandlers)
+    : setupSignalHandlers_(setupSignalHandlers) {
+    if (!setupSignalHandlers_)
+        return;
+
   sigset_t set;
   sigemptyset(&set);
   sigaddset(&set, SIGINT);
@@ -211,6 +215,8 @@ SubprocessSet::SubprocessSet() {
 SubprocessSet::~SubprocessSet() {
   Clear();
 
+  if (!setupSignalHandlers_)
+      return;
   if (sigaction(SIGINT, &old_int_act_, 0) < 0)
     Fatal("sigaction: %s", strerror(errno));
   if (sigaction(SIGTERM, &old_term_act_, 0) < 0)
@@ -221,9 +227,9 @@ SubprocessSet::~SubprocessSet() {
     Fatal("sigprocmask: %s", strerror(errno));
 }
 
-Subprocess *SubprocessSet::Add(const string& command, bool use_console) {
+Subprocess *SubprocessSet::Add(const string& command, bool use_console, const vector<string> & environment) {
   Subprocess *subprocess = new Subprocess(use_console);
-  if (!subprocess->Start(this, command)) {
+  if (!subprocess->Start(this, command, environment)) {
     delete subprocess;
     return 0;
   }

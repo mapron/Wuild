@@ -50,7 +50,7 @@ struct Plan {
 
   // Pop a ready edge off the queue of edges to build.
   // Returns NULL if there's no work to do.
-  Edge* FindWork();
+  Edge* FindWork(bool onlyRemote = false);
 
   /// Returns true if there's more work to be done.
   bool more_to_do() const { return wanted_edges_ > 0 && command_edges_ > 0; }
@@ -75,6 +75,10 @@ struct Plan {
 
   /// Number of edges with commands to run.
   int command_edge_count() const { return command_edges_; }
+  int remote_edges_count() const { return remote_edges_; }
+  std::set<const Rule*> remote_rules() const { return remote_rules_; }
+  int get_ready_count() const { return ready_.size(); }
+  int get_ready_remote_count() const { return ready_remote_.size(); }
 
   /// Reset state.  Clears want and ready sets.
   void Reset();
@@ -123,11 +127,16 @@ private:
   map<Edge*, Want> want_;
 
   set<Edge*> ready_;
+  set<Edge*> ready_remote_;
 
   Builder* builder_;
 
   /// Total number of edges that have commands (not phony).
   int command_edges_;
+
+  /// Total number of edges with is_remote flag.
+  int remote_edges_;
+  std::set<const Rule*> remote_rules_;
 
   /// Total remaining number of wanted edges.
   int wanted_edges_;
@@ -176,9 +185,10 @@ struct BuildConfig {
   DepfileParserOptions depfile_parser_options;
 };
 
+class IRemoteExecutor;
 /// Builder wraps the build process: starting commands, updating status.
 struct Builder {
-  Builder(State* state, const BuildConfig& config,
+  Builder(IRemoteExecutor * const remoteExecutor, State* state, const BuildConfig& config,
           BuildLog* build_log, DepsLog* deps_log,
           DiskInterface* disk_interface);
   ~Builder();
@@ -199,11 +209,11 @@ struct Builder {
   /// It is an error to call this function when AlreadyUpToDate() is true.
   bool Build(string* err);
 
-  bool StartEdge(Edge* edge, string* err);
+  bool StartEdge(Edge* edge, string* err, bool remote);
 
   /// Update status ninja logs following a command termination.
   /// @return false if the build can not proceed further due to a fatal error.
-  bool FinishCommand(CommandRunner::Result* result, string* err);
+  bool FinishCommand(CommandRunner::Result* result, string* err, bool remote, bool silentOnSuccess);
 
   /// Used for tests.
   void SetBuildLog(BuildLog* log) {
@@ -221,6 +231,8 @@ struct Builder {
 #else
   unique_ptr<CommandRunner> command_runner_;  // auto_ptr was removed in C++17.
 #endif
+  IRemoteExecutor * const remote_runner_;
+
   BuildStatus* status_;
 
  private:
@@ -231,21 +243,22 @@ struct Builder {
   DiskInterface* disk_interface_;
   DependencyScan scan_;
 
-  // Unimplemented copy ctor and operator= ensure we don't copy the auto_ptr.
-  Builder(const Builder &other);        // DO NOT IMPLEMENT
-  void operator=(const Builder &other); // DO NOT IMPLEMENT
+  Builder(const Builder &other) = delete;
+  void operator=(const Builder &other) = delete;
 };
 
 /// Tracks the status of a build: completion fraction, printing updates.
 struct BuildStatus {
   explicit BuildStatus(const BuildConfig& config);
   void PlanHasTotalEdges(int total);
-  void BuildEdgeStarted(const Edge* edge);
-  void BuildEdgeFinished(Edge* edge, bool success, const string& output,
-                         int* start_time, int* end_time);
+  void BuildEdgeStarted(const Edge* edge, const string& prefix = "");
+  void BuildEdgeFinished(Edge* edge, bool success, bool silent, const string& output,
+                         int* start_time, int* end_time, const std::string & prefix);
   void BuildLoadDyndeps();
   void BuildStarted();
   void BuildFinished();
+
+  LinePrinter & GetLinePrinter() { return printer_; }
 
   enum EdgeStatus {
     kEdgeStarted,
@@ -261,7 +274,7 @@ struct BuildStatus {
                               EdgeStatus status) const;
 
  private:
-  void PrintStatus(const Edge* edge, EdgeStatus status);
+  void PrintStatus(const Edge* edge, EdgeStatus status, const string& prefix = "");
 
   const BuildConfig& config_;
 
