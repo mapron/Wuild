@@ -88,7 +88,7 @@ gpietsch@comcast.net
 #include <stdlib.h>
 #include <string.h>
 #ifndef GETOPT_H
-#include "getopt_win.h"
+#include "getopt.h"
 #endif
 
 /* macros */

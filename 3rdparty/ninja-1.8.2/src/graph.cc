@@ -27,10 +27,8 @@
 #include "state.h"
 #include "util.h"
 
-
-bool Node::Stat(const DiskInterface* disk_interface, string* err) {
-  mtime_ = disk_interface->Stat(path_, err);
-  return  mtime_ != -1;
+bool Node::Stat(DiskInterface* disk_interface, string* err) {
+  return (mtime_ = disk_interface->Stat(path_, err)) != -1;
 }
 
 bool DependencyScan::RecomputeDirty(Node* node, string* err) {
@@ -211,16 +209,13 @@ bool DependencyScan::RecomputeOutputDirty(Edge* edge,
   }
 
   BuildLog::LogEntry* entry = 0;
-  Node* originalOutput = output;
-  if (output->has_buddy()) 
-	 output = output->buddy();
-  
+
   // Dirty if we're missing the output.
   if (!output->exists()) {
     EXPLAIN("output %s doesn't exist", output->path().c_str());
     return true;
   }
-  
+
   // Dirty if the output is older than the input.
   if (most_recent_input && output->mtime() < most_recent_input->mtime()) {
     TimeStamp output_mtime = output->mtime();
@@ -247,43 +242,31 @@ bool DependencyScan::RecomputeOutputDirty(Edge* edge,
   }
 
   if (build_log()) {
-	  bool generator = edge->GetBindingBool("generator");
-	  BuildLog::LogEntry* entryOriginal = build_log()->LookupByOutput(originalOutput->path());
-	  if (entryOriginal && !generator && BuildLog::LogEntry::HashCommand(command) != entryOriginal->command_hash) {
-		  // May also be dirty due to the command changing since the last build.
-		  // But if this is a generator rule, the command changing does not make us
-		  // dirty.
-		  EXPLAIN("command line changed for %s", originalOutput->path().c_str());
-		  return true;
-	  }
-	  
-	  if (entry || (entry = build_log()->LookupByOutput(output->path()))) 
-	  {
-		  if (originalOutput != output) // PP rule
-		  {			
-			  Edge* edge = output->in_edge(); 
-			  string command = edge->EvaluateCommand(/*incl_rsp_file=*/true);
-			  if (entry && !generator && BuildLog::LogEntry::HashCommand(command) != entry->command_hash) 
-			  {
-				  EXPLAIN("command line changed for %s", output->path().c_str());
-				  return true;
-			  }
-		  }
-		  if (most_recent_input && entry->mtime < most_recent_input->mtime()) {
-			  // May also be dirty due to the mtime in the log being older than the
-			  // mtime of the most recent input.  This can occur even when the mtime
-			  // on disk is newer if a previous run wrote to the output file but
-			  // exited with an error or was interrupted.
-			  EXPLAIN("recorded mtime of %s older than most recent input %s (%d vs %d)",
-					  output->path().c_str(), most_recent_input->path().c_str(),
-					  entry->mtime, most_recent_input->mtime());
-			  return true;
-		  }
-	  }
-	  if (!entry && !generator) {
-		  EXPLAIN("command line not found in log for %s", output->path().c_str());
-		  return true;
-	  }
+    bool generator = edge->GetBindingBool("generator");
+    if (entry || (entry = build_log()->LookupByOutput(output->path()))) {
+      if (!generator &&
+          BuildLog::LogEntry::HashCommand(command) != entry->command_hash) {
+        // May also be dirty due to the command changing since the last build.
+        // But if this is a generator rule, the command changing does not make us
+        // dirty.
+        EXPLAIN("command line changed for %s", output->path().c_str());
+        return true;
+      }
+      if (most_recent_input && entry->mtime < most_recent_input->mtime()) {
+        // May also be dirty due to the mtime in the log being older than the
+        // mtime of the most recent input.  This can occur even when the mtime
+        // on disk is newer if a previous run wrote to the output file but
+        // exited with an error or was interrupted.
+        EXPLAIN("recorded mtime of %s older than most recent input %s (%d vs %d)",
+                output->path().c_str(), most_recent_input->path().c_str(),
+                entry->mtime, most_recent_input->mtime());
+        return true;
+      }
+    }
+    if (!entry && !generator) {
+      EXPLAIN("command line not found in log for %s", output->path().c_str());
+      return true;
+    }
   }
 
   return false;
@@ -359,20 +342,10 @@ string EdgeEnv::MakePathList(vector<Node*>::iterator begin,
                              vector<Node*>::iterator end,
                              char sep) {
   string result;
-  const string & cwd = GetCWD();
   for (vector<Node*>::iterator i = begin; i != end; ++i) {
     if (!result.empty())
       result.push_back(sep);
-    string path = (*i)->PathDecanonicalized();
-    if (path.find(cwd) == 0)
-        path = path.substr(cwd.size());
-
-    // FIXME: dirty hack for win RC!!
-    if (path.substr(path.size()-3)  == ".rc" && path[1] != ':')
-    {
-        path = cwd + path;
-    }
-
+    const string& path = (*i)->PathDecanonicalized();
     if (escape_in_out_ == kShellEscape) {
 #if _WIN32
       GetWin32EscapedString(path, &result);
@@ -467,12 +440,10 @@ string Node::PathDecanonicalized(const string& path, uint64_t slash_bits) {
   return result;
 }
 
-void Node::RemoveOutEdge(Edge *edge) { auto it =  std::find(out_edges_.begin(), out_edges_.end(), edge);  if (it != out_edges_.end())  out_edges_.erase(it); }
-
 void Node::Dump(const char* prefix) const {
-    printf("%s <%s 0x%p> mtime: %d%s, (:%s), ",
-           prefix, path().c_str(), this,
-           mtime(), mtime() ? "" : " (:missing)",
+  printf("%s <%s 0x%p> mtime: %d%s, (:%s), ",
+         prefix, path().c_str(), this,
+         mtime(), mtime() ? "" : " (:missing)",
          dirty() ? " dirty" : " clean");
   if (in_edge()) {
     in_edge()->Dump("in-edge: ");

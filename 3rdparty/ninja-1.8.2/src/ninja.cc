@@ -19,7 +19,7 @@
 #include <string.h>
 
 #ifdef _WIN32
-#include "getopt_win.h"
+#include "getopt.h"
 #include <direct.h>
 #include <windows.h>
 #elif defined(_AIX)
@@ -44,9 +44,6 @@
 #include "state.h"
 #include "util.h"
 #include "version.h"
-
-#include "remote_executor_impl.h"
-#include "state_rewrite.h"
 
 #ifdef _MSC_VER
 // Defined in msvc_helper_main-win32.cc.
@@ -141,11 +138,11 @@ struct NinjaMain : public BuildLogUser {
   /// Rebuild the manifest, if necessary.
   /// Fills in \a err on error.
   /// @return true if the manifest was rebuilt.
-  bool RebuildManifest(RemoteExecutor * const remoteExecutor, const char* input_file, string* err);
+  bool RebuildManifest(const char* input_file, string* err);
 
   /// Build the targets listed on the command line.
   /// @return an exit code.
-  int RunBuild(RemoteExecutor * const remoteExecutor, int argc, char** argv);
+  int RunBuild(int argc, char** argv);
 
   /// Dump the output requested by '-d stats'.
   void DumpMetrics();
@@ -154,14 +151,20 @@ struct NinjaMain : public BuildLogUser {
     Node* n = state_.LookupNode(s);
     if (!n || !n->in_edge())
       return false;
-
+    // Just checking n isn't enough: If an old output is both in the build log
+    // and in the deps log, it will have a Node object in state_.  (It will also
+    // have an in edge if one of its inputs is another output that's in the deps
+    // log, but having a deps edge product an output thats input to another deps
+    // edge is rare, and the first recompaction will delete all old outputs from
+    // the deps log, and then a second recompaction will clear the build log,
+    // which seems good enough for this corner case.)
+    // Do keep entries around for files which still exist on disk, for
+    // generators that want to use this information.
     string err;
-    if (!n->Stat(&disk_interface_, &err))
-    {
-         Error("%s", err.c_str());  // Log and ignore Stat() errors.
-         return false;
-    }
-    return n->mtime() == 0;
+    TimeStamp mtime = disk_interface_.Stat(s.AsString(), &err);
+    if (mtime == -1)
+      Error("%s", err.c_str());  // Log and ignore Stat() errors.
+    return mtime == 0;
   }
 };
 
@@ -231,7 +234,7 @@ int GuessParallelism() {
 
 /// Rebuild the build manifest, if necessary.
 /// Returns true if the manifest was rebuilt.
-bool NinjaMain::RebuildManifest(RemoteExecutor * const remoteExecutor, const char* input_file, string* err) {
+bool NinjaMain::RebuildManifest(const char* input_file, string* err) {
   string path = input_file;
   uint64_t slash_bits;  // Unused because this path is only used for lookup.
   if (!CanonicalizePath(&path, &slash_bits, err))
@@ -240,7 +243,7 @@ bool NinjaMain::RebuildManifest(RemoteExecutor * const remoteExecutor, const cha
   if (!node)
     return false;
 
-  Builder builder(remoteExecutor, &state_, config_, &build_log_, &deps_log_, &disk_interface_);
+  Builder builder(&state_, config_, &build_log_, &deps_log_, &disk_interface_);
   if (!builder.AddTarget(node, err))
     return false;
 
@@ -661,7 +664,17 @@ void EncodeJSONString(const char *str) {
 
 int NinjaMain::ToolCompilationDatabase(const Options* options, int argc, char* argv[]) {
   bool first = true;
-  const string & cwd = GetCWD();
+  vector<char> cwd;
+
+  do {
+    cwd.resize(cwd.size() + 1024);
+    errno = 0;
+  } while (!getcwd(&cwd[0], cwd.size()) && errno == ERANGE);
+  if (errno != 0 && errno != ERANGE) {
+    Error("cannot determine working directory: %s", strerror(errno));
+    return 1;
+  }
+
   putchar('[');
   for (vector<Edge*>::iterator e = state_.edges_.begin();
        e != state_.edges_.end(); ++e) {
@@ -673,7 +686,7 @@ int NinjaMain::ToolCompilationDatabase(const Options* options, int argc, char* a
           putchar(',');
 
         printf("\n  {\n    \"directory\": \"");
-        EncodeJSONString(cwd.c_str());
+        EncodeJSONString(&cwd[0]);
         printf("\",\n    \"command\": \"");
         EncodeJSONString((*e)->EvaluateCommand().c_str());
         printf("\",\n    \"file\": \"");
@@ -954,9 +967,7 @@ bool NinjaMain::EnsureBuildDirExists() {
   return true;
 }
 
-int NinjaMain::RunBuild(RemoteExecutor * const remoteExecutor, int argc, char** argv) {
-
-
+int NinjaMain::RunBuild(int argc, char** argv) {
   string err;
   vector<Node*> targets;
   if (!CollectTargetsFromArgs(argc, argv, &targets, &err)) {
@@ -966,7 +977,7 @@ int NinjaMain::RunBuild(RemoteExecutor * const remoteExecutor, int argc, char** 
 
   disk_interface_.AllowStatCache(g_experimental_statcache);
 
-  Builder builder(remoteExecutor, &state_, config_, &build_log_, &deps_log_, &disk_interface_);
+  Builder builder(&state_, config_, &build_log_, &deps_log_, &disk_interface_);
   for (size_t i = 0; i < targets.size(); ++i) {
     if (!builder.AddTarget(targets[i], &err)) {
       if (!err.empty()) {
@@ -1112,22 +1123,12 @@ int real_main(int argc, char** argv) {
   Options options = {};
   options.input_file = "build.ninja";
 
-  Wuild::ConfiguredApplication app(argc, argv, "WuildNinja", "toolClient");
-  argc = app.GetRemainArgc();
-  argv = app.GetRemainArgv();
-  RemoteExecutor remoteExecutor(app);
-
   setvbuf(stdout, NULL, _IOLBF, BUFSIZ);
   const char* ninja_command = argv[0];
 
   int exit_code = ReadFlags(&argc, &argv, &options, &config);
   if (exit_code >= 0)
     return exit_code;
-
-  double maxLoad = remoteExecutor.GetMaxLoadAverage();
-  if (maxLoad)
-	config.max_load_average = maxLoad;
-  remoteExecutor.SetVerbose(config.verbosity == BuildConfig::VERBOSE);
 
   if (options.working_dir) {
     // The formatting of this string, complete with funny quotes, is
@@ -1149,7 +1150,6 @@ int real_main(int argc, char** argv) {
     return (ninja.*options.tool->func)(&options, argc, argv);
   }
 
-
   // Limit number of rebuilds, to prevent infinite loops.
   const int kCycleLimit = 100;
   for (int cycle = 1; cycle <= kCycleLimit; ++cycle) {
@@ -1168,7 +1168,6 @@ int real_main(int argc, char** argv) {
       Error("%s", err.c_str());
       return 1;
     }
-    RewriteStateRules(&ninja.state_, &remoteExecutor);
 
     if (options.tool && options.tool->when == Tool::RUN_AFTER_LOAD)
       return (ninja.*options.tool->func)(&options, argc, argv);
@@ -1183,7 +1182,7 @@ int real_main(int argc, char** argv) {
       return (ninja.*options.tool->func)(&options, argc, argv);
 
     // Attempt to rebuild the manifest before building anything else
-    if (ninja.RebuildManifest(&remoteExecutor, options.input_file, &err)) {
+    if (ninja.RebuildManifest(options.input_file, &err)) {
       // In dry_run mode the regeneration will succeed without changing the
       // manifest forever. Better to return immediately.
       if (config.dry_run)
@@ -1195,7 +1194,7 @@ int real_main(int argc, char** argv) {
       return 1;
     }
 
-    int result = ninja.RunBuild(&remoteExecutor, argc, argv);
+    int result = ninja.RunBuild(argc, argv);
     if (g_metrics)
       ninja.DumpMetrics();
     return result;
