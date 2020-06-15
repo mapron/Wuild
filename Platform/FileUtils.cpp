@@ -24,12 +24,14 @@
 #include <memory>
 #include <streambuf>
 
-#ifdef HAS_BOOST
+
+#if defined(HAS_BOOST)
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
 #define u8string string
 using fserr = boost::system::error_code;
 #else
+#define _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
 #include <experimental/filesystem>
 namespace fs = std::experimental::filesystem;
 using fserr = std::error_code;
@@ -393,7 +395,7 @@ void SetCWD(const std::string &cwd)
 	_chdir(cwd.c_str());
 #else
 	if (chdir(cwd.c_str()) != 0)
-		Syslogger(Syslogger::Err) << "Failed change current dir " << cwd;		
+		Syslogger(Syslogger::Err) << "Failed change current dir " << cwd;
 #endif
 }
 

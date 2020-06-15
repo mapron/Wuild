@@ -15,7 +15,7 @@ cmake_minimum_required(VERSION 3.5)
 project(Wuild)
 
 # main paths.
-set(NINJA_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/ninja-1.8.2/src)
+set(NINJA_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/ninja/src)
 set(ZLIB_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/zlib)
 set(LZ4_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/lz4-1.7.3)
 set(LZ4_STREAM_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/lz4_stream)
@@ -27,23 +27,22 @@ option( USE_ZLIB_COMPRESSION "" ON )
 option( USE_LZ4_COMPRESSION "" ON )
 option( USE_ZSTD_COMPRESSION "" ON )
 option( USE_SYSTEM_ZLIB "Use system zlib library." ON )
+option( USE_BOOST "" OFF )
 SET( BOOST_INCLUDEDIR "" CACHE PATH "Boost path to includes")
 SET( BOOST_LIBRARYDIR "" CACHE PATH "Boost path to compiled libs")
 
 #platform configuration.
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 if (MSVC)
 	set(USE_SYSTEM_ZLIB OFF)
 	add_definitions(-D_CRT_SECURE_NO_WARNINGS -DNOMINMAX /wd4267 /wd4244)
 endif()
 
-set(HAS_BOOST)
-if (BOOST_LIBRARYDIR)
-   find_package(Boost REQUIRED system filesystem)
-   set(HAS_BOOST -DHAS_BOOST=1)
-endif()
-
-if (NOT MSVC)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1z ")
+if (USE_BOOST)
+   find_package(Boost REQUIRED system filesystem REQUIRED)
+   set(BOOST_DEFINITIONS -DHAS_BOOST=1)
 endif()
 
 set(sys_deps)
@@ -55,11 +54,11 @@ else()
 endif()
 
 if (WARNING_AS_ERROR)
-    if (MSVC)
-        add_compile_options(/WX) #warning as error.
-    else()
-        add_compile_options(-Werror -Wall -Wno-error=sign-compare)
-    endif()
+	if (MSVC)
+		add_compile_options(/WX) #warning as error.
+	else()
+		add_compile_options(-Werror -Wall -Wno-error=sign-compare)
+	endif()
 endif()
 
 if (APPLE)
@@ -151,6 +150,9 @@ set(ninja_lib_src
 	depfile_parser.cc
 	deps_log.cc
 	disk_interface.cc
+	dyndep.cc
+	dyndep_parser.cc
+	parser.cc
 	edit_distance.cc
 	eval_env.cc
 	graph.cc
@@ -190,7 +192,7 @@ AddTarget(NAME Platform CSRC *.cpp *.h
 	INCLUDES
 	${BOOST_INCLUDEDIR}
 	DEFINES
-	 ${HAS_BOOST} ${COMPRESSION_DEFINES}
+	 ${BOOST_DEFINITIONS} ${COMPRESSION_DEFINES}
 	DEPS
 	${COMPRESSION_LIBS}
 	${Boost_FILESYSTEM_LIBRARY}
