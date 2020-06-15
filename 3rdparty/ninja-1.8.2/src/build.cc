@@ -896,7 +896,7 @@ bool Builder::Build(string* err) {
             }
 
             if (edge->is_phony())
-              plan_.EdgeFinished(edge, Plan::kEdgeSucceeded);
+              plan_.EdgeFinished(edge, Plan::kEdgeSucceeded, err);
             else
                 pending_remote++;
 
