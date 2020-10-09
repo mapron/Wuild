@@ -20,6 +20,7 @@ set(ZLIB_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/zlib)
 set(LZ4_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/lz4-1.7.3)
 set(LZ4_STREAM_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/lz4_stream)
 set(ZSTD_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/zstd/lib)
+set(JSON_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/json)
 
 #configure options
 option( WARNING_AS_ERROR "" ON )
@@ -209,6 +210,10 @@ AddTarget(NAME Coordinator SUBDIR Modules/ CSRC *.cpp *.h
 	DEPS Configs Platform ToolExecutionInterface
 	)
 
+AddTarget(NAME CoordinatorStatus SUBDIR Modules/ CSRC *.cpp *.h
+	INCLUDES ${JSON_ROOT}
+	)
+
 AddTarget(NAME RemoteTool SUBDIR Modules/ CSRC *.cpp *.h
 	DEPS Configs Platform ToolExecutionInterface Coordinator
 	)
@@ -248,12 +253,17 @@ foreach (benchname NetworkClient NetworkServer)
 		)
 endforeach()
 
-foreach (appname Coordinator CoordinatorStatus ToolServer Proxy ProxyClient ToolExecutor)
+foreach (appname Coordinator ToolServer Proxy ProxyClient ToolExecutor)
 	AddTarget(APP NAME Wuild${appname} ROOT ${CMAKE_CURRENT_SOURCE_DIR}/
 		CSRC Wuild${appname}.cpp
 		DEPS ${main_deps} ${sys_deps}
 		)
 endforeach()
+
+AddTarget(APP NAME WuildCoordinatorStatus ROOT ${CMAKE_CURRENT_SOURCE_DIR}/
+	CSRC WuildCoordinatorStatus.cpp
+	DEPS ${main_deps} ${sys_deps} CoordinatorStatus
+	)
 
 AddTarget(APP NAME WuildNinja ROOT ${NINJA_ROOT}/
 	CSRC ninja.cc remote_executor_impl.* state_rewrite.*
