@@ -12,13 +12,11 @@
  */
 
 #include "AppUtils.h"
+#include "StatusWriter.h"
 
 #include <CoordinatorClient.h>
 #include <StringUtils.h>
 #include <TimePoint.h>
-
-#include <iostream>
-#include <set>
 
 int main(int argc, char** argv)
 {
@@ -33,9 +31,14 @@ int main(int argc, char** argv)
 	if (!client.SetConfig(config))
 		return 1;
 
+	AbstractWriter::OutType outType = AbstractWriter::OutType::STD_TEXT;
+	for (auto arg : app.GetRemainArgs())
+		if (!arg.compare("--json"))
+			outType = AbstractWriter::OutType::JSON;
+	std::unique_ptr<AbstractWriter> writer = AbstractWriter::AbstractWriter::createWriter(outType);
 
-	client.SetInfoArrivedCallback([](const CoordinatorInfo& info){
-		std::cout << "Coordinator connected tool servers: \n";
+	client.SetInfoArrivedCallback([&writer](const CoordinatorInfo& info){
+		writer->PrintMessage("Coordinator connected tool servers:\n");
 
 		std::map<int64_t, int> sessionsUsed;
 		std::set<std::string> toolIds;
@@ -43,8 +46,8 @@ int main(int argc, char** argv)
 
 		for (const ToolServerInfo & toolServer : info.m_toolServers)
 		{
-			std::cout <<  toolServer.m_connectionHost << ":" << toolServer.m_connectionPort <<
-						  " load:" << toolServer.m_runningTasks << "/" << toolServer.m_totalThreads << "\n";
+			writer->PrintConnectedToolServer(toolServer.m_connectionHost, toolServer.m_connectionPort,
+											 toolServer.m_runningTasks, toolServer.m_totalThreads);
 			running += toolServer.m_runningTasks;
 			queued += toolServer.m_queuedTasks;
 			thread += toolServer.m_totalThreads;
@@ -56,22 +59,18 @@ int main(int argc, char** argv)
 				toolIds.insert(t);
 		}
 
-		std::cout <<  "\nTotal load:" << running << "/" << thread << ", queue: " << queued << "\n";
+		writer->PrintSummary(running, thread, queued);
 
 		if (!sessionsUsed.empty())
 		{
-			std::cout << "\nRunning sessions:\n";
+			writer->PrintMessage("\nRunning sessions:\n");
 			for (const auto & s : sessionsUsed)
 			{
 				TimePoint stamp; stamp.SetUS(s.first); stamp.ToLocal();
-				std::cout << "Started " << stamp.ToString() << ", used: " << s.second << "\n";
+				writer->PrintSessions(stamp.ToString(), s.second);
 			}
 		}
-
-		std::cout << "\nAvailable tools: ";
-		for (const auto & t : toolIds)
-			std::cout << t << ", ";
-		std::cout << "\n";
+		writer->PrintTools(toolIds);
 		Application::Interrupt(0);
 	});
 
@@ -79,3 +78,4 @@ int main(int argc, char** argv)
 
 	return ExecAppLoop();
 }
+
