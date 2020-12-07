@@ -75,14 +75,7 @@ void JsonWriter::PrintTools(const std::set<std::string>& toolIds)
 
 std::unique_ptr<AbstractWriter> AbstractWriter::createWriter(OutType outType)
 {
-	switch(outType)
-	{
-		case OutType::JSON:
-			return std::make_unique<JsonWriter>();
-		default:
-			assert(!"Unknown output type");
-		case OutType::STD_TEXT:
-			return std::make_unique<StandartTextWriter>();
-	}
-
+	if (outType == OutType::JSON)
+		return std::make_unique <JsonWriter> ();
+	return std::make_unique <StandartTextWriter> ();
 }
