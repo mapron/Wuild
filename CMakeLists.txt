@@ -37,6 +37,8 @@ if (MSVC)
 	set(USE_SYSTEM_ZLIB OFF)
 	add_definitions(-D_CRT_SECURE_NO_WARNINGS -DNOMINMAX -D_HAS_STD_BYTE=0)
 	add_compile_options(/wd4267 /wd4244 /Zc:__cplusplus)
+else()
+	add_compile_options(-Wall -Wno-error=sign-compare)
 endif()
 
 set(sys_deps)
@@ -51,20 +53,12 @@ if (WARNING_AS_ERROR)
 	if (MSVC)
 		add_compile_options(/WX) #warning as error.
 	else()
-		add_compile_options(-Werror -Wall -Wno-error=sign-compare)
+		add_compile_options(-Werror)
 	endif()
 endif()
 
 if (APPLE)
 	list(APPEND sys_deps -stdlib=libc++ -lc++)
-endif()
-
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-	list(APPEND sys_deps  -lc++experimental)  # Libc++experimental.a may not always be available, even when libc++ is already installed
-else()
-	if (NOT MSVC)
-		list(APPEND sys_deps  -lstdc++fs)
-	endif()
 endif()
 
 # function for target declaration.
