@@ -24,18 +24,9 @@
 #include <memory>
 #include <streambuf>
 
-
-#if defined(HAS_BOOST)
-#include <boost/filesystem.hpp>
-namespace fs = boost::filesystem;
-#define u8string string
-using fserr = boost::system::error_code;
-#else
-#define _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
-#include <experimental/filesystem>
-namespace fs = std::experimental::filesystem;
+#include <filesystem>
+namespace fs = std::filesystem;
 using fserr = std::error_code;
-#endif
 
 #ifdef _MSC_VER
 #define strtoull _strtoui64
@@ -102,7 +93,7 @@ std::string FileInfo::ToPlatformPath(std::string path)
 }
 
 FileInfo::FileInfo(const FileInfo &rh)
-	: m_impl(new FileInfoPrivate(*rh.m_impl))
+    : m_impl(new FileInfoPrivate(*rh.m_impl))
 {
 
 }

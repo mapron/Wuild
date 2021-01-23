@@ -23,27 +23,20 @@ set(ZSTD_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/zstd/lib)
 set(JSON_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/json)
 
 #configure options
-option( WARNING_AS_ERROR "" ON )
+option( WARNING_AS_ERROR "" OFF )
 option( USE_ZLIB_COMPRESSION "" ON )
 option( USE_LZ4_COMPRESSION "" ON )
 option( USE_ZSTD_COMPRESSION "" ON )
 option( USE_SYSTEM_ZLIB "Use system zlib library." ON )
-option( USE_BOOST "" OFF )
-SET( BOOST_INCLUDEDIR "" CACHE PATH "Boost path to includes")
-SET( BOOST_LIBRARYDIR "" CACHE PATH "Boost path to compiled libs")
 
 #platform configuration.
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if (MSVC)
 	set(USE_SYSTEM_ZLIB OFF)
-	add_definitions(-D_CRT_SECURE_NO_WARNINGS -DNOMINMAX /wd4267 /wd4244)
-endif()
-
-if (USE_BOOST)
-   find_package(Boost REQUIRED system filesystem REQUIRED)
-   set(BOOST_DEFINITIONS -DHAS_BOOST=1)
+	add_definitions(-D_CRT_SECURE_NO_WARNINGS -DNOMINMAX -D_HAS_STD_BYTE=0)
+	add_compile_options(/wd4267 /wd4244 /Zc:__cplusplus)
 endif()
 
 set(sys_deps)
@@ -64,16 +57,13 @@ endif()
 
 if (APPLE)
 	list(APPEND sys_deps -stdlib=libc++ -lc++)
-	add_definitions(-D_LIBCPP_ENABLE_CXX17_REMOVED_AUTO_PTR)
 endif()
 
-if (NOT BOOST_LIBRARYDIR)
-	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-		list(APPEND sys_deps  -lc++experimental)  # Libc++experimental.a may not always be available, even when libc++ is already installed
-	else()
-		if (NOT MSVC)
-			list(APPEND sys_deps  -lstdc++fs)
-		endif()
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+	list(APPEND sys_deps  -lc++experimental)  # Libc++experimental.a may not always be available, even when libc++ is already installed
+else()
+	if (NOT MSVC)
+		list(APPEND sys_deps  -lstdc++fs)
 	endif()
 endif()
 
@@ -190,14 +180,10 @@ if (MSVC)
 endif()
 
 AddTarget(NAME Platform CSRC *.cpp *.h
-	INCLUDES
-	${BOOST_INCLUDEDIR}
 	DEFINES
-	 ${BOOST_DEFINITIONS} ${COMPRESSION_DEFINES}
+	 ${COMPRESSION_DEFINES}
 	DEPS
 	${COMPRESSION_LIBS}
-	${Boost_FILESYSTEM_LIBRARY}
-	${Boost_SYSTEM_LIBRARY}
 	)
 
 AddTarget(NAME Configs CSRC *.cpp *.h
