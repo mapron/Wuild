@@ -238,14 +238,17 @@ foreach (appname Coordinator ToolServer Proxy ProxyClient ToolExecutor)
 		CSRC Wuild${appname}.cpp
 		DEPS ${main_deps} ${sys_deps}
 		)
+	install(TARGETS Wuild${appname})
 endforeach()
 
 AddTarget(APP NAME WuildCoordinatorStatus ROOT ${CMAKE_CURRENT_SOURCE_DIR}/
 	CSRC WuildCoordinatorStatus.cpp
 	DEPS ${main_deps} ${sys_deps} CoordinatorStatus
 	)
+install(TARGETS WuildCoordinatorStatus)
 
 AddTarget(APP NAME WuildNinja ROOT ${NINJA_ROOT}/
 	CSRC ninja.cc remote_executor_impl.* state_rewrite.*
 	DEPS ${main_deps} ninja_subprocess ${sys_deps}
 	)
+install(TARGETS WuildNinja)
