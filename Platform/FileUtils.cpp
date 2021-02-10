@@ -24,9 +24,15 @@
 #include <memory>
 #include <streambuf>
 
+#ifndef USE_GHC_STL
 #include <filesystem>
 namespace fs = std::filesystem;
 using fserr = std::error_code;
+#else
+#include <ghc/filesystem.hpp>
+namespace fs = ghc::filesystem;
+using fserr = std::error_code;
+#endif
 
 #ifdef _MSC_VER
 #define strtoull _strtoui64

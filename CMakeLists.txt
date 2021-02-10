@@ -21,16 +21,22 @@ set(LZ4_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/lz4-1.7.3)
 set(LZ4_STREAM_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/lz4_stream)
 set(ZSTD_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/zstd/lib)
 set(JSON_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/json)
+set(GHC_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/filesystem/include)
 
 #configure options
 option( WARNING_AS_ERROR "" OFF )
 option( USE_ZLIB_COMPRESSION "" ON )
 option( USE_LZ4_COMPRESSION "" ON )
 option( USE_ZSTD_COMPRESSION "" ON )
+option( USE_GHC_STL "" OFF )
 option( USE_SYSTEM_ZLIB "Use system zlib library." ON )
 
 #platform configuration.
-set(CMAKE_CXX_STANDARD 17)
+if (USE_GHC_STL)
+	set(CMAKE_CXX_STANDARD 14)
+else()
+	set(CMAKE_CXX_STANDARD 17)
+endif()
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if (MSVC)
@@ -39,6 +45,9 @@ if (MSVC)
 	add_compile_options(/wd4267 /wd4244 /Zc:__cplusplus)
 else()
 	add_compile_options(-Wall -Wno-error=sign-compare)
+	if (USE_GHC_STL)
+		add_definitions(-Wno-deprecated-declarations)
+	endif()
 endif()
 
 set(sys_deps)
@@ -59,6 +68,9 @@ endif()
 
 if (APPLE)
 	list(APPEND sys_deps -stdlib=libc++ -lc++)
+endif()
+if (USE_GHC_STL)
+	set(STL_DEFINES USE_GHC_STL)
 endif()
 
 # function for target declaration.
@@ -175,9 +187,11 @@ endif()
 
 AddTarget(NAME Platform CSRC *.cpp *.h
 	DEFINES
-	 ${COMPRESSION_DEFINES}
+		${COMPRESSION_DEFINES} ${STL_DEFINES}
 	DEPS
-	${COMPRESSION_LIBS}
+		${COMPRESSION_LIBS}
+	INCLUDES
+		${GHC_ROOT}
 	)
 
 AddTarget(NAME Configs CSRC *.cpp *.h
