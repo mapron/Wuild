@@ -203,7 +203,10 @@ bool RemoteExecutor::StartCommand(Edge *userData, const std::string &command)
                 m_activeEdges.erase(it);
         }
     };
-    m_activeEdges.insert(userData);
+    {
+        std::lock_guard<std::mutex> lock(m_resultsMutex);
+        m_activeEdges.insert(userData);
+    }
     m_remoteService->InvokeTool(invocation, callback);
 
     return true;
