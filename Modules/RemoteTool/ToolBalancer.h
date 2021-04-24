@@ -44,6 +44,7 @@ public:
 
 	ClientStatus UpdateClient(const ToolServerInfo & toolServer, size_t & index);
 	void SetClientActive(size_t index, bool isActive);
+	void SetClientCompatible(size_t index, bool isCompatible);
 	void SetServerSideLoad(size_t index, uint16_t load);
 
 	size_t FindFreeClient(const std::string & toolId) const;
@@ -54,7 +55,7 @@ public:
 	uint16_t GetFreeThreads() const { return m_freeRemoteThreads; }
 	uint16_t GetUsedThreads() const { return m_usedThreads; }
 
-	bool IsAllActive() const;
+	bool IsAllChecked() const;
 
 	/// Used for tests.
 	std::vector<uint16_t> TestGetBusy() const;
@@ -63,7 +64,9 @@ protected:
 	struct ClientInfo
 	{
 		ToolServerInfo m_toolServer;
+		bool m_checked = false;
 		bool m_active = false;
+		bool m_compatible = false;
 		uint16_t m_serverSideQueue = 0;
 		uint16_t m_serverSideQueuePrev = 0;
 		uint16_t m_serverSideQueueAvg = 0;

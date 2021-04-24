@@ -54,12 +54,19 @@ int main(int argc, char ** argv)
 	TEST_ASSERT(balancer.GetFreeThreads() == 0);
 	TEST_ASSERT((balancer.TestGetBusy() == LoadVector{0, 0}));
 
+	balancer.SetClientCompatible(0, true);
+	balancer.SetClientCompatible(1, true);
 	balancer.SetClientActive(0, true);
 	TEST_ASSERT(balancer.GetFreeThreads() == 8);
 	balancer.SetClientActive(0, false);
 	TEST_ASSERT(balancer.GetFreeThreads() == 0);
 	balancer.SetClientActive(0, true);
 	balancer.SetClientActive(1, true);
+	TEST_ASSERT(balancer.GetFreeThreads() == 16);
+
+	balancer.SetClientCompatible(0, false);
+	TEST_ASSERT(balancer.GetFreeThreads() == 8);
+	balancer.SetClientCompatible(0, true);
 	TEST_ASSERT(balancer.GetFreeThreads() == 16);
 
 	info2.m_connectedClients.resize(1);

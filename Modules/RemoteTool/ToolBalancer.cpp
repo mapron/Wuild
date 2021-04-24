@@ -89,6 +89,15 @@ void ToolBalancer::SetClientActive(size_t index, bool isActive)
 	RecalcAvailable();
 }
 
+void ToolBalancer::SetClientCompatible(size_t index, bool isCompatible)
+{
+	std::lock_guard<std::mutex> lock(m_clientsMutex);
+	assert(index < m_clients.size());
+	m_clients[index].m_compatible = isCompatible;
+	m_clients[index].m_checked = true;
+	RecalcAvailable();
+}
+
 void ToolBalancer::SetServerSideLoad(size_t index, uint16_t load)
 {
 	std::lock_guard<std::mutex> lock(m_clientsMutex);
@@ -110,7 +119,7 @@ size_t ToolBalancer::FindFreeClient(const std::string &toolId) const
 	for (size_t index = 0; index < m_clients.size(); ++index)
 	{
 		const ClientInfo & client = m_clients[index];
-		if (client.m_active)
+		if (client.m_active && client.m_compatible)
 		{
 			const StringVector & toolIds = client.m_toolServer.m_toolIds;
 			const bool toolExists = toolIds.empty() || (std::find(toolIds.cbegin(), toolIds.cend(), toolId) != toolIds.cend());
@@ -146,14 +155,13 @@ void ToolBalancer::FinishTask(size_t index)
 	RecalcAvailable();
 }
 
-bool ToolBalancer::IsAllActive() const
+bool ToolBalancer::IsAllChecked() const
 {
-	bool result = true;
 	std::lock_guard<std::mutex> lock(m_clientsMutex);
 	for (const ClientInfo & client : m_clients)
-		if (!client.m_active)
-			result = false;
-	return result;
+		if (!client.m_checked)
+			return false;
+	return true;
 }
 
 std::vector<uint16_t> ToolBalancer::TestGetBusy() const
@@ -169,7 +177,7 @@ void ToolBalancer::RecalcAvailable()
 	uint16_t free = 0, used = 0, total = 0;
 	for (const ClientInfo & client : m_clients)
 	{
-		if (client.m_active)
+		if (client.m_active && client.m_compatible)
 		{
 			total += client.m_toolServer.m_totalThreads;
 			free += client.m_toolServer.m_totalThreads - client.m_busyTotal;

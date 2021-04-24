@@ -160,12 +160,6 @@ public:
 			}
 			else
 			{
-				if (!this->m_parent->m_compilerVersionSuitable)
-				{
-					info.m_result = false;
-					info.m_stdOutput = "Invalid compiler configurations. Search log for details.\n";
-				}
-
 				task.m_callback(info);
 			}
 		};
@@ -298,8 +292,9 @@ void RemoteToolClient::AddClient(const ToolServerInfo &info, bool start)
 		balancer.SetServerSideLoad(index, status.uniqueRepliesQueued);
 		AvailableCheck();
 	});
-	auto versionFrameCallback = [this, info](SocketFrame::Ptr responseFrame, SocketFrameHandler::ReplyState state, const std::string & errorInfo)
+	auto versionFrameCallback = [&balancer, index, this, info](SocketFrame::Ptr responseFrame, SocketFrameHandler::ReplyState state, const std::string & errorInfo)
 	{
+		bool isCompatible = false;
 		if (state == SocketFrameHandler::ReplyState::Timeout || state == SocketFrameHandler::ReplyState::Error)
 		{
 			Syslogger(Syslogger::Err) << "Error on requesting toolserver " << info.m_connectionHost << ", " << errorInfo;
@@ -307,8 +302,10 @@ void RemoteToolClient::AddClient(const ToolServerInfo &info, bool start)
 		else
 		{
 			ToolsVersionResponse::Ptr result = std::dynamic_pointer_cast<ToolsVersionResponse>(responseFrame);
-			this->CheckRemoteToolVersions(result->m_versions, info.m_connectionHost);
+			isCompatible = this->CheckRemoteToolVersions(result->m_versions, info.m_connectionHost);
 		}
+		balancer.SetClientCompatible(index, isCompatible);
+		AvailableCheck();
 	};
 	handler->QueueFrame(ToolsVersionRequest::Ptr(new ToolsVersionRequest()), versionFrameCallback, m_config.m_requestTimeout);
 
@@ -389,7 +386,7 @@ void RemoteToolClient::UpdateSessionInfo(const RemoteToolClient::TaskExecutionIn
 void RemoteToolClient::AvailableCheck()
 {
 	std::lock_guard<std::mutex> lock(m_availableCheckMutex);
-	if (!m_remoteIsAvailable && m_impl->m_balancer.IsAllActive() && m_impl->m_balancer.GetFreeThreads() > 0)
+	if (!m_remoteIsAvailable && m_impl->m_balancer.IsAllChecked() && m_impl->m_balancer.GetFreeThreads() > 0)
 	{
 		m_remoteIsAvailable = true;
 		if (m_remoteAvailableCallback)
@@ -400,8 +397,9 @@ void RemoteToolClient::AvailableCheck()
 	}
 }
 
-void RemoteToolClient::CheckRemoteToolVersions(const IVersionChecker::VersionMap &versionMap, const std::string & hostname)
+bool RemoteToolClient::CheckRemoteToolVersions(const IVersionChecker::VersionMap &versionMap, const std::string & hostname)
 {
+	bool result = true;
 	for (const auto & versionPair : versionMap)
 	{
 		const auto & toolId = versionPair.first;
@@ -419,14 +417,16 @@ void RemoteToolClient::CheckRemoteToolVersions(const IVersionChecker::VersionMap
 
 		if (localVersion == remoteVersion)
 			continue; // OK, most common situation
-		
+
 		if (localVersion == InvocationRewriterConfig::VERSION_NO_CHECK || remoteVersion == InvocationRewriterConfig::VERSION_NO_CHECK)
 			continue;
 
 		Syslogger(Syslogger::Err) << "Tool id=" << toolId << " has local version='" << localVersion
-								  << "' and remote version='" << remoteVersion << "' on '" << hostname  << "'";
-		m_compilerVersionSuitable = false;
+								  << "' and remote version='" << remoteVersion << "' on '" << hostname  << "'"
+								  << ", host will be excluded from build process.";
+		result = false;
 	}
+	return result;
 }
 
 std::string RemoteToolClient::TaskExecutionInfo::GetProfilingStr() const

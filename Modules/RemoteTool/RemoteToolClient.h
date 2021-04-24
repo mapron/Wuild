@@ -79,7 +79,7 @@ public:
 protected:
 	void UpdateSessionInfo(const TaskExecutionInfo& executionResult);
 	void AvailableCheck();
-	void CheckRemoteToolVersions(const IVersionChecker::VersionMap & versionMap, const std::string & hostname);
+	bool CheckRemoteToolVersions(const IVersionChecker::VersionMap & versionMap, const std::string & hostname);
 
 	ThreadLoop m_thread;
 
@@ -97,7 +97,6 @@ protected:
 	std::mutex m_sessionInfoMutex;
 	std::mutex m_availableCheckMutex;
 
-	bool m_compilerVersionSuitable = true;
 	bool m_remoteIsAvailable = false;
 	RemoteAvailableCallback m_remoteAvailableCallback;
 	Config m_config;
