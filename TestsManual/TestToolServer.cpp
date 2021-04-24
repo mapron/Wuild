@@ -13,6 +13,7 @@
 
 #include "TestUtils.h"
 
+#include <ArgStorage.h>
 #include <RemoteToolClient.h>
 #include <RemoteToolServer.h>
 #include <LocalExecutor.h>
@@ -28,11 +29,12 @@ const Wuild::CompressionType g_compType = Wuild::CompressionType::LZ4;
 int main(int argc, char** argv)
 {
 	using namespace Wuild;
-	ConfiguredApplication app(argc, argv, "TestToolServer");
+	ArgStorage argStorage(argc, argv);
+	ConfiguredApplication app(argStorage.GetConfigValues(), "TestToolServer");
 	if (!CreateInvocationRewriter(app))
 	   return 1;
 
-	StringVector args = app.GetRemainArgs();
+	StringVector args = argStorage.GetArgs();
 	auto localExecutor = LocalExecutor::Create(TestConfiguration::s_invocationRewriter, app.m_tempDir);
 
 	std::string err;
@@ -53,9 +55,9 @@ int main(int argc, char** argv)
 	toolServerConfig.m_listenPort = g_toolsServerTestPort;
 	toolServerConfig.m_coordinator.m_enabled = false;
 	toolServerConfig.m_compression.m_type = g_compType;
-	
+
 	const auto toolsVersions = VersionChecker::Create(localExecutor, TestConfiguration::s_invocationRewriter)->DetermineToolVersions({});
-	
+
 	RemoteToolServer rcServer(localExecutor, toolsVersions);
 	if (!rcServer.SetConfig(toolServerConfig))
 		return 1;

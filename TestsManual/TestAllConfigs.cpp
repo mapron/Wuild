@@ -13,9 +13,10 @@
 
 #include "TestUtils.h"
 
-#include <RemoteToolClient.h>
-#include <LocalExecutor.h>
+#include <ArgStorage.h>
 #include <FileUtils.h>
+#include <LocalExecutor.h>
+#include <RemoteToolClient.h>
 #include <VersionChecker.h>
 
 /*
@@ -26,7 +27,8 @@
 int main(int argc, char** argv)
 {
 	using namespace Wuild;
-	ConfiguredApplication app(argc, argv, "TestAllConfigs");
+	ArgStorage argStorage(argc, argv);
+	ConfiguredApplication app(argStorage.GetConfigValues(), "TestAllConfigs");
 	if (!CreateInvocationRewriter(app))
 	   return 1;
 
@@ -35,16 +37,16 @@ int main(int argc, char** argv)
 	//app.m_loggerConfig.m_maxLogLevel = Syslogger::Debug;
 	app.InitLogging(app.m_loggerConfig);
 
-	const auto args = app.GetRemainArgs();
+	const auto args = argStorage.GetArgs();
 
 	auto localExecutor = LocalExecutor::Create(TestConfiguration::s_invocationRewriter, app.m_tempDir);
-	
+
 	auto versionChecker = VersionChecker::Create(localExecutor, TestConfiguration::s_invocationRewriter);
 	const auto & toolsConfig = TestConfiguration::s_invocationRewriter->GetConfig();
 	const auto toolsVersions = versionChecker->DetermineToolVersions({});
 	for (const auto & toolId : toolsConfig.m_toolIds)
 		Syslogger(Syslogger::Notice) << "tool[" << toolId << "] version=" << toolsVersions.at(toolId);
-	
+
 	std::string err;
 	LocalExecutorTask::Ptr original(new LocalExecutorTask());
 	original->m_readOutput = original->m_writeInput = false;

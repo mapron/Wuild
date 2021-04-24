@@ -39,26 +39,16 @@ namespace
 namespace Wuild
 {
 
-StringVector AbstractConfig::ReadCommandLine(const StringVector &args, const std::string &prefix)
+void AbstractConfig::ReadCommandLine(const StringVector & args)
 {
-	StringVector unprefixed;
 	for (const auto & arg : args)
 	{
-		if (arg.find(prefix) == 0)
-		{
-			const auto argNoPrefix = arg.substr(prefix.size());
-			const auto groupPos = argNoPrefix.find(g_groupCommandLineSeparator);
-			if (groupPos == std::string::npos)
-				SetArg("", argNoPrefix);
-			else
-				SetArg(argNoPrefix.substr(0, groupPos), argNoPrefix.substr(groupPos + 1));
-		}
+		const auto groupPos = arg.find(g_groupCommandLineSeparator);
+		if (groupPos == std::string::npos)
+			SetArg("", arg);
 		else
-		{
-			unprefixed.push_back(arg);
-		}
+			SetArg(arg.substr(0, groupPos), arg.substr(groupPos + 1));
 	}
-	return unprefixed;
 }
 
 bool AbstractConfig::ReadIniFile(const std::string &filename)

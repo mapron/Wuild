@@ -15,6 +15,7 @@
 #include "ConfiguredApplication.h"
 
 #include "AbstractConfig.h"
+#include "ArgStorage.h"
 
 #include <Application.h>
 #include <StringUtils.h>
@@ -27,7 +28,6 @@
 
 namespace
 {
-	const std::string g_commandLinePrefix = "--wuild-";
 	const std::string g_defaultConfigSubfolder =
 		#ifndef _WIN32
 			".Wuild/"
@@ -42,7 +42,7 @@ namespace
 namespace Wuild
 {
 
-ConfiguredApplication::ConfiguredApplication(int argc, char **argv, const std::string &appName, std::string defaultGroupName)
+ConfiguredApplication::ConfiguredApplication(const StringVector & argConfig, const std::string &appName, const std::string & defaultGroupName)
 	: m_defaultGroupName(std::move(defaultGroupName))
 {
 	if (!appName.empty())
@@ -50,15 +50,8 @@ ConfiguredApplication::ConfiguredApplication(int argc, char **argv, const std::s
 
 	m_config = std::make_unique<AbstractConfig>();
 	AbstractConfig & config = *m_config;
-	const auto inputArgs = StringUtils::StringVectorFromArgv(argc, argv);
-	m_remainArgs = config.ReadCommandLine(inputArgs, g_commandLinePrefix);
-	m_remainArgv.resize(m_remainArgs.size() + 2);
-	m_remainArgv[0] = argv[0];
-	for (size_t i = 0; i < m_remainArgs.size(); ++i)
-		m_remainArgv[i+1] = const_cast<char*>(m_remainArgs[i].data()); // waiting for non-const data().
 
-	m_remainArgv[m_remainArgv.size() - 1] = nullptr;
-
+	config.ReadCommandLine(argConfig);
 	std::string configPath = config.GetString("", "config");
 	if (configPath.empty())
 	{
@@ -87,7 +80,7 @@ ConfiguredApplication::ConfiguredApplication(int argc, char **argv, const std::s
 		Syslogger(Syslogger::Err) << "Failed to load:" << configPath;
 	}
 	// if global variable is set in inifile, override in again with commandline
-	config.ReadCommandLine(inputArgs, g_commandLinePrefix);
+	config.ReadCommandLine(argConfig);
 
 	ReadLoggingConfig();
 	ReadInvocationRewriterConfig();
@@ -101,17 +94,12 @@ ConfiguredApplication::ConfiguredApplication(int argc, char **argv, const std::s
 	m_tempDir = m_config->GetString(m_defaultGroupName, "tempDir", Application::Instance().GetTempDir());
 }
 
+ConfiguredApplication::ConfiguredApplication(int argc, char ** argv, const std::string & appName, const std::string & defaultGroupName)
+	: ConfiguredApplication(ArgStorage(argc, argv).GetConfigValues(), appName, defaultGroupName)
+{
+}
+
 ConfiguredApplication::~ConfiguredApplication() = default;
-
-int ConfiguredApplication::GetRemainArgc() const
-{
-	return m_remainArgv.size() - 1;
-}
-
-char **ConfiguredApplication::GetRemainArgv() const
-{
-	return const_cast<char **>(m_remainArgv.data());
-}
 
 bool ConfiguredApplication::InitLogging(const LoggerConfig &loggerConfig)
 {

@@ -14,6 +14,7 @@
 #include "AppUtils.h"
 #include "StatusWriter.h"
 
+#include <ArgStorage.h>
 #include <CoordinatorClient.h>
 #include <StringUtils.h>
 #include <TimePoint.h>
@@ -21,7 +22,8 @@
 int main(int argc, char** argv)
 {
 	using namespace Wuild;
-	ConfiguredApplication app(argc, argv, "WuildProxyClient", "proxy");
+	ArgStorage argStorage(argc, argv);
+	ConfiguredApplication app(argStorage.GetConfigValues(), "WuildProxyClient", "proxy");
 
 	CoordinatorClient::Config config = app.m_remoteToolClientConfig.m_coordinator;
 	if (!config.Validate())
@@ -32,7 +34,7 @@ int main(int argc, char** argv)
 		return 1;
 
 	AbstractWriter::OutType outType = AbstractWriter::OutType::STD_TEXT;
-	for (auto arg : app.GetRemainArgs())
+	for (auto arg : argStorage.GetArgs())
 		if (!arg.compare("--json"))
 			outType = AbstractWriter::OutType::JSON;
 	std::unique_ptr<AbstractWriter> writer = AbstractWriter::AbstractWriter::createWriter(outType);

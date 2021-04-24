@@ -12,11 +12,14 @@
  */
 #include "BenchmarkUtils.h"
 
+#include <ArgStorage.h>
+
 int main(int argc, char** argv)
 {
 	using namespace Wuild;
-	ConfiguredApplication app(argc, argv, "BenchmarkNetworking");
-	auto args = app.GetRemainArgs();
+	ArgStorage argStorage(argc, argv);
+	ConfiguredApplication app(argStorage.GetConfigValues(), "BenchmarkNetworking");
+	auto args = argStorage.GetArgs();
 	if (args.size() < 1)
 	{
 		Syslogger(Syslogger::Err) << "Usage: <server ip>";

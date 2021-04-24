@@ -28,6 +28,7 @@
 namespace Wuild
 {
 class AbstractConfig;
+
 /// Contains prepared configs for different services
 class ConfiguredApplication
 {
@@ -41,13 +42,12 @@ public:
 
 	std::string m_tempDir;
 
-	/// parses paramenter from commandline, reading wuild configuration, filling Config structures.
-	ConfiguredApplication(int argc, char** argv, const std::string& appName = std::string(), std::string  defaultGroupName = std::string());
-	~ConfiguredApplication();
+	/// parses parameter from commandline, reading wuild configuration, filling Config structures.
+	ConfiguredApplication(const StringVector & argConfig, const std::string & appName = std::string(), const std::string & defaultGroupName = std::string());
+	/// this function keeps argc and argv untouched; if you need to modification after parsing, use previous constructor with ArgStorage() call.
+	ConfiguredApplication(int argc, char ** argv, const std::string & appName = std::string(), const std::string & defaultGroupName = std::string());
 
-	const StringVector & GetRemainArgs() const { return m_remainArgs;}
-	int GetRemainArgc() const;
-	char** GetRemainArgv() const;
+	~ConfiguredApplication();
 
 	bool InitLogging(const LoggerConfig & loggerConfig);
 
@@ -61,10 +61,6 @@ public:
 	std::string DumpAllConfigValues() const;
 
 private:
-	StringVector m_remainArgs;
-	std::vector<char*> m_remainArgv;
-	std::unique_ptr<AbstractConfig> m_config;
-	std::string m_defaultGroupName;
 	ConfiguredApplication(const ConfiguredApplication& ) = delete;
 
 	void ReadLoggingConfig();
@@ -75,5 +71,9 @@ private:
 	void ReadCoordinatorServerConfig();
 	void ReadCompressionConfig(CompressionInfo & compressionInfo, const std::string & groupName);
 	void ReadToolProxyServerConfig();
+
+private:
+	std::unique_ptr<AbstractConfig> m_config;
+	std::string m_defaultGroupName;
 };
 }

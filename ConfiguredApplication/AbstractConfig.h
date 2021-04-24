@@ -23,8 +23,8 @@ namespace Wuild {
 class AbstractConfig
 {
 public:
-	/// Searches in args elements starting with prefix; processing them and returning elements with no prefix.
-	StringVector ReadCommandLine(const StringVector & args, const std::string & prefix);
+	/// Set list in form ['key=value', 'key2=value2']
+	void ReadCommandLine(const StringVector & args);
 	bool ReadIniFile(const std::string & filename);
 
 	/// No keys are present in config.

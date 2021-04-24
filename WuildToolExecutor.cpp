@@ -13,9 +13,10 @@
 
 #include "AppUtils.h"
 
-#include <RemoteToolClient.h>
-#include <LocalExecutor.h>
+#include <ArgStorage.h>
 #include <FileUtils.h>
+#include <LocalExecutor.h>
+#include <RemoteToolClient.h>
 #include <VersionChecker.h>
 
 #include <iostream>
@@ -27,7 +28,8 @@
 int main(int argc, char** argv)
 {
 	using namespace Wuild;
-	ConfiguredApplication app(argc, argv, "ToolExecutor");
+	ArgStorage argStorage(argc, argv);
+	ConfiguredApplication app(argStorage.GetConfigValues(), "ToolExecutor");
 
 	IInvocationRewriter::Config iconfig;
 	if (!app.GetInvocationRewriterConfig( iconfig ))
@@ -40,7 +42,7 @@ int main(int argc, char** argv)
 	app.m_loggerConfig.m_maxLogLevel = Syslogger::Warning;
 	app.InitLogging(app.m_loggerConfig);
 
-	StringVector args = app.GetRemainArgs();
+	StringVector args = argStorage.GetArgs();
 	if (args.empty())
 	{
 		Syslogger(Syslogger::Err) << "usage: ToolExecutor <tool_id> [arguments]";
@@ -53,7 +55,7 @@ int main(int argc, char** argv)
 	RemoteToolClient::Config config;
 	if (!app.GetRemoteToolClientConfig(config))
 		return 1;
-	
+
 	auto localExecutor = LocalExecutor::Create(invocationRewriter, app.m_tempDir);
 	const auto toolsVersions = VersionChecker::Create(localExecutor, invocationRewriter)->DetermineToolVersions({toolId});
 
