@@ -34,13 +34,15 @@ public:
 	void SetConfig(const Config & config) override;
 	const Config& GetConfig() const override;
 
+	bool IsCompilerInvocation(const ToolInvocation & original) const override;
+
 	bool SplitInvocation(const ToolInvocation & original,
 						 ToolInvocation & preprocessor,
 						 ToolInvocation & compilation,
-						 std::string * remoteToolId = nullptr) override;
+						 std::string * remoteToolId = nullptr) const override;
 
    ToolInvocation CompleteInvocation(const ToolInvocation & original) const override;
-   
+
    ToolInvocation::Id CompleteToolId(const ToolInvocation::Id & original) const override;
 
    bool CheckRemotePossibleForFlags(const ToolInvocation & original) const override;

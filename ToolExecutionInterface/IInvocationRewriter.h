@@ -38,20 +38,23 @@ public:
 	virtual void SetConfig(const Config & config)  = 0;
 	virtual const Config& GetConfig() const = 0;
 
+	/// Checks if an invocation is a compilation
+	virtual bool IsCompilerInvocation(const ToolInvocation & original) const = 0;
+
 	/// Split invocation on two steps. If succeeded, returns true.
 	virtual bool SplitInvocation(const ToolInvocation & original,
 								 ToolInvocation & preprocessor,
 								 ToolInvocation & compilation,
-								 std::string * remoteToolId = nullptr) = 0;
+								 std::string * remoteToolId = nullptr) const = 0;
 
 	/// Normalizes invocation struct, making possible to replace input/output files. Substitute toolId if possible.
 	virtual ToolInvocation CompleteInvocation(const ToolInvocation & original) const = 0;
 
 	/// Performs substitution of toolId executable if possible.
 	virtual ToolInvocation::Id CompleteToolId(const ToolInvocation::Id & original) const = 0;
-	
+
 	virtual bool CheckRemotePossibleForFlags(const ToolInvocation & original) const = 0;
-	
+
 	/// Remove preprocessor flags from splitted compilation phase; also remove extra preprocessor flags which not supported for distributed build.
 	virtual ToolInvocation FilterFlags(const ToolInvocation & original) const = 0;
 

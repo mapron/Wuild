@@ -23,13 +23,16 @@ struct SubprocessSet;
 class IRemoteExecutor
 {
 public:
+    enum class PreprocessResult { Success, Skipped, UnknownCompiler };
+
+public:
     virtual ~IRemoteExecutor() = default;
 
-    virtual bool PreprocessCode(const std::vector<std::string> & originalRule,
-                                const std::vector<std::string> & ignoredArgs,
-                                std::string & toolId,
-                                std::vector<std::string> & preprocessRule,
-                                std::vector<std::string> & compileRule) const = 0;
+    virtual PreprocessResult PreprocessCode(const std::vector<std::string> & originalRule,
+                                            const std::vector<std::string> & ignoredArgs,
+                                            std::string & toolId,
+                                            std::vector<std::string> & preprocessRule,
+                                            std::vector<std::string> & compileRule) const = 0;
 
     virtual std::string GetPreprocessedPath(const std::string & sourcePath, const std::string & objectPath) const = 0;
 
@@ -58,4 +61,6 @@ public:
 
     virtual void Abort() = 0;
     virtual std::set<Edge*> GetActiveEdges() = 0;
+
+    virtual std::vector<std::string> GetKnownToolNames() const = 0;
 };

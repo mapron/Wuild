@@ -27,7 +27,7 @@
 namespace Wuild
 {
 
-namespace 
+namespace
 {
 
 bool IsSpace(char c) { return c == ' '  || c == '\t'; }
@@ -43,7 +43,7 @@ StringVector SplitShellCommand(const std::string & str)
 	std::string buffer;
 	buffer.reserve(str.size());
 	bool inQuoted = false;
-	
+
 	for (char c : str)
 	{
 	#ifndef _WIN32
@@ -61,7 +61,7 @@ StringVector SplitShellCommand(const std::string & str)
 			continue;
 		}
 	#endif
-		
+
 		if (IsQuote(c))
 		{
 			inQuoted = !inQuoted;
@@ -70,18 +70,18 @@ StringVector SplitShellCommand(const std::string & str)
 		{
 			if (!buffer.empty())
 				ret.emplace_back(buffer);
-			
+
 			buffer.clear();
 			continue;
 		}
-		
+
 		// neither quote nor space
 		buffer += c;
 	}
-	
+
 	if (!buffer.empty())
 		ret.emplace_back(buffer);
-	
+
 	return ret;
 }
 }
@@ -98,7 +98,28 @@ const IInvocationRewriter::Config &InvocationRewriter::GetConfig() const
 	return m_config;
 }
 
-bool InvocationRewriter::SplitInvocation(const ToolInvocation & original, ToolInvocation &preprocessor, ToolInvocation &compilation, std::string * remoteToolId)
+bool InvocationRewriter::IsCompilerInvocation(const ToolInvocation & original) const
+{
+	GccCommandLineParser gcc;
+	MsvcCommandLineParser msvc;
+
+	ToolInvocation inv = original;
+	inv.m_type = ToolInvocation::InvokeType::Unknown;
+	inv.m_args.clear();
+	for (const auto& arg : original.m_args)
+	{
+		StringVector argSplit = SplitShellCommand(arg);
+		inv.m_args.insert(inv.m_args.end(), argSplit.begin(), argSplit.end());
+	}
+
+	auto checker = [&inv](ICommandLineParser & parser) -> bool {
+		auto parsedInv = parser.ProcessToolInvocation(inv);
+		return parsedInv.m_type == ToolInvocation::InvokeType::Compile;
+	};
+	return checker(gcc) || checker(msvc);
+}
+
+bool InvocationRewriter::SplitInvocation(const ToolInvocation & original, ToolInvocation &preprocessor, ToolInvocation &compilation, std::string * remoteToolId) const
 {
 	ToolInfo toolInfo = CompileInfoById(original.m_id);
 	if (!toolInfo.m_parser)
@@ -161,7 +182,7 @@ ToolInvocation::Id InvocationRewriter::CompleteToolId(const ToolInvocation::Id &
 	ToolInfo info = CompileInfoById(original);
 	if (info.m_valid)
 		return info.m_id;
-	
+
 	return original;
 }
 

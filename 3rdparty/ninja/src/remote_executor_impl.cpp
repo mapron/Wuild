@@ -74,10 +74,10 @@ double RemoteExecutor::GetMaxLoadAverage() const
     return m_app.m_remoteToolClientConfig.m_maxLoadAverage;
 }
 
-bool RemoteExecutor::PreprocessCode(const std::vector<std::string> &originalRule, const std::vector<std::string> &ignoredArgs, std::string &toolId, std::vector<std::string> &preprocessRule, std::vector<std::string> &compileRule) const
+IRemoteExecutor::PreprocessResult RemoteExecutor::PreprocessCode(const std::vector<std::string> &originalRule, const std::vector<std::string> &ignoredArgs, std::string &toolId, std::vector<std::string> &preprocessRule, std::vector<std::string> &compileRule) const
 {
     if (!m_remoteEnabled || originalRule.size() < 3)
-        return false;
+        return PreprocessResult::Skipped;
 
     std::vector<std::string> args = originalRule;
 
@@ -93,8 +93,12 @@ bool RemoteExecutor::PreprocessCode(const std::vector<std::string> &originalRule
     original.m_id.m_toolExecutable = srcExecutable;
     original.m_args = args;
     original.m_ignoredArgs = ignoredArgs;
-    if (!m_invocationRewriter->SplitInvocation(original, pp, cc, &toolId))
-        return false;
+    if (!m_invocationRewriter->SplitInvocation(original, pp, cc, &toolId)) {
+        if (!m_invocationRewriter->IsCompilerInvocation(original))
+             return PreprocessResult::Skipped;
+
+        return PreprocessResult::UnknownCompiler;
+    }
 
     preprocessRule.push_back(srcExecutable + "  ");
     preprocessRule.insert(preprocessRule.end(), pp.m_args.begin(), pp.m_args.end());
@@ -102,7 +106,7 @@ bool RemoteExecutor::PreprocessCode(const std::vector<std::string> &originalRule
     compileRule.push_back(srcExecutable + "  ");
     compileRule.insert(compileRule.end(), cc.m_args.begin(), cc.m_args.end());
 
-    return true;
+    return PreprocessResult::Success;
 }
 
 bool RemoteExecutor::CheckRemotePossibleForFlags(const std::string & toolId, const std::string & flags) const
@@ -241,6 +245,16 @@ void RemoteExecutor::Abort()
 std::set<Edge *> RemoteExecutor::GetActiveEdges()
 {
     return m_activeEdges;
+}
+
+std::vector<std::string> RemoteExecutor::GetKnownToolNames() const
+{
+    std::vector<std::string> result;
+    for (const auto & tool : m_app.m_invocationRewriterConfig.m_tools)
+    {
+        result.insert(result.end(), tool.m_names.cbegin(), tool.m_names.cend());
+    }
+    return result;
 }
 
 RemoteExecutor::~RemoteExecutor()

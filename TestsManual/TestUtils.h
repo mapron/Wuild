@@ -35,10 +35,12 @@ public:
 	void SetConfig(const Config& config) override { m_config = config; }
 	const Config& GetConfig() const override { return m_config; }
 
+	bool IsCompilerInvocation(const ToolInvocation &) const override { return false;}
+
 	bool SplitInvocation(const ToolInvocation & ,
 				 ToolInvocation &,
 				 ToolInvocation &,
-				  std::string *) override { return false;}
+				  std::string *) const override { return false;}
 
 	ToolInvocation CompleteInvocation(const ToolInvocation & original) const override { return original; }
 	ToolInvocation PrepareRemote(const ToolInvocation & original) const override { return original; }

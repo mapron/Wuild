@@ -57,12 +57,12 @@ public:
 
     void SetVerbose(bool verbose);
     double GetMaxLoadAverage() const;
-
-    bool PreprocessCode(const std::vector<std::string> & originalRule,
-                        const std::vector<std::string> & ignoredArgs,
-                        std::string & toolId,
-                        std::vector<std::string> & preprocessRule,
-                        std::vector<std::string> & compileRule) const override;
+    
+    PreprocessResult PreprocessCode(const std::vector<std::string> & originalRule,
+                                    const std::vector<std::string> & ignoredArgs,
+                                    std::string & toolId,
+                                    std::vector<std::string> & preprocessRule,
+                                    std::vector<std::string> & compileRule) const override;
 
     bool CheckRemotePossibleForFlags(const std::string & toolId, const std::string & flags) const override;
     std::string GetPreprocessedPath(const std::string & sourcePath, const std::string & objectPath) const override;
@@ -83,6 +83,8 @@ public:
 
     void Abort() override;
     std::set<Edge*> GetActiveEdges() override;
+
+    std::vector<std::string> GetKnownToolNames() const override;
 
     ~RemoteExecutor();
 

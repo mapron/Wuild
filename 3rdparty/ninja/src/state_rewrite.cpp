@@ -48,6 +48,7 @@ void RewriteStateRules(State *state, IRemoteExecutor * const remoteExecutor)
 
     const auto rules = state->bindings_.GetRules();// we must copy rules container; otherwise we stack in infinite loop.
     std::map<const Rule*,  RuleReplace> ruleReplacement;
+    std::set<std::string> unknownToolchains;
     for (const auto & ruleIt : rules)
     {
         const std::string & ruleName = ruleIt.first;
@@ -64,9 +65,13 @@ void RewriteStateRules(State *state, IRemoteExecutor * const remoteExecutor)
             }
             originalRule.push_back(str);
         }
+        if (originalRule.empty())
+            continue;
+
         std::vector<std::string> preprocessRule, compileRule;
         std::string toolId;
-        if (remoteExecutor->PreprocessCode(originalRule, s_ignoredArgs, toolId, preprocessRule, compileRule))
+        const auto ppResult = remoteExecutor->PreprocessCode(originalRule, s_ignoredArgs, toolId, preprocessRule, compileRule);
+        if (ppResult == IRemoteExecutor::PreprocessResult::Success)
         {
             Rule* rulePP = rule->Clone(ruleName + "_PP");
             state->bindings_.AddRule(rulePP);
@@ -88,6 +93,21 @@ void RewriteStateRules(State *state, IRemoteExecutor * const remoteExecutor)
             auto & descTokens = rulePP->GetBinding("description")->parsed_;
             descTokens[0].first = "Preprocessing ";
         }
+        else if (ppResult == IRemoteExecutor::PreprocessResult::UnknownCompiler)
+        {
+            unknownToolchains.insert(originalRule[0]);
+        }
+    }
+    if (!unknownToolchains.empty())
+    {
+        Wuild::Syslogger log(ruleReplacement.empty() ? Wuild::Syslogger::Warning : Wuild::Syslogger::Debug); // If some replacement was done, it's probably not that important.
+        log << "Wuild is configured for these compiler paths:\n";
+        for (const auto & name : remoteExecutor->GetKnownToolNames())
+            log << name << "\n";
+        log << "\nbut none of them used when trying to match Ninja config for the rules:\n";
+        for (const auto & name : unknownToolchains)
+            log << name << "\n";
+        log << "\nCheck your Wuild.ini config or replace WuildNinja with ninja. ";
     }
     Wuild::Syslogger() << "RewriteStateRules...";
     const auto paths = state->paths_;
