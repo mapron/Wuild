@@ -204,10 +204,6 @@ AddTarget(NAME Coordinator SUBDIR Modules/ CSRC *.cpp *.h
 	DEPS Configs Platform ToolExecutionInterface
 	)
 
-AddTarget(NAME CoordinatorStatus SUBDIR Modules/ CSRC *.cpp *.h
-	INCLUDES ${JSON_ROOT}
-	)
-
 AddTarget(NAME RemoteTool SUBDIR Modules/ CSRC *.cpp *.h
 	DEPS Configs Platform ToolExecutionInterface Coordinator
 	)
@@ -247,19 +243,14 @@ foreach (benchname NetworkClient NetworkServer)
 		)
 endforeach()
 
-foreach (appname Coordinator ToolServer Proxy ProxyClient ToolExecutor)
-	AddTarget(APP NAME Wuild${appname} ROOT ${CMAKE_CURRENT_SOURCE_DIR}/
-		CSRC Wuild${appname}.cpp
+foreach (appname Coordinator CoordinatorStatus Proxy ProxyClient ToolExecutor ToolServer)
+	AddTarget(APP NAME Wuild${appname} ROOT ${CMAKE_CURRENT_SOURCE_DIR}/Apps/${appname}/
+		CSRC *.cpp *.h
 		DEPS ${main_deps} ${sys_deps}
+		INCLUDES ${JSON_ROOT}
 		)
 	install(TARGETS Wuild${appname})
 endforeach()
-
-AddTarget(APP NAME WuildCoordinatorStatus ROOT ${CMAKE_CURRENT_SOURCE_DIR}/
-	CSRC WuildCoordinatorStatus.cpp
-	DEPS ${main_deps} ${sys_deps} CoordinatorStatus
-	)
-install(TARGETS WuildCoordinatorStatus)
 
 AddTarget(APP NAME WuildNinja ROOT ${NINJA_ROOT}/
 	CSRC ninja.cc remote_executor_impl.* state_rewrite.*
