@@ -2,36 +2,52 @@
 
 #include "json.hpp"
 
-#include <iostream>
-
-StandartTextWriter::~StandartTextWriter(){
-	std::cout << std::endl;
+StandardTextWriter::StandardTextWriter(std::ostream& stream)
+	: m_ostream(stream)
+{
 }
 
-void StandartTextWriter::PrintMessage(const std::string& msg)
+StandardTextWriter::~StandardTextWriter()
 {
-	std::cout << msg;
+	m_ostream << std::endl;
 }
 
-void StandartTextWriter::PrintConnectedToolServer(const std::string& host, int16_t port, uint16_t runningTasks, uint16_t totalThreads)
+void StandardTextWriter::FormatMessage(const std::string& msg)
 {
-	std::cout <<  host << ":" << port << " load:" << runningTasks << "/" << totalThreads << std::endl;
+	m_ostream << msg;
 }
 
-void StandartTextWriter::PrintSummary(int running, int thread, int queued)
+void StandardTextWriter::FormatConnectedToolServer(const std::string& host, int16_t port, uint16_t runningTasks, uint16_t totalThreads)
 {
-	std::cout << std::endl <<"Total load:" << running << "/" << thread << ", queue: " << queued << std::endl;
+	m_ostream <<  host << ":" << port << " load:" << runningTasks << "/" << totalThreads << std::endl;
 }
 
-void StandartTextWriter::PrintSessions(const std::string& started, int usedThreads)
+void StandardTextWriter::FormatSummary(int running, int thread, int queued)
 {
-	std::cout << "Started " << started << ", used: " << usedThreads << std::endl;
+	m_ostream << std::endl <<"Total load:" << running << "/" << thread << ", queue: " << queued << std::endl;
 }
-void StandartTextWriter::PrintTools(const std::set<std::string>& toolIds)
+
+void StandardTextWriter::FormatSessions(const std::string& started, int usedThreads)
 {
-	std::cout << "\nAvailable tools: ";
+	m_ostream << "Started " << started << ", used: " << usedThreads << std::endl;
+}
+void StandardTextWriter::FormatOverallTools(const std::set<std::string>& toolIds)
+{
+	m_ostream << "\nAvailable tools: ";
 	for (const auto & t : toolIds)
-		std::cout << t << ", ";
+		m_ostream << t << ", ";
+	m_ostream << "\n";
+}
+
+void StandardTextWriter::FormatToolsByToolsServer(const AbstractWriter::ToolsMap& toolsByHost)
+{
+	m_ostream << "\nAvailable tools by toolserver: \n";
+	for (const auto & toolserver : toolsByHost) {
+		m_ostream << "\t" << toolserver.first << ":\t";
+		for (const auto & toolId : toolserver.second)
+			m_ostream << toolId << ", ";
+		m_ostream << "\n";
+	}
 }
 
 
@@ -40,42 +56,52 @@ struct JsonWriter::Impl
 	nlohmann::ordered_json jsonResult;
 };
 
-JsonWriter::JsonWriter() : m_impl(new Impl) {};
+JsonWriter::JsonWriter(std::ostream & stream)
+	: m_impl(new Impl)
+	, m_ostream(stream) {
+};
 
 JsonWriter::~JsonWriter() {
-	std::cout << m_impl->jsonResult.dump(4) << std::endl;
+	m_ostream << m_impl->jsonResult.dump(4) << std::endl;
 }
 
-void JsonWriter::PrintMessage(const std::string&)
+void JsonWriter::FormatMessage(const std::string&)
 {
 	// stub
 }
-void JsonWriter::PrintConnectedToolServer(const std::string& host, int16_t port, uint16_t runningTasks, uint16_t totalThreads)
+void JsonWriter::FormatConnectedToolServer(const std::string& host, int16_t port, uint16_t runningTasks, uint16_t totalThreads)
 {
 	m_impl->jsonResult["connected_tool_servers"][host]["port"] = port;
 	m_impl->jsonResult["connected_tool_servers"][host]["running_tasks"] = runningTasks;
 	m_impl->jsonResult["connected_tool_servers"][host]["total_threads"] = totalThreads;
 }
 
-void JsonWriter::PrintSummary(int running, int thread, int queued)
+void JsonWriter::FormatSummary(int running, int thread, int queued)
 {
 	m_impl->jsonResult["total_load"]["running"] = running;
 	m_impl->jsonResult["total_load"]["thread"] = thread;
 	m_impl->jsonResult["total_load"]["queue"] = queued;
 }
 
-void JsonWriter::PrintSessions(const std::string& started, int usedThreads)
+void JsonWriter::FormatSessions(const std::string& started, int usedThreads)
 {
 	m_impl->jsonResult["Running sessions"].push_back({{"started", started},{"usedThreads",usedThreads}});
 }
-void JsonWriter::PrintTools(const std::set<std::string>& toolIds)
+void JsonWriter::FormatOverallTools(const std::set<std::string>& toolIds)
 {
 	m_impl->jsonResult["available_tools"] = toolIds;
 }
 
-std::unique_ptr<AbstractWriter> AbstractWriter::createWriter(OutType outType)
+void JsonWriter::FormatToolsByToolsServer(const AbstractWriter::ToolsMap& toolsByHost)
+{
+	auto & toolsByHostJson = m_impl->jsonResult["available_tools_by_host"];
+	for (const auto & toolserver : toolsByHost) 
+		toolsByHostJson[toolserver.first] = toolserver.second;
+}
+
+std::unique_ptr<AbstractWriter> AbstractWriter::createWriter(OutType outType, std::ostream & stream)
 {
 	if (outType == OutType::JSON)
-		return std::make_unique <JsonWriter> ();
-	return std::make_unique <StandartTextWriter> ();
+		return std::make_unique<JsonWriter> (stream);
+	return std::make_unique<StandardTextWriter> (stream);
 }

@@ -19,6 +19,8 @@
 #include <StringUtils.h>
 #include <TimePoint.h>
 
+#include <iostream>
+
 int main(int argc, char** argv)
 {
 	using namespace Wuild;
@@ -37,18 +39,19 @@ int main(int argc, char** argv)
 	for (auto arg : argStorage.GetArgs())
 		if (!arg.compare("--json"))
 			outType = AbstractWriter::OutType::JSON;
-	std::unique_ptr<AbstractWriter> writer = AbstractWriter::AbstractWriter::createWriter(outType);
+	std::unique_ptr<AbstractWriter> writer = AbstractWriter::AbstractWriter::createWriter(outType, std::cout);
 
 	client.SetInfoArrivedCallback([&writer](const CoordinatorInfo& info){
-		writer->PrintMessage("Coordinator connected tool servers:\n");
+		writer->FormatMessage("Coordinator connected tool servers:\n");
 
 		std::map<int64_t, int> sessionsUsed;
 		std::set<std::string> toolIds;
+		std::map<std::string, StringVector> toolsByToolserver;
 		int running = 0, thread = 0, queued = 0;
 
 		for (const ToolServerInfo & toolServer : info.m_toolServers)
 		{
-			writer->PrintConnectedToolServer(toolServer.m_connectionHost, toolServer.m_connectionPort,
+			writer->FormatConnectedToolServer(toolServer.m_connectionHost, toolServer.m_connectionPort,
 											 toolServer.m_runningTasks, toolServer.m_totalThreads);
 			running += toolServer.m_runningTasks;
 			queued += toolServer.m_queuedTasks;
@@ -57,22 +60,24 @@ int main(int argc, char** argv)
 			{
 				sessionsUsed[client.m_sessionId] += client.m_usedThreads ;
 			}
+			toolsByToolserver[toolServer.m_connectionHost] = toolServer.m_toolIds;
 			for (const std::string & t : toolServer.m_toolIds)
 				toolIds.insert(t);
 		}
 
-		writer->PrintSummary(running, thread, queued);
+		writer->FormatSummary(running, thread, queued);
 
 		if (!sessionsUsed.empty())
 		{
-			writer->PrintMessage("\nRunning sessions:\n");
+			writer->FormatMessage("\nRunning sessions:\n");
 			for (const auto & s : sessionsUsed)
 			{
 				TimePoint stamp; stamp.SetUS(s.first); stamp.ToLocal();
-				writer->PrintSessions(stamp.ToString(), s.second);
+				writer->FormatSessions(stamp.ToString(), s.second);
 			}
 		}
-		writer->PrintTools(toolIds);
+		writer->FormatOverallTools(toolIds);
+		writer->FormatToolsByToolsServer(toolsByToolserver);
 		Application::Interrupt(0);
 	});
 
