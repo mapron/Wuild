@@ -106,10 +106,10 @@ void RewriteStateRules(State *state, IRemoteExecutor * const remoteExecutor)
             const std::string objectPath = node->path();
             const std::string sourcePath = in_egde->inputs_[0]->path();
             const std::string ppPath = remoteExecutor->GetPreprocessedPath(sourcePath, objectPath);
-			// always clean preprocessed file from prev crashes.
-			remove(ppPath.c_str());
-            
-			Node *pp_node = state->GetNode(ppPath, node->slash_bits());
+            // always clean preprocessed file from prev crashes.
+            remove(ppPath.c_str());
+
+            Node *pp_node = state->GetNode(ppPath, node->slash_bits());
 
             pp_node->set_buddy(in_egde->outputs_[0]);
 
@@ -125,7 +125,7 @@ void RewriteStateRules(State *state, IRemoteExecutor * const remoteExecutor)
 
             Edge* edge_pp = state->AddEdge(replacement.pp);
             Edge* edge_cc = state->AddEdge(replacement.cc);
-			edge_cc->pp_egde_ = edge_pp;
+            edge_cc->pp_egde_ = edge_pp;
 
             edge_cc->is_remote_ = true; // allow remote excution of compiler.
             edge_cc->use_temporary_inputs_ = true;  // clean preprocessed files on success.
@@ -174,7 +174,7 @@ void RewriteStateRules(State *state, IRemoteExecutor * const remoteExecutor)
             erasedEdges.insert(in_egde);
         }
     }
-    vector<Edge*> newEdges;
+    std::vector<Edge*> newEdges;
 
     for (auto * edge : state->edges_)
     {

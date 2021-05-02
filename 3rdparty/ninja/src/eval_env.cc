@@ -16,6 +16,9 @@
 
 #include "eval_env.h"
 
+
+using namespace std;
+
 BindingEnv *BindingEnv::Clone()
 {
     BindingEnv *clone = new BindingEnv();

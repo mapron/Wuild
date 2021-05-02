@@ -24,6 +24,8 @@
 
 #include "getopt_win.h"
 
+using namespace std;
+
 namespace {
 
 void Usage() {

@@ -50,6 +50,8 @@
 #include "state_rewrite.h"
 #include <ArgStorage.h>
 
+using namespace std;
+
 #ifdef _MSC_VER
 // Defined in msvc_helper_main-win32.cc.
 int MSVCHelperMain(int argc, char** argv);
@@ -95,7 +97,7 @@ struct NinjaMain : public BuildLogUser {
   /// Loaded state (rules, nodes).
   State state_;
 
-  /// Functions for accesssing the disk.
+  /// Functions for accessing the disk.
   RealDiskInterface disk_interface_;
 
   /// The build directory, used for storing the build log etc.
@@ -818,7 +820,6 @@ int NinjaMain::ToolCompilationDatabase(const Options* options, int argc,
        e != state_.edges_.end(); ++e) {
     if ((*e)->inputs_.empty())
       continue;
-
     if (argc == 0) {
       if (!first) {
         putchar(',');
@@ -1045,7 +1046,7 @@ bool DebugEnable(const string& name) {
   }
 }
 
-/// Set a warning flag.  Returns false if Ninja should exit instead  of
+/// Set a warning flag.  Returns false if Ninja should exit instead of
 /// continuing.
 bool WarningEnable(const string& name, Options* options) {
   if (name == "list") {

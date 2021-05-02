@@ -28,6 +28,7 @@
 #include "state.h"
 #include "util.h"
 
+using namespace std;
 
 bool Node::Stat(const DiskInterface* disk_interface, string* err) {
   mtime_ = disk_interface->Stat(path_, err);
