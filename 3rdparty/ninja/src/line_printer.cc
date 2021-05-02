@@ -44,10 +44,13 @@ LinePrinter::LinePrinter() : have_blank_line_(true), console_locked_(false) {
   if (term && string(term) == "dumb") {
     smart_terminal_ = false;
   } else {
-    setvbuf(stdout, NULL, _IONBF, 0);
-    console_ = GetStdHandle(STD_OUTPUT_HANDLE);
-    CONSOLE_SCREEN_BUFFER_INFO csbi;
-    smart_terminal_ = GetConsoleScreenBufferInfo(console_, &csbi);
+/// MSVC2015 compilation buggy buffering. @todo: check this someday again.
+//    setvbuf(stdout, NULL, _IONBF, 0);
+//    console_ = GetStdHandle(STD_OUTPUT_HANDLE);
+//    CONSOLE_SCREEN_BUFFER_INFO csbi;
+//    smart_terminal_ = GetConsoleScreenBufferInfo(console_, &csbi);
+      smart_terminal_ = false;
+      console_ = nullptr;
   }
 #endif
   supports_color_ = smart_terminal_;

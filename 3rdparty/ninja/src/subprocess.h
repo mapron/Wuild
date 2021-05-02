@@ -52,7 +52,7 @@ struct Subprocess {
 
  private:
   Subprocess(bool use_console);
-  bool Start(struct SubprocessSet* set, const std::string& command);
+  bool Start(struct SubprocessSet* set, const std::string& command, const std::vector<std::string> & environment = {});
   void OnPipeReady();
 
   std::string buf_;
@@ -80,10 +80,10 @@ struct Subprocess {
 /// DoWork() waits for any state change in subprocesses; finished_
 /// is a queue of subprocesses as they finish.
 struct SubprocessSet {
-  SubprocessSet();
+  SubprocessSet(bool setupSignalHandlers = true);
   ~SubprocessSet();
 
-  Subprocess* Add(const std::string& command, bool use_console = false);
+  Subprocess* Add(const std::string& command, bool use_console = false, const std::vector<std::string> & environment = {});
   bool DoWork();
   Subprocess* NextFinished();
   void Clear();
@@ -108,6 +108,7 @@ struct SubprocessSet {
   struct sigaction old_hup_act_;
   sigset_t old_mask_;
 #endif
+  bool setupSignalHandlers_;
 };
 
 #endif // NINJA_SUBPROCESS_H_

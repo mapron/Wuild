@@ -20,7 +20,7 @@
 #include <cstdlib>
 
 #ifdef _WIN32
-#include "getopt.h"
+#include "getopt_win.h"
 #include <direct.h>
 #include <windows.h>
 #elif defined(_AIX)
@@ -45,6 +45,10 @@
 #include "state.h"
 #include "util.h"
 #include "version.h"
+
+#include "remote_executor_impl.h"
+#include "state_rewrite.h"
+#include <ArgStorage.h>
 
 using namespace std;
 
@@ -144,11 +148,11 @@ struct NinjaMain : public BuildLogUser {
   /// Rebuild the manifest, if necessary.
   /// Fills in \a err on error.
   /// @return true if the manifest was rebuilt.
-  bool RebuildManifest(const char* input_file, string* err);
+  bool RebuildManifest(RemoteExecutor * const remoteExecutor, const char* input_file, string* err);
 
   /// Build the targets listed on the command line.
   /// @return an exit code.
-  int RunBuild(int argc, char** argv);
+  int RunBuild(RemoteExecutor * const remoteExecutor, int argc, char** argv);
 
   /// Dump the output requested by '-d stats'.
   void DumpMetrics();
@@ -166,11 +170,13 @@ struct NinjaMain : public BuildLogUser {
     // which seems good enough for this corner case.)
     // Do keep entries around for files which still exist on disk, for
     // generators that want to use this information.
+
     string err;
-    TimeStamp mtime = disk_interface_.Stat(s.AsString(), &err);
-    if (mtime == -1)
+    if (!n->Stat(&disk_interface_, &err)) {
       Error("%s", err.c_str());  // Log and ignore Stat() errors.
-    return mtime == 0;
+      return false;
+    }
+    return n->mtime() == 0;
   }
 };
 
@@ -240,7 +246,7 @@ int GuessParallelism() {
 
 /// Rebuild the build manifest, if necessary.
 /// Returns true if the manifest was rebuilt.
-bool NinjaMain::RebuildManifest(const char* input_file, string* err) {
+bool NinjaMain::RebuildManifest(RemoteExecutor * const remoteExecutor, const char* input_file, string* err) {
   string path = input_file;
   uint64_t slash_bits;  // Unused because this path is only used for lookup.
   if (!CanonicalizePath(&path, &slash_bits, err))
@@ -249,7 +255,7 @@ bool NinjaMain::RebuildManifest(const char* input_file, string* err) {
   if (!node)
     return false;
 
-  Builder builder(&state_, config_, &build_log_, &deps_log_, &disk_interface_);
+  Builder builder(remoteExecutor, &state_, config_, &build_log_, &deps_log_, &disk_interface_);
   if (!builder.AddTarget(node, err))
     return false;
 
@@ -808,19 +814,7 @@ int NinjaMain::ToolCompilationDatabase(const Options* options, int argc,
   argc -= optind;
 
   bool first = true;
-  vector<char> cwd;
-  char* success = NULL;
-
-  do {
-    cwd.resize(cwd.size() + 1024);
-    errno = 0;
-    success = getcwd(&cwd[0], cwd.size());
-  } while (!success && errno == ERANGE);
-  if (!success) {
-    Error("cannot determine working directory: %s", strerror(errno));
-    return 1;
-  }
-
+  const string & cwd = GetCWD();
   putchar('[');
   for (vector<Edge*>::iterator e = state_.edges_.begin();
        e != state_.edges_.end(); ++e) {
@@ -830,7 +824,7 @@ int NinjaMain::ToolCompilationDatabase(const Options* options, int argc,
       if (!first) {
         putchar(',');
       }
-      printCompdb(&cwd[0], *e, eval_mode);
+      printCompdb(cwd.c_str(), *e, eval_mode);
       first = false;
     } else {
       for (int i = 0; i != argc; ++i) {
@@ -838,7 +832,7 @@ int NinjaMain::ToolCompilationDatabase(const Options* options, int argc,
           if (!first) {
             putchar(',');
           }
-          printCompdb(&cwd[0], *e, eval_mode);
+          printCompdb(cwd.c_str(), *e, eval_mode);
           first = false;
         }
       }
@@ -1189,7 +1183,7 @@ bool NinjaMain::EnsureBuildDirExists() {
   return true;
 }
 
-int NinjaMain::RunBuild(int argc, char** argv) {
+int NinjaMain::RunBuild(RemoteExecutor * const remoteExecutor, int argc, char** argv) {
   string err;
   vector<Node*> targets;
   if (!CollectTargetsFromArgs(argc, argv, &targets, &err)) {
@@ -1199,7 +1193,7 @@ int NinjaMain::RunBuild(int argc, char** argv) {
 
   disk_interface_.AllowStatCache(g_experimental_statcache);
 
-  Builder builder(&state_, config_, &build_log_, &deps_log_, &disk_interface_);
+  Builder builder(remoteExecutor, &state_, config_, &build_log_, &deps_log_, &disk_interface_);
   for (size_t i = 0; i < targets.size(); ++i) {
     if (!builder.AddTarget(targets[i], &err)) {
       if (!err.empty()) {
@@ -1355,9 +1349,19 @@ NORETURN void real_main(int argc, char** argv) {
   setvbuf(stdout, NULL, _IOLBF, BUFSIZ);
   const char* ninja_command = argv[0];
 
+  Wuild::ArgStorage argStorage(argc, argv);
+
   int exit_code = ReadFlags(&argc, &argv, &options, &config);
   if (exit_code >= 0)
     exit(exit_code);
+
+  Wuild::ConfiguredApplication app(argStorage.GetConfigValues(), "WuildNinja", "toolClient");
+  RemoteExecutor remoteExecutor(app);
+
+  double maxLoad = remoteExecutor.GetMaxLoadAverage();
+  if (maxLoad)
+    config.max_load_average = maxLoad;
+  remoteExecutor.SetVerbose(config.verbosity == BuildConfig::VERBOSE);
 
   if (options.working_dir) {
     // The formatting of this string, complete with funny quotes, is
@@ -1397,6 +1401,7 @@ NORETURN void real_main(int argc, char** argv) {
       Error("%s", err.c_str());
       exit(1);
     }
+    RewriteStateRules(&ninja.state_, &remoteExecutor);
 
     if (options.tool && options.tool->when == Tool::RUN_AFTER_LOAD)
       exit((ninja.*options.tool->func)(&options, argc, argv));
@@ -1411,7 +1416,7 @@ NORETURN void real_main(int argc, char** argv) {
       exit((ninja.*options.tool->func)(&options, argc, argv));
 
     // Attempt to rebuild the manifest before building anything else
-    if (ninja.RebuildManifest(options.input_file, &err)) {
+    if (ninja.RebuildManifest(&remoteExecutor, options.input_file, &err)) {
       // In dry_run mode the regeneration will succeed without changing the
       // manifest forever. Better to return immediately.
       if (config.dry_run)
@@ -1423,7 +1428,7 @@ NORETURN void real_main(int argc, char** argv) {
       exit(1);
     }
 
-    int result = ninja.RunBuild(argc, argv);
+    int result = ninja.RunBuild(&remoteExecutor, argc, argv);
     if (g_metrics)
       ninja.DumpMetrics();
     exit(result);
