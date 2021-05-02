@@ -81,18 +81,12 @@ IRemoteExecutor::PreprocessResult RemoteExecutor::PreprocessCode(const std::vect
 
     std::vector<std::string> args = originalRule;
 
-    std::string srcExecutable = StringUtils::Trim(args[0]);
-    args.erase(args.begin());
-    auto space = srcExecutable.find(' ');
-    if (space != std::string::npos)
-    {
-        args.insert(args.begin(), srcExecutable.substr(space + 1));
-        srcExecutable = srcExecutable.substr(0, space);
-    }
+
     ToolInvocation original, pp, cc;
-    original.m_id.m_toolExecutable = srcExecutable;
-    original.m_args = args;
+    original.m_args = {originalRule};
     original.m_ignoredArgs = ignoredArgs;
+    original.ParseArgsAsCommanline();
+    const auto & srcExecutable = original.m_id.m_toolExecutable;
     if (!m_invocationRewriter->SplitInvocation(original, pp, cc, &toolId)) {
         if (!m_invocationRewriter->IsCompilerInvocation(original))
              return PreprocessResult::Skipped;
@@ -149,9 +143,9 @@ void RemoteExecutor::RunIfNeeded(const std::vector<std::string> &toolIds, const 
     m_hasStart = true;
     if (!m_remoteService)
     {
-		auto localExecutor = LocalExecutor::Create(m_invocationRewriter, m_app.m_tempDir, subprocessSet);
-		auto toolsVersions = VersionChecker::Create(localExecutor, m_invocationRewriter)->DetermineToolVersions(toolIds);
-		m_remoteService.reset(new RemoteToolClient(m_invocationRewriter, toolsVersions));
+        auto localExecutor = LocalExecutor::Create(m_invocationRewriter, m_app.m_tempDir, subprocessSet);
+        auto toolsVersions = VersionChecker::Create(localExecutor, m_invocationRewriter)->DetermineToolVersions(toolIds);
+        m_remoteService.reset(new RemoteToolClient(m_invocationRewriter, toolsVersions));
         if (!m_remoteService->SetConfig(m_remoteToolConfig))
             return;
     }
@@ -187,10 +181,8 @@ bool RemoteExecutor::StartCommand(Edge *userData, const std::string &command)
     if (!m_remoteEnabled || !m_hasStart)
         return false;
 
-    const auto space = command.find(' ');
-    ToolInvocation invocation(command.substr(space + 1));
-    invocation.SetExecutable(command.substr(0, space));
-
+    ToolInvocation invocation({command});
+    invocation.ParseArgsAsCommanline();
     invocation = m_invocationRewriter->CompleteInvocation(invocation);
 
     auto outputFilename = invocation.GetOutput();

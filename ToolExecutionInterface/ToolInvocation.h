@@ -29,8 +29,10 @@ public:
 		std::string m_toolExecutable;   //!< full tool executable path
 	};
 public:
-	ToolInvocation(StringVector  args = StringVector(), InvokeType  type = InvokeType::Unknown);
-	ToolInvocation(const std::string & args, InvokeType  type = InvokeType::Unknown);
+	ToolInvocation(StringVector  args = StringVector(), InvokeType type = InvokeType::Unknown);
+	ToolInvocation(const std::string & args, InvokeType type);
+
+	void ParseArgsAsCommanline();
 
 	void SetArgsString(const std::string & args);
 	std::string GetArgsString(bool prependExecutable = true) const;

@@ -16,6 +16,7 @@
 #include <StringUtils.h>
 
 #include <utility>
+#include <cassert>
 
 namespace Wuild
 {
@@ -31,6 +32,45 @@ ToolInvocation::ToolInvocation(const std::string &args, ToolInvocation::InvokeTy
 {
 	SetArgsString(args);
 }
+
+void ToolInvocation::ParseArgsAsCommanline()
+{
+	assert(m_id.m_toolExecutable.empty());
+	assert(!m_args.empty());
+	StringVector args;
+	std::string current;
+	bool startedQuote = false;
+	auto consume = [&current, &args](bool force) {
+		if (force || !current.empty())
+			args.push_back(current);
+		current.clear();
+	};
+	for (const auto & arg : m_args) {
+		for (char c : arg) {
+			if (startedQuote){
+				if (c == '"') {
+					startedQuote = false;
+					consume(true);
+				} else {
+					current += c;
+				}
+			}else{
+				if (c == '"')
+					startedQuote = true;
+				else if (c == ' ' || c == '\t' || c == '\r' || c == '\n') 
+					consume(false);
+				else
+					current += c;
+			}
+		}
+	}
+	consume(false);
+	assert(!args.empty());
+	SetExecutable(args[0]);
+	args.erase(args.begin());
+	m_args = args;
+}
+
 void ToolInvocation::SetArgsString(const std::string &args)
 {
 	m_args.resize(1);
