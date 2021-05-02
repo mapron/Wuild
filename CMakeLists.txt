@@ -243,7 +243,7 @@ foreach (benchname NetworkClient NetworkServer)
 		)
 endforeach()
 
-foreach (appname Coordinator CoordinatorStatus Proxy ProxyClient ToolExecutor ToolServer)
+foreach (appname Coordinator CoordinatorStatus Proxy ProxyClient ToolExecutor ToolServer ToolServerStatus)
 	AddTarget(APP NAME Wuild${appname} ROOT ${CMAKE_CURRENT_SOURCE_DIR}/Apps/${appname}/
 		CSRC *.cpp *.h
 		DEPS ${main_deps} ${sys_deps}

@@ -25,7 +25,7 @@ int main(int argc, char** argv)
 {
 	using namespace Wuild;
 	ArgStorage argStorage(argc, argv);
-	ConfiguredApplication app(argStorage.GetConfigValues(), "WuildProxyClient", "proxy");
+	ConfiguredApplication app(argStorage.GetConfigValues(), "WuildCoordinatorStatus");
 
 	CoordinatorClient::Config config = app.m_remoteToolClientConfig.m_coordinator;
 	if (!config.Validate())
@@ -36,8 +36,8 @@ int main(int argc, char** argv)
 		return 1;
 
 	AbstractWriter::OutType outType = AbstractWriter::OutType::STD_TEXT;
-	for (auto arg : argStorage.GetArgs())
-		if (!arg.compare("--json"))
+	for (auto && arg : argStorage.GetArgs())
+		if (arg == "--json")
 			outType = AbstractWriter::OutType::JSON;
 	std::unique_ptr<AbstractWriter> writer = AbstractWriter::AbstractWriter::createWriter(outType, std::cout);
 
