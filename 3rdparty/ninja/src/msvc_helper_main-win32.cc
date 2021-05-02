@@ -22,7 +22,7 @@
 #include "clparser.h"
 #include "util.h"
 
-#include "getopt_win.h"
+#include "getopt.h"
 
 namespace {
 

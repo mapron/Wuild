@@ -72,7 +72,7 @@ HANDLE Subprocess::SetupPipe(HANDLE ioport) {
   return output_write_child;
 }
 
-bool Subprocess::Start(SubprocessSet* set, const string& command, const vector<string> & environment) {
+bool Subprocess::Start(SubprocessSet* set, const string& command) {
   HANDLE child_pipe = SetupPipe(set->ioport_);
 
   SECURITY_ATTRIBUTES security_attributes;
@@ -104,22 +104,12 @@ bool Subprocess::Start(SubprocessSet* set, const string& command, const vector<s
 
   // Ninja handles ctrl-c, except for subprocesses in console pools.
   DWORD process_flags = use_console_ ? 0 : CREATE_NEW_PROCESS_GROUP;
-  LPVOID lpEnvironment = nullptr;
-  std::string envData;
-  if (!environment.empty())
-  {
-	  for (const auto & keyValue : environment)
-		  envData += keyValue + std::string("\0", 1);
-
-	  envData += std::string("\0", 1);
-	  lpEnvironment = (void*)envData.c_str();
-  }
 
   // Do not prepend 'cmd /c' on Windows, this breaks command
   // lines greater than 8,191 chars.
   if (!CreateProcessA(NULL, (char*)command.c_str(), NULL, NULL,
                       /* inherit handles */ TRUE, process_flags,
-					  lpEnvironment, NULL,
+                      NULL, NULL,
                       &startup_info, &process_info)) {
     DWORD error = GetLastError();
     if (error == ERROR_FILE_NOT_FOUND) {
@@ -213,22 +203,18 @@ const string& Subprocess::GetOutput() const {
 
 HANDLE SubprocessSet::ioport_;
 
-SubprocessSet::SubprocessSet(bool setupSignalHandlers)
-    : setupSignalHandlers_(setupSignalHandlers) {
+SubprocessSet::SubprocessSet() {
   ioport_ = ::CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 1);
   if (!ioport_)
     Win32Fatal("CreateIoCompletionPort");
-
-  if (setupSignalHandlers_ && !SetConsoleCtrlHandler(NotifyInterrupted, TRUE))
+  if (!SetConsoleCtrlHandler(NotifyInterrupted, TRUE))
     Win32Fatal("SetConsoleCtrlHandler");
 }
 
 SubprocessSet::~SubprocessSet() {
   Clear();
 
-  if (setupSignalHandlers_)
-    SetConsoleCtrlHandler(NotifyInterrupted, FALSE);
-
+  SetConsoleCtrlHandler(NotifyInterrupted, FALSE);
   CloseHandle(ioport_);
 }
 
@@ -242,9 +228,9 @@ BOOL WINAPI SubprocessSet::NotifyInterrupted(DWORD dwCtrlType) {
   return FALSE;
 }
 
-Subprocess *SubprocessSet::Add(const string& command, bool use_console, const vector<string> & environment) {
+Subprocess *SubprocessSet::Add(const string& command, bool use_console) {
   Subprocess *subprocess = new Subprocess(use_console);
-  if (!subprocess->Start(this, command, environment)) {
+  if (!subprocess->Start(this, command)) {
     delete subprocess;
     return 0;
   }
