@@ -23,6 +23,8 @@
 #include "graph.h"
 #include "test.h"
 
+using namespace std;
+
 namespace {
 
 struct DiskInterfaceTest : public testing::Test {
@@ -190,7 +192,7 @@ TEST_F(DiskInterfaceTest, ReadFile) {
 
 TEST_F(DiskInterfaceTest, MakeDirs) {
   string path = "path/with/double//slash/";
-  EXPECT_TRUE(disk_.MakeDirs(path.c_str()));
+  EXPECT_TRUE(disk_.MakeDirs(path));
   FILE* f = fopen((path + "a_file").c_str(), "w");
   EXPECT_TRUE(f);
   EXPECT_EQ(0, fclose(f));
