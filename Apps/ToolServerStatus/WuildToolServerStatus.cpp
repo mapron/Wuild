@@ -30,9 +30,32 @@ namespace Wuild {
 class RemoteToolVersionClient
 {
 public:
+	using VersionMap = std::map<std::string, std::string>;
+
+public:
 	RemoteToolVersionClient(AbstractWriter & writer, TimePoint requestTimeout)
 		: m_writer(writer)
-		, m_requestTimeout (requestTimeout){
+		, m_requestTimeout (requestTimeout)
+	{
+	}
+
+	~RemoteToolVersionClient()
+	{
+		std::map<std::string, std::map<std::string, std::string>> conflictedVersions;
+		for (const auto & tool : m_allVersionsByToolId)
+		{
+			const auto & id = tool.first;
+			// Complexity O(N^2) here, N = number of hosts. Hosts is usually reasonably low count, so not a problem yet.
+			for (const auto & host1 : tool.second)
+			{
+				for (const auto & host2 : tool.second)
+				{
+					if (host1.second != host2.second)
+						conflictedVersions[id][host1.first] = host1.second;
+				}
+			}
+		}
+		m_writer.FormatToolsConflicts(conflictedVersions);
 	}
 
 	void AddClient(const ToolServerInfo & info)
@@ -55,10 +78,7 @@ public:
 			else
 			{
 				ToolsVersionResponse::Ptr result = std::dynamic_pointer_cast<ToolsVersionResponse>(responseFrame);
-				{
-					std::unique_lock lock(m_logMutex);
-					m_writer.FormatToolsVersions(info.m_connectionHost + ":" + std::to_string(info.m_connectionPort), result->m_versions);
-				}
+				ProcessToolsVersions(info.m_connectionHost + ":" + std::to_string(info.m_connectionPort), result->m_versions);
 
 				if (--m_toolVersionClientWaitCounter == 0)
 					Application::Interrupt(0);
@@ -70,13 +90,21 @@ public:
 		handler->Start();
 	}
 
+	void ProcessToolsVersions(const std::string & host, const VersionMap & versionByToolId)
+	{
+		std::unique_lock lock(m_writerMutex);
+		m_writer.FormatToolsVersions(host, versionByToolId);
+		for (const auto & tool : versionByToolId)
+			m_allVersionsByToolId[tool.first][host] = tool.second;
+	}
 
 private:
 	AbstractWriter & m_writer;
 	TimePoint m_requestTimeout;
 	std::deque<SocketFrameHandler::Ptr> m_clients;
 	std::atomic_size_t m_toolVersionClientWaitCounter{0};
-	std::mutex m_logMutex;
+	std::mutex m_writerMutex;
+	std::map<std::string, std::map<std::string, std::string>> m_allVersionsByToolId;
 };
 
 }
@@ -124,7 +152,7 @@ int main(int argc, char** argv)
 		auto versionChecker = VersionChecker::Create(localExecutor, invocationRewriter);
 		const auto toolsVersions = versionChecker->DetermineToolVersions({});
 
-		writer->FormatToolsVersions("localhost", toolsVersions);
+		toolVersionClient.ProcessToolsVersions("localhost", toolsVersions);
 	}
 
 	client.SetInfoArrivedCallback([&](const CoordinatorInfo& info){

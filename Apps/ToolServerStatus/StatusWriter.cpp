@@ -30,16 +30,30 @@ void StandardTextWriter::FormatMessage(const std::string& msg)
 	m_ostream << msg;
 }
 
-void StandardTextWriter::FormatToolsVersions(const std::string & host, const AbstractWriter::ToolsMap& toolsVersions)
+void StandardTextWriter::FormatToolsVersions(const std::string & host, const VersionMap & versionByToolId)
 {
-	m_ostream << "\t" <<host << ":\n";
-	for (const auto & toolId : toolsVersions)
+	m_ostream << "\t" << host << ":\n";
+	for (const auto & toolId : versionByToolId)
 		m_ostream << "\t\t"<< toolId.first << "=\"" << toolId.second << "\"\n";
 	m_ostream << "\n";
 
 	std::flush(m_ostream);
 }
 
+void StandardTextWriter::FormatToolsConflicts(const ConflictMap & conflictedIds)
+{
+	if (conflictedIds.empty())
+		return;
+	m_ostream << "\nConflicted tool ids:\n";
+	for (const auto & toolId : conflictedIds)
+	{
+		m_ostream << "\t"<< toolId.first << ":\n";
+		for (const auto & hosts : toolId.second)
+		{
+			m_ostream << "\t\t"<< hosts.first << "=\"" << hosts.second << "\"\n";
+		}
+	}
+}
 
 struct JsonWriter::Impl
 {
@@ -60,10 +74,17 @@ void JsonWriter::FormatMessage(const std::string&)
 	// stub
 }
 
-void JsonWriter::FormatToolsVersions(const std::string & host, const AbstractWriter::ToolsMap& toolsByHost)
+void JsonWriter::FormatToolsVersions(const std::string & host, const VersionMap & versionByToolId)
 {
-	auto & toolsByHostJson = m_impl->jsonResult["tools_versions"];
-	toolsByHostJson[host] = toolsByHost;
+	auto & versionByToolIdJson = m_impl->jsonResult["tools_versions"];
+	versionByToolIdJson[host] = versionByToolId;
+}
+
+void JsonWriter::FormatToolsConflicts(const ConflictMap & conflictedIds)
+{
+	auto & conflictedIdsJson = m_impl->jsonResult["conflicted_tools"];
+	for (const auto & toolId : conflictedIds)
+		conflictedIdsJson[toolId.first] = toolId.second;
 }
 
 std::unique_ptr<AbstractWriter> AbstractWriter::createWriter(OutType outType, std::ostream & stream)

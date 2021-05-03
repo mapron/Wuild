@@ -26,11 +26,13 @@ public:
 		STD_TEXT,
 	};
 
-	using ToolsMap = std::map<std::string, std::string>;
+	using VersionMap = std::map<std::string, std::string>;
+	using ConflictMap = std::map<std::string, std::map<std::string, std::string>>;
 
 	virtual ~AbstractWriter() = default;
 	virtual void FormatMessage(const std::string& msg) = 0;
-	virtual void FormatToolsVersions(const std::string & host, const ToolsMap& toolsByHost) = 0;
+	virtual void FormatToolsVersions(const std::string & host, const VersionMap & versionByToolId) = 0;
+	virtual void FormatToolsConflicts(const ConflictMap & conflictedIds) = 0;
 
 	static std::unique_ptr<AbstractWriter> createWriter(AbstractWriter::OutType outType, std::ostream & stream);
 };
@@ -41,7 +43,8 @@ public:
 	StandardTextWriter(std::ostream & stream);
 	~StandardTextWriter();
 	void FormatMessage(const std::string& msg) override;
-	void FormatToolsVersions(const std::string & host, const ToolsMap& toolsByHost) override;
+	void FormatToolsVersions(const std::string & host, const VersionMap & versionByToolId) override;
+	void FormatToolsConflicts(const ConflictMap & conflictedIds) override;
 
 private:
 	std::ostream & m_ostream;
@@ -53,7 +56,8 @@ public:
 	JsonWriter(std::ostream & ostream);
 	~JsonWriter();
 	void FormatMessage(const std::string& msg) override;
-	void FormatToolsVersions(const std::string & host, const ToolsMap& toolsByHost) override;
+	void FormatToolsVersions(const std::string & host, const VersionMap & versionByToolId) override;
+	void FormatToolsConflicts(const ConflictMap & conflictedIds) override;
 
 private:
 	struct Impl;
