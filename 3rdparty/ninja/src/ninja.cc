@@ -170,13 +170,11 @@ struct NinjaMain : public BuildLogUser {
     // which seems good enough for this corner case.)
     // Do keep entries around for files which still exist on disk, for
     // generators that want to use this information.
-
     string err;
-    if (!n->Stat(&disk_interface_, &err)) {
+    TimeStamp mtime = disk_interface_.Stat(s.AsString(), &err);
+    if (mtime == -1)
       Error("%s", err.c_str());  // Log and ignore Stat() errors.
-      return false;
-    }
-    return n->mtime() == 0;
+    return mtime == 0;
   }
 };
 
