@@ -81,7 +81,7 @@ function(AddTarget)
 	cmake_parse_arguments(AddTarget "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )
 	set(_sources ${AddTarget_SOURCES})
 	if (NOT AddTarget_ROOT)
-		set(AddTarget_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/${AddTarget_SUBDIR}${AddTarget_NAME})
+		set(AddTarget_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/src/${AddTarget_SUBDIR}${AddTarget_NAME})
 	endif()
 	foreach (csrc ${AddTarget_CSRC})
 		file(GLOB src ${AddTarget_ROOT}/${csrc})
@@ -230,20 +230,20 @@ set(main_deps
 	)
 
 foreach (testname AllConfigs Balancer Compiler Coordinator Inflate Networking ToolServer )
-	AddTarget(APP NAME Test${testname} ROOT ${CMAKE_CURRENT_SOURCE_DIR}/TestsManual/
+	AddTarget(APP NAME Test${testname} ROOT ${CMAKE_CURRENT_SOURCE_DIR}/src/TestsManual/
 		CSRC Test${testname}.cpp *.h TestUtils.cpp
 		DEPS ${main_deps} ${sys_deps}
 		)
 endforeach()
 foreach (benchname NetworkClient NetworkServer)
-	AddTarget(APP NAME Benchmark${benchname} ROOT ${CMAKE_CURRENT_SOURCE_DIR}/Benchmarks/
+	AddTarget(APP NAME Benchmark${benchname} ROOT ${CMAKE_CURRENT_SOURCE_DIR}/src/Benchmarks/
 		CSRC Benchmark${benchname}.cpp *.h BenchmarkUtils.cpp
 		DEPS ${main_deps} ${sys_deps}
 		)
 endforeach()
 
 foreach (appname Coordinator CoordinatorStatus Proxy ProxyClient ToolExecutor ToolServer ToolServerStatus)
-	AddTarget(APP NAME Wuild${appname} ROOT ${CMAKE_CURRENT_SOURCE_DIR}/Apps/${appname}/
+	AddTarget(APP NAME Wuild${appname} ROOT ${CMAKE_CURRENT_SOURCE_DIR}/src/Apps/${appname}/
 		CSRC *.cpp *.h
 		DEPS ${main_deps} ${sys_deps}
 		INCLUDES ${JSON_ROOT}
@@ -251,10 +251,10 @@ foreach (appname Coordinator CoordinatorStatus Proxy ProxyClient ToolExecutor To
 	install(TARGETS Wuild${appname})
 endforeach()
 
-AddTarget(APP NAME WuildNinja ROOT ${CMAKE_CURRENT_SOURCE_DIR}/Apps/Ninja/
+AddTarget(APP NAME WuildNinja ROOT ${CMAKE_CURRENT_SOURCE_DIR}/src/Apps/Ninja/
 	SOURCES ${NINJA_ROOT}/ninja.cc ${NINJA_ROOT}/build.cc
 	CSRC *.cpp *.h
 	DEPS ${main_deps} ${sys_deps}
-	INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/Apps/Ninja/ ${NINJA_ROOT}/
+	INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/src/Apps/Ninja/ ${NINJA_ROOT}/
 	)
 install(TARGETS WuildNinja)
