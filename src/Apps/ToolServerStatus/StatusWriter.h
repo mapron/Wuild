@@ -18,49 +18,47 @@
 #include <map>
 #include <ios>
 
-class AbstractWriter
-{
+class AbstractWriter {
 public:
-	enum class OutType{
-		JSON,
-		STD_TEXT,
-	};
+    enum class OutType
+    {
+        JSON,
+        STD_TEXT,
+    };
 
-	using VersionMap = std::map<std::string, std::string>;
-	using ConflictMap = std::map<std::string, std::map<std::string, std::string>>;
+    using VersionMap  = std::map<std::string, std::string>;
+    using ConflictMap = std::map<std::string, std::map<std::string, std::string>>;
 
-	virtual ~AbstractWriter() = default;
-	virtual void FormatMessage(const std::string& msg) = 0;
-	virtual void FormatToolsVersions(const std::string & host, const VersionMap & versionByToolId) = 0;
-	virtual void FormatToolsConflicts(const ConflictMap & conflictedIds) = 0;
+    virtual ~AbstractWriter()                                                                    = default;
+    virtual void FormatMessage(const std::string& msg)                                           = 0;
+    virtual void FormatToolsVersions(const std::string& host, const VersionMap& versionByToolId) = 0;
+    virtual void FormatToolsConflicts(const ConflictMap& conflictedIds)                          = 0;
 
-	static std::unique_ptr<AbstractWriter> createWriter(AbstractWriter::OutType outType, std::ostream & stream);
+    static std::unique_ptr<AbstractWriter> createWriter(AbstractWriter::OutType outType, std::ostream& stream);
 };
 
-class StandardTextWriter: public AbstractWriter
-{
+class StandardTextWriter : public AbstractWriter {
 public:
-	StandardTextWriter(std::ostream & stream);
-	~StandardTextWriter();
-	void FormatMessage(const std::string& msg) override;
-	void FormatToolsVersions(const std::string & host, const VersionMap & versionByToolId) override;
-	void FormatToolsConflicts(const ConflictMap & conflictedIds) override;
+    StandardTextWriter(std::ostream& stream);
+    ~StandardTextWriter();
+    void FormatMessage(const std::string& msg) override;
+    void FormatToolsVersions(const std::string& host, const VersionMap& versionByToolId) override;
+    void FormatToolsConflicts(const ConflictMap& conflictedIds) override;
 
 private:
-	std::ostream & m_ostream;
+    std::ostream& m_ostream;
 };
 
-class JsonWriter: public AbstractWriter
-{
+class JsonWriter : public AbstractWriter {
 public:
-	JsonWriter(std::ostream & ostream);
-	~JsonWriter();
-	void FormatMessage(const std::string& msg) override;
-	void FormatToolsVersions(const std::string & host, const VersionMap & versionByToolId) override;
-	void FormatToolsConflicts(const ConflictMap & conflictedIds) override;
+    JsonWriter(std::ostream& ostream);
+    ~JsonWriter();
+    void FormatMessage(const std::string& msg) override;
+    void FormatToolsVersions(const std::string& host, const VersionMap& versionByToolId) override;
+    void FormatToolsConflicts(const ConflictMap& conflictedIds) override;
 
 private:
-	struct Impl;
-	std::unique_ptr<Impl> m_impl;
-	std::ostream & m_ostream;
+    struct Impl;
+    std::unique_ptr<Impl> m_impl;
+    std::ostream&         m_ostream;
 };

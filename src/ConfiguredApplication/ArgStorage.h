@@ -14,21 +14,19 @@
 #pragma once
 #include "CommonTypes.h"
 
-namespace Wuild
-{
+namespace Wuild {
 
-class ArgStorage
-{
+class ArgStorage {
 public:
-	ArgStorage(int & argcRef, char **& argvRef);
+    ArgStorage(int& argcRef, char**& argvRef);
 
-	const StringVector & GetConfigValues() const;
-	const StringVector & GetArgs() const;
+    const StringVector& GetConfigValues() const;
+    const StringVector& GetArgs() const;
 
 private:
-	StringVector m_args;
-	std::vector<char*> m_argv;
-	StringVector m_configValues;
+    StringVector       m_args;
+    std::vector<char*> m_argv;
+    StringVector       m_configValues;
 };
 
 }

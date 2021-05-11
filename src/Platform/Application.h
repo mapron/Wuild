@@ -18,56 +18,55 @@
 #include <vector>
 #include <atomic>
 
-namespace Wuild
-{
+namespace Wuild {
 /// Class provides some environment checking and signals handling .
-class Application
-{
-	/// Set to true when user interrupts application. Changed by signal handler.
-	static std::atomic_bool s_applicationInterruption;
-	std::string m_organization;
-	std::string m_appName;
-	std::string m_homeDir;
-	std::string m_tmpDir;
-	static std::atomic_int m_exitCode;
+class Application {
+    /// Set to true when user interrupts application. Changed by signal handler.
+    static std::atomic_bool s_applicationInterruption;
+    std::string             m_organization;
+    std::string             m_appName;
+    std::string             m_homeDir;
+    std::string             m_tmpDir;
+    static std::atomic_int  m_exitCode;
 
-	static void SignalHandler(int Signal);
-	Application();
+    static void SignalHandler(int Signal);
+    Application();
+
 public:
-	static Application & Instance();
+    static Application& Instance();
 
-	/// Check application was interrupted (by signal or another exit condition)
-	static bool IsInterrupted() { return s_applicationInterruption; }
+    /// Check application was interrupted (by signal or another exit condition)
+    static bool IsInterrupted() { return s_applicationInterruption; }
 
-	/// Explicitly interrupt application. exitCode becomes main() exit code.
-	static void Interrupt(int exitCode = 0);
+    /// Explicitly interrupt application. exitCode becomes main() exit code.
+    static void Interrupt(int exitCode = 0);
 
-	/// Get current application exit code
-	static int GetExitCode();
+    /// Get current application exit code
+    static int GetExitCode();
 
-	/// Return directory holding application binary.
-	std::string GetExecutablePath();
+    /// Return directory holding application binary.
+    std::string GetExecutablePath();
 
-	/// Organization to create app folder (default Wuild)
-	void SetOrganizationName(const std::string & name) { m_organization = name; }
+    /// Organization to create app folder (default Wuild)
+    void SetOrganizationName(const std::string& name) { m_organization = name; }
 
-	/// Application name (to separate logs directories)
-	void SetAppName(const std::string & name) { m_appName = name; }
+    /// Application name (to separate logs directories)
+    void SetAppName(const std::string& name) { m_appName = name; }
 
-	/// Return system temporary dir. Automatically create subfolder if "autoCreate" is true.
-	std::string GetTempDir(bool autoCreate = true) const;
+    /// Return system temporary dir. Automatically create subfolder if "autoCreate" is true.
+    std::string GetTempDir(bool autoCreate = true) const;
 
-	/// Return user home directory
-	std::string GetHomeDir() const { return m_homeDir; }
+    /// Return user home directory
+    std::string GetHomeDir() const { return m_homeDir; }
 
-	/// Return application data folder. %LOCALAPPDATA%/organization on windows, ~/.organization on Unix.
-	std::string GetAppDataDir(bool autoCreate = true);
+    /// Return application data folder. %LOCALAPPDATA%/organization on windows, ~/.organization on Unix.
+    std::string GetAppDataDir(bool autoCreate = true);
 
-	/// Sets up signal hadler for application interruption.
-	void SetSignalHandlers();
+    /// Sets up signal hadler for application interruption.
+    void SetSignalHandlers();
 
-	/// Runs infinite loop which will stop after interruption.
-	void WaitForTermination(int terminateAfterMS = -1, int usleepTimeout = 1000);
+    /// Runs infinite loop which will stop after interruption.
+    void WaitForTermination(int terminateAfterMS = -1, int usleepTimeout = 1000);
 };
 
 }

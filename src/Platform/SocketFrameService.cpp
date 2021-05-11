@@ -19,158 +19,151 @@
 #include <functional>
 #include <utility>
 
-namespace Wuild
-{
+namespace Wuild {
 
-SocketFrameService::SocketFrameService(const SocketFrameHandlerSettings & settings, int autoStartListenPort, const StringVector & whiteList)
-	: m_settings(settings)
+SocketFrameService::SocketFrameService(const SocketFrameHandlerSettings& settings, int autoStartListenPort, const StringVector& whiteList)
+    : m_settings(settings)
 {
-	if (autoStartListenPort > 0)
-		AddTcpListener(autoStartListenPort, "*", whiteList);
+    if (autoStartListenPort > 0)
+        AddTcpListener(autoStartListenPort, "*", whiteList);
 }
 
 SocketFrameService::~SocketFrameService()
 {
-	Syslogger(m_logContext) << "SocketFrameService::~SocketFrameService()";
-	Stop(); ///< @warning stop thread before any deinitialization
-	for (const auto& workerPtr : m_workers)
-	{
-		workerPtr->Stop(); ///< @warning stop thread before any deinitialization
-		if (m_handlerDestroyCallback)
-			m_handlerDestroyCallback(workerPtr.get());
-	}
-	m_workers.clear();
-	m_listenters.clear();
+    Syslogger(m_logContext) << "SocketFrameService::~SocketFrameService()";
+    Stop(); ///< @warning stop thread before any deinitialization
+    for (const auto& workerPtr : m_workers) {
+        workerPtr->Stop(); ///< @warning stop thread before any deinitialization
+        if (m_handlerDestroyCallback)
+            m_handlerDestroyCallback(workerPtr.get());
+    }
+    m_workers.clear();
+    m_listenters.clear();
 }
 
-int SocketFrameService::QueueFrameToAll(SocketFrameHandler *sender, const SocketFrame::Ptr& message)
+int SocketFrameService::QueueFrameToAll(SocketFrameHandler* sender, const SocketFrame::Ptr& message)
 {
-	Syslogger(m_logContext) << "QueueFrameToAll";
-	int ret = 0;
-	std::lock_guard<std::mutex> lock(m_workersLock);
+    Syslogger(m_logContext) << "QueueFrameToAll";
+    int                         ret = 0;
+    std::lock_guard<std::mutex> lock(m_workersLock);
 
-	for (const auto & workerPtr : m_workers)
-	{
-		if (workerPtr->IsActive())
-		{
-			if (workerPtr.get() == sender) continue;
-			workerPtr->QueueFrame(message);
-			++ret;
-		}
-	}
-	return ret;
+    for (const auto& workerPtr : m_workers) {
+        if (workerPtr->IsActive()) {
+            if (workerPtr.get() == sender)
+                continue;
+            workerPtr->QueueFrame(message);
+            ++ret;
+        }
+    }
+    return ret;
 }
 
-void SocketFrameService::AddTcpListener(int port, const std::string & host, const StringVector & whiteList, std::function<void()> connectionFailureCallback)
+void SocketFrameService::AddTcpListener(int port, const std::string& host, const StringVector& whiteList, std::function<void()> connectionFailureCallback)
 {
-	TcpListenerParams params;
-	params.m_endPoint.SetPoint(port, host);
-	params.m_connectTimeout = TimePoint(0.001);
-	params.m_recommendedRecieveBufferSize = m_settings.m_recommendedRecieveBufferSize;
-	params.m_recommendedSendBufferSize    = m_settings.m_recommendedSendBufferSize;
-	for (const auto & host : whiteList)
-		params.AddWhiteListPoint(port, host);
-	params.m_connectionFailureCallback = connectionFailureCallback;
+    TcpListenerParams params;
+    params.m_endPoint.SetPoint(port, host);
+    params.m_connectTimeout               = TimePoint(0.001);
+    params.m_recommendedRecieveBufferSize = m_settings.m_recommendedRecieveBufferSize;
+    params.m_recommendedSendBufferSize    = m_settings.m_recommendedSendBufferSize;
+    for (const auto& host : whiteList)
+        params.AddWhiteListPoint(port, host);
+    params.m_connectionFailureCallback = connectionFailureCallback;
 
-	auto listener = TcpListener::Create(params);
-	if (!m_logContext.empty())
-		m_logContext += ", ";
-	m_logContext += listener->GetLogContext();
-	m_listenters.push_back(listener);
+    auto listener = TcpListener::Create(params);
+    if (!m_logContext.empty())
+        m_logContext += ", ";
+    m_logContext += listener->GetLogContext();
+    m_listenters.push_back(listener);
 }
 
 void SocketFrameService::Start()
 {
-	m_mainThread.Exec(std::bind(&SocketFrameService::Quant, this), m_settings.m_mainThreadSleep.GetUS());
+    m_mainThread.Exec(std::bind(&SocketFrameService::Quant, this), m_settings.m_mainThreadSleep.GetUS());
 }
 
 void SocketFrameService::Stop()
 {
-	m_mainThread.Stop();
+    m_mainThread.Stop();
 }
 
 void SocketFrameService::Quant()
 {
-	std::lock_guard<std::mutex> lock(m_workersLock);
+    std::lock_guard<std::mutex> lock(m_workersLock);
 
-	// first, check for dead workers and erase them
-	auto workerIt = m_workers.begin();
-	while (workerIt != m_workers.end())
-	{
-		if (!(*workerIt)->IsActive())
-		{
-			(*workerIt)->Stop(); ///< @warning stop thread before any deinitialization
-			if (m_handlerDestroyCallback)
-				m_handlerDestroyCallback((*workerIt).get());
+    // first, check for dead workers and erase them
+    auto workerIt = m_workers.begin();
+    while (workerIt != m_workers.end()) {
+        if (!(*workerIt)->IsActive()) {
+            (*workerIt)->Stop(); ///< @warning stop thread before any deinitialization
+            if (m_handlerDestroyCallback)
+                m_handlerDestroyCallback((*workerIt).get());
 
-			Syslogger(m_logContext) << "SocketFrameService::Quant() erasing unactive worker " << (*workerIt)->GetThreadId();
-			workerIt = m_workers.erase(workerIt);
-			continue;
-		}
-		++workerIt;
-	}
+            Syslogger(m_logContext) << "SocketFrameService::Quant() erasing unactive worker " << (*workerIt)->GetThreadId();
+            workerIt = m_workers.erase(workerIt);
+            continue;
+        }
+        ++workerIt;
+    }
 
-	// second, proceed all pending connections.
-	for (IDataListener::Ptr & listenter : m_listenters)
-	{
-		auto client = listenter->GetPendingConnection(); //TODO: while?
-		if (client)
-		{
-			const int newId = m_nextWorkerId++;
-			Syslogger(m_logContext) << "SocketFrameService::quant() adding new worker " << newId;
-			AddWorker(client, newId);
-		}
-	}
+    // second, proceed all pending connections.
+    for (IDataListener::Ptr& listenter : m_listenters) {
+        auto client = listenter->GetPendingConnection(); //TODO: while?
+        if (client) {
+            const int newId = m_nextWorkerId++;
+            Syslogger(m_logContext) << "SocketFrameService::quant() adding new worker " << newId;
+            AddWorker(client, newId);
+        }
+    }
 }
 
 void SocketFrameService::AddWorker(IDataSocket::Ptr client, int threadId)
 {
-	std::shared_ptr<SocketFrameHandler> handler(new SocketFrameHandler(threadId, m_settings));
-	handler->SetRetryConnectOnFail(false);
-	for (const auto & reader : m_readers)
-		handler->RegisterFrameReader(reader);
+    std::shared_ptr<SocketFrameHandler> handler(new SocketFrameHandler(threadId, m_settings));
+    handler->SetRetryConnectOnFail(false);
+    for (const auto& reader : m_readers)
+        handler->RegisterFrameReader(reader);
 
-	if (m_handlerInitCallback)
-		m_handlerInitCallback(handler.get());
+    if (m_handlerInitCallback)
+        m_handlerInitCallback(handler.get());
 
-	if (threadId > -1)
-		handler->SetChannel(std::move(client));
+    if (threadId > -1)
+        handler->SetChannel(std::move(client));
 
-	handler->Start();
-	m_workers.push_back(handler);
+    handler->Start();
+    m_workers.push_back(handler);
 }
 
 bool SocketFrameService::IsConnected()
 {
-	return GetActiveConnectionsCount() > 0;
+    return GetActiveConnectionsCount() > 0;
 }
 
 size_t SocketFrameService::GetActiveConnectionsCount()
 {
-	if (m_workers.empty())
-		return 0;
+    if (m_workers.empty())
+        return 0;
 
-	std::lock_guard<std::mutex> lock(m_workersLock);
-	size_t res = 0;
-	for (const auto& workerPtr : m_workers)
-		if (workerPtr->IsActive())
-			res++;
-	return res;
+    std::lock_guard<std::mutex> lock(m_workersLock);
+    size_t                      res = 0;
+    for (const auto& workerPtr : m_workers)
+        if (workerPtr->IsActive())
+            res++;
+    return res;
 }
 
 void SocketFrameService::RegisterFrameReader(const SocketFrameHandler::IFrameReader::Ptr& reader)
 {
-	m_readers.push_back(reader);
+    m_readers.push_back(reader);
 }
 
 void SocketFrameService::SetHandlerInitCallback(SocketFrameService::HandlerInitCallback callback)
 {
-	m_handlerInitCallback = std::move(callback);
+    m_handlerInitCallback = std::move(callback);
 }
 
 void SocketFrameService::SetHandlerDestroyCallback(HandlerDestroyCallback callback)
 {
-	m_handlerDestroyCallback = std::move(callback);
+    m_handlerDestroyCallback = std::move(callback);
 }
 
 }

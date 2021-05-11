@@ -18,74 +18,68 @@
 
 #include <deque>
 
-namespace Wuild
-{
+namespace Wuild {
 /// Information about remote tool server state.
-struct ToolServerInfo
-{
-	std::string m_toolServerId;
-	std::string m_connectionHost;
-	int16_t m_connectionPort = 0;
-	StringVector m_toolIds;
-	uint16_t m_totalThreads = 0;
-	uint16_t m_queuedTasks = 0;
-	uint16_t m_runningTasks = 0;
+struct ToolServerInfo {
+    std::string  m_toolServerId;
+    std::string  m_connectionHost;
+    int16_t      m_connectionPort = 0;
+    StringVector m_toolIds;
+    uint16_t     m_totalThreads = 0;
+    uint16_t     m_queuedTasks  = 0;
+    uint16_t     m_runningTasks = 0;
 
-	struct ConnectedClientInfo
-	{
-		uint16_t m_usedThreads = 0;
-		std::string m_clientId;
-		int64_t m_sessionId = 0;
+    struct ConnectedClientInfo {
+        uint16_t    m_usedThreads = 0;
+        std::string m_clientId;
+        int64_t     m_sessionId = 0;
 
-		bool operator ==(const ConnectedClientInfo& rh) const;
-		bool operator !=(const ConnectedClientInfo& rh) const { return !(*this == rh);}
-	};
-	std::vector<ConnectedClientInfo> m_connectedClients;
-	std::string ToString(bool outputTools = false, bool outputClients = false) const;
-	bool EqualIdTo(const ToolServerInfo & rh) const;
+        bool operator==(const ConnectedClientInfo& rh) const;
+        bool operator!=(const ConnectedClientInfo& rh) const { return !(*this == rh); }
+    };
+    std::vector<ConnectedClientInfo> m_connectedClients;
+    std::string                      ToString(bool outputTools = false, bool outputClients = false) const;
+    bool                             EqualIdTo(const ToolServerInfo& rh) const;
 
-	void *m_opaqueFrameHandler = nullptr;
+    void* m_opaqueFrameHandler = nullptr;
 
-	bool operator ==(const ToolServerInfo& rh) const;
-	bool operator !=(const ToolServerInfo& rh) const { return !(*this == rh);}
+    bool operator==(const ToolServerInfo& rh) const;
+    bool operator!=(const ToolServerInfo& rh) const { return !(*this == rh); }
 };
 
 /// Information about finished compilation session (sequence of tool executions)
-struct ToolServerSessionInfo
-{
-	using List = std::deque<ToolServerSessionInfo>;
-	std::string m_clientId;
-	int64_t m_sessionId;
-	TimePoint m_totalNetworkTime;
-	TimePoint m_totalExecutionTime;
-	TimePoint m_elapsedTime;
-	uint32_t m_tasksCount = 0;
-	uint32_t m_failuresCount = 0;
-	uint32_t m_currentUsedThreads = 0;
-	uint32_t m_maxUsedThreads = 0;
+struct ToolServerSessionInfo {
+    using List = std::deque<ToolServerSessionInfo>;
+    std::string m_clientId;
+    int64_t     m_sessionId;
+    TimePoint   m_totalNetworkTime;
+    TimePoint   m_totalExecutionTime;
+    TimePoint   m_elapsedTime;
+    uint32_t    m_tasksCount         = 0;
+    uint32_t    m_failuresCount      = 0;
+    uint32_t    m_currentUsedThreads = 0;
+    uint32_t    m_maxUsedThreads     = 0;
 
-	void *m_opaqueFrameHandler = nullptr;
+    void* m_opaqueFrameHandler = nullptr;
 
-	std::string ToString(bool asCurrent, bool full = false) const;
+    std::string ToString(bool asCurrent, bool full = false) const;
 };
 
 /// Full coordinator data
-struct CoordinatorInfo
-{
-	std::deque<ToolServerInfo>   m_toolServers;
-	ToolServerSessionInfo::List  m_latestSessions;
-	ToolServerSessionInfo::List  m_activeSessions;
+struct CoordinatorInfo {
+    std::deque<ToolServerInfo>  m_toolServers;
+    ToolServerSessionInfo::List m_latestSessions;
+    ToolServerSessionInfo::List m_activeSessions;
 
-	/// returns list of changed items pointers.
-	std::vector<ToolServerInfo*> Update(const ToolServerInfo & newToolServer);
-	/// returns list of changed items pointers.
-	std::vector<ToolServerInfo*> Update(const std::deque<ToolServerInfo> &newNoolServers);
+    /// returns list of changed items pointers.
+    std::vector<ToolServerInfo*> Update(const ToolServerInfo& newToolServer);
+    /// returns list of changed items pointers.
+    std::vector<ToolServerInfo*> Update(const std::deque<ToolServerInfo>& newNoolServers);
 
-	std::string ToString(bool outputTools = false, bool outputClients = false) const;
+    std::string ToString(bool outputTools = false, bool outputClients = false) const;
 
-	bool operator ==(const CoordinatorInfo& rh) const;
-	bool operator !=(const CoordinatorInfo& rh) const { return !(*this == rh);}
+    bool operator==(const CoordinatorInfo& rh) const;
+    bool operator!=(const CoordinatorInfo& rh) const { return !(*this == rh); }
 };
-
 
 }

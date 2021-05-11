@@ -15,58 +15,56 @@
 
 #ifndef _WIN32
 
-	#include <netinet/in.h>
-	#include <sys/socket.h>
-	#include <unistd.h>
-	#include <arpa/inet.h>
-	#include <sys/ioctl.h>
-	#include <fcntl.h>
-	#include <sys/types.h>
-	#include <netdb.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/ioctl.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <netdb.h>
 
-	#ifndef INVALID_SOCKET
-		#define INVALID_SOCKET -1
-	#endif
-	typedef int SOCKET;
-	inline void SocketEngineCheck() {}
-	#define SOCK_OPT_ARG (void*)
-	#define SocketGetLastError() errno
-	#define SocketCheckConnectionPending(err) ((err) == EINPROGRESS)
-	#define SocketRWPending(err) ((err) == EAGAIN)
+#ifndef INVALID_SOCKET
+#define INVALID_SOCKET -1
+#endif
+typedef int SOCKET;
+inline void SocketEngineCheck() {}
+#define SOCK_OPT_ARG (void*)
+#define SocketGetLastError() errno
+#define SocketCheckConnectionPending(err) ((err) == EINPROGRESS)
+#define SocketRWPending(err) ((err) == EAGAIN)
 #else // Pure win: ws2_32
-	#include <WinSock2.h>
-	#include <WS2tcpip.h>
-	#include <stdio.h>
-	#include <Windows.h>
+#include <WinSock2.h>
+#include <WS2tcpip.h>
+#include <stdio.h>
+#include <Windows.h>
 
-	#define TCP_SOCKET_WIN
-	#define SOCK_OPT_ARG (char*)
-	void SocketEngineCheck();
-	#define close closesocket
-	#define SocketGetLastError() GetLastError()
-	#define SocketCheckConnectionPending(err) ((err) == WSAEWOULDBLOCK)
-	#define SocketRWPending(err) ((err) == WSAEWOULDBLOCK)
+#define TCP_SOCKET_WIN
+#define SOCK_OPT_ARG (char*)
+void SocketEngineCheck();
+#define close closesocket
+#define SocketGetLastError() GetLastError()
+#define SocketCheckConnectionPending(err) ((err) == WSAEWOULDBLOCK)
+#define SocketRWPending(err) ((err) == WSAEWOULDBLOCK)
 #endif
 
 #include <stdint.h>
 
 #define SET_TIMEVAL_US(timeout, timePoint) \
-	timeout.tv_usec =(long)(timePoint.GetUS() % Wuild::TimePoint::ONE_SECOND);\
-	timeout.tv_sec = (long)(timePoint.GetUS() / Wuild::TimePoint::ONE_SECOND);
+    timeout.tv_usec = (long) (timePoint.GetUS() % Wuild::TimePoint::ONE_SECOND); \
+    timeout.tv_sec  = (long) (timePoint.GetUS() / Wuild::TimePoint::ONE_SECOND);
 
-namespace Wuild
-{
+namespace Wuild {
 
-class TcpSocketPrivate
-{
+class TcpSocketPrivate {
 public:
-	SOCKET m_socket = INVALID_SOCKET;
-	bool SetBlocking(bool blocking);
-	bool SetRecieveBuffer(uint32_t size);
-	uint32_t GetRecieveBuffer();
-	bool SetSendBuffer(uint32_t size);
-	uint32_t GetSendBuffer();
-	bool SetNoSigPipe();
+    SOCKET   m_socket = INVALID_SOCKET;
+    bool     SetBlocking(bool blocking);
+    bool     SetRecieveBuffer(uint32_t size);
+    uint32_t GetRecieveBuffer();
+    bool     SetSendBuffer(uint32_t size);
+    uint32_t GetSendBuffer();
+    bool     SetNoSigPipe();
 };
 
 }

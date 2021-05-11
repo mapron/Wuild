@@ -15,4 +15,4 @@
 
 struct State;
 class IRemoteExecutor;
-void RewriteStateRules(State * state, IRemoteExecutor * const remoteExecutor);
+void RewriteStateRules(State* state, IRemoteExecutor* const remoteExecutor);

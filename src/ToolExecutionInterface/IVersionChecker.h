@@ -17,25 +17,30 @@
 
 #include <map>
 
-namespace Wuild
-{
+namespace Wuild {
 /// Interface for retrieving version information for tool.
-class IVersionChecker
-{
+class IVersionChecker {
 public:
-	using Ptr = std::shared_ptr<IVersionChecker>;
-	using Version = std::string;
-	using VersionMap = std::map<std::string, Version>; //!< toolId=>Version
-	enum class ToolType { Unknown, GCC, Clang, MSVC };
+    using Ptr        = std::shared_ptr<IVersionChecker>;
+    using Version    = std::string;
+    using VersionMap = std::map<std::string, Version>; //!< toolId=>Version
+
+    enum class ToolType
+    {
+        Unknown,
+        GCC,
+        Clang,
+        MSVC
+    };
 
 public:
-	virtual ~IVersionChecker() = default;
-	
-	/// Guess tool type by executable name.
-	virtual ToolType GuessToolType(const ToolInvocation::Id & toolId) const = 0;
+    virtual ~IVersionChecker() = default;
 
-	/// For each id in toolIds, determine version using GetToolVersion and place key in map.
-	virtual VersionMap DetermineToolVersions(const std::vector<std::string> & toolIds) const = 0;
+    /// Guess tool type by executable name.
+    virtual ToolType GuessToolType(const ToolInvocation::Id& toolId) const = 0;
+
+    /// For each id in toolIds, determine version using GetToolVersion and place key in map.
+    virtual VersionMap DetermineToolVersions(const std::vector<std::string>& toolIds) const = 0;
 };
 
 }

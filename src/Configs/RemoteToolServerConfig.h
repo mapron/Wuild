@@ -17,19 +17,18 @@
 
 #include <FileUtils.h>
 
-namespace Wuild
-{
-class RemoteToolServerConfig : public IConfig
-{
+namespace Wuild {
+class RemoteToolServerConfig : public IConfig {
 public:
-	std::string m_serverName;
-	std::string m_listenHost;
-	StringVector m_hostsWhiteList; //!< List of hostnames which allowed to connect. If empty, any host allowed.
-	int m_listenPort = 0;
-	int m_threadCount = 1;
-	CoordinatorClientConfig m_coordinator;
-	CompressionInfo m_compression;
-	bool m_useClientCompression = true;
-	bool Validate(std::ostream * errStream = nullptr) const override;
+    std::string             m_serverName;
+    std::string             m_listenHost;
+    StringVector            m_hostsWhiteList; //!< List of hostnames which allowed to connect. If empty, any host allowed.
+    int                     m_listenPort  = 0;
+    int                     m_threadCount = 1;
+    CoordinatorClientConfig m_coordinator;
+    CompressionInfo         m_compression;
+    bool                    m_useClientCompression = true;
+
+    bool Validate(std::ostream* errStream = nullptr) const override;
 };
 }

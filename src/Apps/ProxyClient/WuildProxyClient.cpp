@@ -20,27 +20,26 @@
 
 int main(int argc, char** argv)
 {
-	using namespace Wuild;
-	ConfiguredApplication app(argc, argv, "WuildProxyClient", "proxy");
+    using namespace Wuild;
+    ConfiguredApplication app(argc, argv, "WuildProxyClient", "proxy");
 
-	//app.m_loggerConfig.m_maxLogLevel = Syslogger::Notice;
-	//app.InitLogging(app.m_loggerConfig);
+    //app.m_loggerConfig.m_maxLogLevel = Syslogger::Notice;
+    //app.InitLogging(app.m_loggerConfig);
 
-	ToolProxyClient::Config proxyConfig;
-	if (!app.GetToolProxyServerConfig(proxyConfig))
-		return 1;
+    ToolProxyClient::Config proxyConfig;
+    if (!app.GetToolProxyServerConfig(proxyConfig))
+        return 1;
 
-	ToolProxyClient proxyClient;
-	if (!proxyClient.SetConfig(proxyConfig))
-		return 1;
+    ToolProxyClient proxyClient;
+    if (!proxyClient.SetConfig(proxyConfig))
+        return 1;
 
-	if (!proxyClient.Start())
-	{
-		std::cerr << "Failed to connect to WuildProxy!\n";
-		return 1;
-	}
+    if (!proxyClient.Start()) {
+        std::cerr << "Failed to connect to WuildProxy!\n";
+        return 1;
+    }
 
-	proxyClient.RunTask(StringUtils::StringVectorFromArgv(argc, argv));
+    proxyClient.RunTask(StringUtils::StringVectorFromArgv(argc, argv));
 
-	return ExecAppLoop();
+    return ExecAppLoop();
 }

@@ -15,26 +15,24 @@
 
 #include "ICommandLineParser.h"
 
-namespace Wuild
-{
-class AbstractCommandLineParser : public ICommandLineParser
-{
+namespace Wuild {
+class AbstractCommandLineParser : public ICommandLineParser {
 protected:
-	ToolInvocation m_invocation;
-	bool m_remotePossible = true;
+    ToolInvocation m_invocation;
+    bool           m_remotePossible = true;
 
-	bool IsIgnored(const std::string & arg) const;
+    bool IsIgnored(const std::string& arg) const;
 
 public:
-	ToolInvocation GetToolInvocation() const override;
-	void SetToolInvocation(const ToolInvocation & invocation) override;
+    ToolInvocation GetToolInvocation() const override;
+    void           SetToolInvocation(const ToolInvocation& invocation) override;
 
-	virtual void UpdateInfo() = 0;
+    virtual void UpdateInfo() = 0;
 
-	bool IsRemotePossible() const override { return m_remotePossible; }
-	void RemoveLocalFlags() override {}
-	void RemoveDependencyFiles() override {}
-	void RemovePrepocessorFlags() override {}
+    bool IsRemotePossible() const override { return m_remotePossible; }
+    void RemoveLocalFlags() override {}
+    void RemoveDependencyFiles() override {}
+    void RemovePrepocessorFlags() override {}
 };
 
 }

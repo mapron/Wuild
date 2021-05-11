@@ -15,15 +15,13 @@
 
 #include "AbstractCommandLineParser.h"
 
-namespace Wuild
-{
+namespace Wuild {
 
-class UpdateFileCommandParser : public AbstractCommandLineParser
-{
+class UpdateFileCommandParser : public AbstractCommandLineParser {
 public:
-	void UpdateInfo() override;
+    void UpdateInfo() override;
 
-	void SetInvokeType(ToolInvocation::InvokeType type) override;
+    void SetInvokeType(ToolInvocation::InvokeType type) override;
 };
 
 }

@@ -16,23 +16,23 @@
 
 int main(int argc, char** argv)
 {
-	using namespace Wuild;
-	ArgStorage argStorage(argc, argv);
-	ConfiguredApplication app(argStorage.GetConfigValues(), "BenchmarkNetworking");
-	auto args = argStorage.GetArgs();
-	if (args.size() < 1)
-	{
-		Syslogger(Syslogger::Err) << "Usage: <server ip>";
-		return 1;
-	}
+    using namespace Wuild;
+    ArgStorage            argStorage(argc, argv);
+    ConfiguredApplication app(argStorage.GetConfigValues(), "BenchmarkNetworking");
 
-	TestService service;
-	service.startClient(args[0]);
-	TimePoint start(true);
-	for (int i = 0; i< 50; i++)
-		service.sendFile(1000000);
-	service.waitForReplies();
-	Syslogger(Syslogger::Notice) << "Taken time:" << start.GetElapsedTime().ToProfilingTime();
+    auto args = argStorage.GetArgs();
+    if (args.size() < 1) {
+        Syslogger(Syslogger::Err) << "Usage: <server ip>";
+        return 1;
+    }
 
-	return 0;
+    TestService service;
+    service.startClient(args[0]);
+    TimePoint start(true);
+    for (int i = 0; i < 50; i++)
+        service.sendFile(1000000);
+    service.waitForReplies();
+    Syslogger(Syslogger::Notice) << "Taken time:" << start.GetElapsedTime().ToProfilingTime();
+
+    return 0;
 }

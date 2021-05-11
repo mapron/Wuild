@@ -20,8 +20,7 @@
 #include <vector>
 #include <memory>
 
-namespace Wuild
-{
+namespace Wuild {
 
 class ByteOrderDataStreamReader;
 class ByteOrderDataStreamWriter;
@@ -32,56 +31,60 @@ class ByteOrderDataStreamWriter;
  * ReadInternal and WriteInternal functions;
  * You also should override FrameTypeId to set some distinctive number for channel stream.
  */
-class SocketFrame
-{
+class SocketFrame {
 public:
-	enum State {
-		stOk,
-		stIncomplete,
-		stBroken
-	};
-	using Ptr = std::shared_ptr<SocketFrame>;
-	/// Minimal value for FrameTypeId() result.
-	static const uint8_t s_minimalUserFrameId = 0x10;
-public:
-	/// Unique identifier for channel frame type.
-	virtual uint8_t             FrameTypeId() const = 0;
-
-	/// Output some information for logging purpose
-	virtual void                LogTo(std::ostream& os) const;
-
-	/// Deserializing frame from bytestream.
-	State                       Read(ByteOrderDataStreamReader &stream);
-
-	/// Serializing frame to bytestream.
-	State                       Write(ByteOrderDataStreamWriter &stream) const;
-	virtual                     ~SocketFrame() = default;
+    enum State
+    {
+        stOk,
+        stIncomplete,
+        stBroken
+    };
+    using Ptr = std::shared_ptr<SocketFrame>;
+    /// Minimal value for FrameTypeId() result.
+    static const uint8_t s_minimalUserFrameId = 0x10;
 
 public:
-	TimePoint                   m_created;                              //!< TimePoint when rame faw created
-	uint64_t                    m_transactionId = 0;                    //!< Transaction  id for SocketFrameHandler
-	uint64_t                    m_replyToTransactionId = uint64_t(-1);  //!< Link with some transaction request.
+    /// Unique identifier for channel frame type.
+    virtual uint8_t FrameTypeId() const = 0;
+
+    /// Output some information for logging purpose
+    virtual void LogTo(std::ostream& os) const;
+
+    /// Deserializing frame from bytestream.
+    State Read(ByteOrderDataStreamReader& stream);
+
+    /// Serializing frame to bytestream.
+    State Write(ByteOrderDataStreamWriter& stream) const;
+    virtual ~SocketFrame() = default;
+
+public:
+    TimePoint m_created;                             //!< TimePoint when rame faw created
+    uint64_t  m_transactionId        = 0;            //!< Transaction  id for SocketFrameHandler
+    uint64_t  m_replyToTransactionId = uint64_t(-1); //!< Link with some transaction request.
 
 protected:
-								SocketFrame();
-								SocketFrame(const SocketFrame& another);
-								SocketFrame& operator= (const SocketFrame&  another);
+    SocketFrame();
+    SocketFrame(const SocketFrame& another);
+    SocketFrame& operator=(const SocketFrame& another);
 
-	virtual State               ReadInternal(ByteOrderDataStreamReader &stream) = 0;
-	virtual State               WriteInternal(ByteOrderDataStreamWriter &stream) const = 0;
+    virtual State ReadInternal(ByteOrderDataStreamReader& stream)        = 0;
+    virtual State WriteInternal(ByteOrderDataStreamWriter& stream) const = 0;
 
-	mutable uint32_t            m_length = 0;
-	bool                        m_writeCreated = false;                 //!< If set true in subclass, m_created will be automagically serialized.
-	bool                        m_writeTransaction = false;             //!< If set true in subclass, m_transactionId/m_replyToTransactionId will be automagically serialized.
-	bool                        m_writeLength = false;                  //!< If set true in subclass, then required length will be calculated, so it's no need to sheck for Incomplete frames in  ReadFromByteStreamInternal.
-
+    mutable uint32_t m_length           = 0;
+    bool             m_writeCreated     = false; //!< If set true in subclass, m_created will be automagically serialized.
+    bool             m_writeTransaction = false; //!< If set true in subclass, m_transactionId/m_replyToTransactionId will be automagically serialized.
+    bool             m_writeLength      = false; //!< If set true in subclass, then required length will be calculated, so it's no need to sheck for Incomplete frames in  ReadFromByteStreamInternal.
 };
 
 /// Convenience class to setup serialization of common fields.
-class SocketFrameExt : public SocketFrame
-{
+class SocketFrameExt : public SocketFrame {
 public:
-	SocketFrameExt() { m_writeCreated = true; m_writeTransaction = true; m_writeLength = true; }
+    SocketFrameExt()
+    {
+        m_writeCreated     = true;
+        m_writeTransaction = true;
+        m_writeLength      = true;
+    }
 };
 
 }

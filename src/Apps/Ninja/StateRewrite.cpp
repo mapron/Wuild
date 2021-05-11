@@ -19,51 +19,47 @@
 
 #include <Syslogger.h>
 
-struct RuleReplace
-{
+struct RuleReplace {
     const Rule* pp;
     const Rule* cc;
     std::string toolId;
     RuleReplace() = default;
-    RuleReplace(const Rule* pp_, const Rule* cc_, std::string id) : pp(pp_), cc(cc_), toolId(id) {}
+    RuleReplace(const Rule* pp_, const Rule* cc_, std::string id)
+        : pp(pp_)
+        , cc(cc_)
+        , toolId(id)
+    {}
 };
 
-void RewriteStateRules(State *state, IRemoteExecutor * const remoteExecutor)
+void RewriteStateRules(State* state, IRemoteExecutor* const remoteExecutor)
 {
     Wuild::Syslogger() << "RewriteStateRules";
-    auto stringVectorToBindings = [](const std::vector<std::string> & rule, EvalString::TokenList & tokens)
-    {
-         for (const auto & str : rule)
-         {
-             if (str[0] == '$')
-             {
-                 tokens.push_back(std::make_pair(str.substr(1), EvalString::SPECIAL));
-                 tokens.push_back(std::make_pair(" ", EvalString::RAW));
-             }
-             else
-             {
-                 tokens.push_back(std::make_pair(str + " ", EvalString::RAW));
-             }
-         }
+    auto stringVectorToBindings = [](const std::vector<std::string>& rule, EvalString::TokenList& tokens) {
+        for (const auto& str : rule) {
+            if (str[0] == '$') {
+                tokens.push_back(std::make_pair(str.substr(1), EvalString::SPECIAL));
+                tokens.push_back(std::make_pair(" ", EvalString::RAW));
+            } else {
+                tokens.push_back(std::make_pair(str + " ", EvalString::RAW));
+            }
+        }
     };
 
-    static const std::vector<std::string> s_ignoredArgs {  "$DEFINES", "$INCLUDES", "$FLAGS" };
+    static const std::vector<std::string> s_ignoredArgs{ "$DEFINES", "$INCLUDES", "$FLAGS" };
 
-    const auto rules = state->bindings_.GetRules();// we must copy rules container; otherwise we stack in infinite loop.
-    std::map<const Rule*,  RuleReplace> ruleReplacement;
-    std::set<std::string> unknownToolchains;
-    for (const auto & ruleIt : rules)
-    {
-        const std::string & ruleName = ruleIt.first;
-        const Rule * rule = ruleIt.second;
-        const EvalString* command = rule->GetBinding("command");
-        if (!command) continue;
+    const auto                         rules = state->bindings_.GetRules(); // we must copy rules container; otherwise we stack in infinite loop.
+    std::map<const Rule*, RuleReplace> ruleReplacement;
+    std::set<std::string>              unknownToolchains;
+    for (const auto& ruleIt : rules) {
+        const std::string& ruleName = ruleIt.first;
+        const Rule*        rule     = ruleIt.second;
+        const EvalString*  command  = rule->GetBinding("command");
+        if (!command)
+            continue;
         std::vector<std::string> originalRule;
-        for (const auto & strPair : command->parsed_)
-        {
+        for (const auto& strPair : command->parsed_) {
             std::string str = strPair.first;
-            if (strPair.second == EvalString::SPECIAL)
-            {
+            if (strPair.second == EvalString::SPECIAL) {
                 str = '$' + str;
             }
             originalRule.push_back(str);
@@ -72,20 +68,19 @@ void RewriteStateRules(State *state, IRemoteExecutor * const remoteExecutor)
             continue;
 
         std::vector<std::string> preprocessRule, compileRule;
-        std::string toolId;
-        const auto ppResult = remoteExecutor->PreprocessCode(originalRule, s_ignoredArgs, toolId, preprocessRule, compileRule);
-        if (ppResult == IRemoteExecutor::PreprocessResult::Success)
-        {
+        std::string              toolId;
+        const auto               ppResult = remoteExecutor->PreprocessCode(originalRule, s_ignoredArgs, toolId, preprocessRule, compileRule);
+        if (ppResult == IRemoteExecutor::PreprocessResult::Success) {
             Rule* rulePP = rule->Clone(ruleName + "_PP");
             state->bindings_.AddRule(rulePP);
             Rule* ruleCC = rule->Clone(ruleName + "_CC");
             state->bindings_.AddRule(ruleCC);
-            rulePP->toolId_ = toolId;
-            ruleCC->toolId_ = toolId;
+            rulePP->toolId_       = toolId;
+            ruleCC->toolId_       = toolId;
             ruleReplacement[rule] = RuleReplace(rulePP, ruleCC, toolId);
 
-            auto & PPtokens = rulePP->GetBinding("command")->parsed_;
-            auto & CCtokens = ruleCC->GetBinding("command")->parsed_;
+            auto& PPtokens = rulePP->GetBinding("command")->parsed_;
+            auto& CCtokens = ruleCC->GetBinding("command")->parsed_;
             PPtokens.clear();
             CCtokens.clear();
             stringVectorToBindings(preprocessRule, PPtokens);
@@ -93,79 +88,72 @@ void RewriteStateRules(State *state, IRemoteExecutor * const remoteExecutor)
 
             ruleCC->RemoveBinding("deps");
             ruleCC->RemoveBinding("depfile");
-            auto & descTokens = rulePP->GetBinding("description")->parsed_;
+            auto& descTokens    = rulePP->GetBinding("description")->parsed_;
             descTokens[0].first = "Preprocessing ";
-        }
-        else if (ppResult == IRemoteExecutor::PreprocessResult::UnknownCompiler)
-        {
+        } else if (ppResult == IRemoteExecutor::PreprocessResult::UnknownCompiler) {
             unknownToolchains.insert(originalRule[0]);
         }
     }
-    if (!unknownToolchains.empty())
-    {
+    if (!unknownToolchains.empty()) {
         Wuild::Syslogger log(ruleReplacement.empty() ? Wuild::Syslogger::Warning : Wuild::Syslogger::Debug); // If some replacement was done, it's probably not that important.
         log << "Wuild is configured for these compiler paths:\n";
-        for (const auto & name : remoteExecutor->GetKnownToolNames())
+        for (const auto& name : remoteExecutor->GetKnownToolNames())
             log << name << "\n";
         log << "\nbut none of them used when trying to match Ninja config for the rules:\n";
-        for (const auto & name : unknownToolchains)
+        for (const auto& name : unknownToolchains)
             log << name << "\n";
         log << "\nCheck your Wuild.ini config or replace WuildNinja with ninja. ";
     }
     Wuild::Syslogger() << "RewriteStateRules...";
-    const auto paths = state->paths_;
+    const auto      paths = state->paths_;
     std::set<Edge*> erasedEdges;
-    for (const auto & iter : paths)
-    {
-        Node* node = iter.second;
+    for (const auto& iter : paths) {
+        Node* node    = iter.second;
         Edge* in_egde = node->in_edge();
         if (!in_egde)
             continue;
-        const Rule * in_rule = &(in_egde->rule());
-        auto replacementIt = ruleReplacement.find(in_rule);
-        if (replacementIt != ruleReplacement.end())
-        {
-            RuleReplace replacement = replacementIt->second;
-            const std::string objectPath = node->path();
-            const std::string sourcePath = in_egde->inputs_[0]->path();
-            const std::string ppPath = remoteExecutor->GetPreprocessedPath(sourcePath, objectPath);
+        const Rule* in_rule       = &(in_egde->rule());
+        auto        replacementIt = ruleReplacement.find(in_rule);
+        if (replacementIt != ruleReplacement.end()) {
+            RuleReplace       replacement = replacementIt->second;
+            const std::string objectPath  = node->path();
+            const std::string sourcePath  = in_egde->inputs_[0]->path();
+            const std::string ppPath      = remoteExecutor->GetPreprocessedPath(sourcePath, objectPath);
             // always clean preprocessed file from prev crashes.
             remove(ppPath.c_str());
 
-            Node *pp_node = state->GetNode(ppPath, node->slash_bits());
+            Node* pp_node = state->GetNode(ppPath, node->slash_bits());
 
             pp_node->set_buddy(in_egde->outputs_[0]);
 
-            auto originalBindings  = in_egde->env_->GetBindings();
-            bool isRemote = true;
+            auto originalBindings = in_egde->env_->GetBindings();
+            bool isRemote         = true;
             if (originalBindings.find("FLAGS") != originalBindings.end())
-                isRemote = isRemote && remoteExecutor->CheckRemotePossibleForFlags(replacement.toolId, originalBindings["FLAGS"] );
+                isRemote = isRemote && remoteExecutor->CheckRemotePossibleForFlags(replacement.toolId, originalBindings["FLAGS"]);
             if (originalBindings.find("INCLUDES") != originalBindings.end())
-                isRemote = isRemote && remoteExecutor->CheckRemotePossibleForFlags(replacement.toolId, originalBindings["INCLUDES"] );
+                isRemote = isRemote && remoteExecutor->CheckRemotePossibleForFlags(replacement.toolId, originalBindings["INCLUDES"]);
 
             if (!isRemote)
                 continue;
 
-            Edge* edge_pp = state->AddEdge(replacement.pp);
-            Edge* edge_cc = state->AddEdge(replacement.cc);
+            Edge* edge_pp     = state->AddEdge(replacement.pp);
+            Edge* edge_cc     = state->AddEdge(replacement.cc);
             edge_cc->pp_egde_ = edge_pp;
 
-            edge_cc->is_remote_ = true; // allow remote excution of compiler.
-            edge_cc->use_temporary_inputs_ = true;  // clean preprocessed files on success.
+            edge_cc->is_remote_            = true; // allow remote excution of compiler.
+            edge_cc->use_temporary_inputs_ = true; // clean preprocessed files on success.
 
-            edge_pp->implicit_deps_ = in_egde->implicit_deps_;
+            edge_pp->implicit_deps_   = in_egde->implicit_deps_;
             edge_pp->order_only_deps_ = in_egde->order_only_deps_;
-            edge_pp->inputs_ = in_egde->inputs_;
-            edge_cc->outputs_ = in_egde->outputs_;
-            edge_pp->implicit_outs_ = in_egde->implicit_outs_;
+            edge_pp->inputs_          = in_egde->inputs_;
+            edge_cc->outputs_         = in_egde->outputs_;
+            edge_pp->implicit_outs_   = in_egde->implicit_outs_;
 
-            for (Node *edgeInput : in_egde->inputs_)
-            {
+            for (Node* edgeInput : in_egde->inputs_) {
                 edgeInput->RemoveOutEdge(in_egde);
                 edgeInput->AddOutEdge(edge_pp);
             }
-            for (Node *edgeOutput : in_egde->outputs_)
-            {
+            for (Node* edgeOutput : in_egde->outputs_) {
                 edgeOutput->set_in_edge(edge_cc);
             }
             edge_pp->outputs_.push_back(pp_node);
@@ -176,15 +164,14 @@ void RewriteStateRules(State *state, IRemoteExecutor * const remoteExecutor)
             edge_pp->env_ = in_egde->env_;
             edge_cc->env_ = in_egde->env_->Clone();
 
-            auto bindings  = edge_cc->env_->GetBindings();
+            auto bindings = edge_cc->env_->GetBindings();
             edge_cc->env_->AddBinding("DEFINES", "");
             edge_cc->env_->AddBinding("DEP_FILE", "");
 
             if (bindings.find("IN_ABS") != bindings.end())
                 edge_cc->env_->AddBinding("IN_ABS", ppPath);
 
-            if (bindings.find("FLAGS") != bindings.end())
-            {
+            if (bindings.find("FLAGS") != bindings.end()) {
                 edge_pp->env_->AddBinding("FLAGS", remoteExecutor->FilterPreprocessorFlags(replacement.toolId, bindings["FLAGS"]));
                 edge_cc->env_->AddBinding("FLAGS", remoteExecutor->FilterCompilerFlags(replacement.toolId, bindings["FLAGS"]));
             }
@@ -199,8 +186,7 @@ void RewriteStateRules(State *state, IRemoteExecutor * const remoteExecutor)
     }
     std::vector<Edge*> newEdges;
 
-    for (auto * edge : state->edges_)
-    {
+    for (auto* edge : state->edges_) {
         if (erasedEdges.find(edge) == erasedEdges.end())
             newEdges.push_back(edge);
     }

@@ -16,44 +16,52 @@
 #include "TimePoint.h"
 #include "CommonTypes.h"
 
-namespace Wuild
-{
+namespace Wuild {
 /// Abstract socket type. Used for sending/recieving over network.
-class IDataSocket
-{
+class IDataSocket {
 public:
-	using Ptr = std::shared_ptr<IDataSocket>;
-	enum class WriteState { Success, TryAgain, Fail };
-	enum class ReadState { Success, TryAgain, Fail };
+    using Ptr = std::shared_ptr<IDataSocket>;
+    enum class WriteState
+    {
+        Success,
+        TryAgain,
+        Fail
+    };
+    enum class ReadState
+    {
+        Success,
+        TryAgain,
+        Fail
+    };
 
 public:
-	virtual ~IDataSocket() = default;
+    virtual ~IDataSocket() = default;
 
-	/// Connect to target. If fails, returns false. Returns true on success or connection already exists. Synchronous call.
-	virtual bool Connect () = 0;
+    /// Connect to target. If fails, returns false. Returns true on success or connection already exists. Synchronous call.
+    virtual bool Connect() = 0;
 
-	/// Breaks existing connection. Synchronous call.
-	virtual void Disconnect () = 0;
+    /// Breaks existing connection. Synchronous call.
+    virtual void Disconnect() = 0;
 
-	/// Returns true if socket is ready to send/recieve data.
-	virtual bool IsConnected () const = 0;
+    /// Returns true if socket is ready to send/recieve data.
+    virtual bool IsConnected() const = 0;
 
-	/// Connection succeded, but socket not ready.
-	virtual bool IsPending() const = 0;
+    /// Connection succeded, but socket not ready.
+    virtual bool IsPending() const = 0;
 
-	/// Reads some data into ByteArray without blocking. Returns false if no data was read.
-	virtual ReadState Read(ByteArrayHolder & buffer) = 0;
+    /// Reads some data into ByteArray without blocking. Returns false if no data was read.
+    virtual ReadState Read(ByteArrayHolder& buffer) = 0;
 
-	/// Write data to socket. Returns false on error.
-	virtual WriteState Write(const ByteArrayHolder & buffer, size_t maxBytes = size_t(-1)) = 0;
+    /// Write data to socket. Returns false on error.
+    virtual WriteState Write(const ByteArrayHolder& buffer, size_t maxBytes = size_t(-1)) = 0;
 
-	/// Buffer available for reading
-	virtual uint32_t GetRecieveBufferSize() const = 0;
+    /// Buffer available for reading
+    virtual uint32_t GetRecieveBufferSize() const = 0;
 
-	/// Buffer available for writing
-	virtual uint32_t GetSendBufferSize() const = 0;
+    /// Buffer available for writing
+    virtual uint32_t GetSendBufferSize() const = 0;
 
-	/// Some descriptive string for socket
-	virtual std::string GetLogContext() const = 0;
+    /// Some descriptive string for socket
+    virtual std::string GetLogContext() const = 0;
 };
 }

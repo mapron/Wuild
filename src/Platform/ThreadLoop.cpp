@@ -21,77 +21,69 @@
 #include <atomic>
 #include <cassert>
 
-namespace Wuild
-{
+namespace Wuild {
 
-class ThreadLoopImpl
-{
+class ThreadLoopImpl {
 public:
-	std::thread m_thread;
-	std::atomic_bool m_condition {false};
+    std::thread      m_thread;
+    std::atomic_bool m_condition{ false };
 };
 
 ThreadLoop::ThreadLoop()
-	: m_impl(new ThreadLoopImpl)
+    : m_impl(new ThreadLoopImpl)
 {
-
 }
 
-ThreadLoop::ThreadLoop(ThreadLoop &&rh) noexcept
-	: m_impl(std::move(rh.m_impl))
+ThreadLoop::ThreadLoop(ThreadLoop&& rh) noexcept
+    : m_impl(std::move(rh.m_impl))
 {
 }
 
 ThreadLoop::~ThreadLoop()
 {
-	Stop();
+    Stop();
 }
 
 bool ThreadLoop::IsRunning() const
 {
-	return m_impl->m_condition;
+    return m_impl->m_condition;
 }
 
 void ThreadLoop::Exec(const ThreadLoop::QuantFunction& quant, int64_t sleepUS)
 {
-	Stop();
-	m_impl->m_condition = true;
-	m_impl->m_thread = std::thread([quant, this, sleepUS]{
-		try
-		{
-			while (m_impl->m_condition && !Application::IsInterrupted())
-			{
-				quant();
-				usleep(sleepUS);
-			}
-		}
-		catch (std::exception& ex)
-		{
-			Syslogger(Syslogger::Err) << "std::exception caught in ThreadLoop::Exec " << ex.what();
-		}
-		catch (...)
-		{
-			Syslogger(Syslogger::Crit) << "Exception caught in ThreadLoop::mainCycle.";
-		}
-
-	});
+    Stop();
+    m_impl->m_condition = true;
+    m_impl->m_thread    = std::thread([quant, this, sleepUS] {
+        try {
+            while (m_impl->m_condition && !Application::IsInterrupted()) {
+                quant();
+                usleep(sleepUS);
+            }
+        }
+        catch (std::exception& ex) {
+            Syslogger(Syslogger::Err) << "std::exception caught in ThreadLoop::Exec " << ex.what();
+        }
+        catch (...) {
+            Syslogger(Syslogger::Crit) << "Exception caught in ThreadLoop::mainCycle.";
+        }
+    });
 }
 
 void ThreadLoop::Stop()
 {
-	if (!m_impl)
-		return;
+    if (!m_impl)
+        return;
 
-	Cancel();
-	if (m_impl->m_thread.joinable())
-		m_impl->m_thread.join();
+    Cancel();
+    if (m_impl->m_thread.joinable())
+        m_impl->m_thread.join();
 }
 
 void ThreadLoop::Cancel()
 {
-	if (!m_impl)
-		return;
-	m_impl->m_condition = false;
+    if (!m_impl)
+        return;
+    m_impl->m_condition = false;
 }
 
 }

@@ -18,25 +18,26 @@
 
 #include <ILocalExecutor.h>
 
-namespace Wuild
-{
-class VersionChecker : public IVersionChecker
-{
-	VersionChecker(ILocalExecutor::Ptr localExecutor, IInvocationRewriter::Ptr rewriter);
+namespace Wuild {
+class VersionChecker : public IVersionChecker {
+    VersionChecker(ILocalExecutor::Ptr localExecutor, IInvocationRewriter::Ptr rewriter);
+
 public:
-	static Ptr Create(ILocalExecutor::Ptr localExecutor, IInvocationRewriter::Ptr rewriter)
-	{ return Ptr(new VersionChecker(std::move(localExecutor), std::move(rewriter))); }
+    static Ptr Create(ILocalExecutor::Ptr localExecutor, IInvocationRewriter::Ptr rewriter)
+    {
+        return Ptr(new VersionChecker(std::move(localExecutor), std::move(rewriter)));
+    }
 
-	ToolType GuessToolType(const ToolInvocation::Id & toolId) const override;
+    ToolType GuessToolType(const ToolInvocation::Id& toolId) const override;
 
-	VersionMap DetermineToolVersions(const std::vector<std::string> & toolIds) const override;
+    VersionMap DetermineToolVersions(const std::vector<std::string>& toolIds) const override;
 
 private:
-	Version GetToolVersion(const ToolInvocation::Id & toolId, ToolType type) const;
+    Version GetToolVersion(const ToolInvocation::Id& toolId, ToolType type) const;
 
 private:
-	ILocalExecutor::Ptr      m_localExecutor;
-	IInvocationRewriter::Ptr m_rewriter;
+    ILocalExecutor::Ptr      m_localExecutor;
+    IInvocationRewriter::Ptr m_rewriter;
 };
 
 }

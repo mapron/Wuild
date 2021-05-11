@@ -17,67 +17,63 @@
 
 #include <sstream>
 
-namespace Wuild
-{
+namespace Wuild {
 
 SocketFrame::SocketFrame()
-	: m_created(true)
+    : m_created(true)
 {}
 
-void SocketFrame::LogTo(std::ostream &os) const
+void SocketFrame::LogTo(std::ostream& os) const
 {
-	os << "T=" << m_transactionId;
-	if (m_replyToTransactionId != uint64_t(-1))
-		os << ", R=" << m_replyToTransactionId;
+    os << "T=" << m_transactionId;
+    if (m_replyToTransactionId != uint64_t(-1))
+        os << ", R=" << m_replyToTransactionId;
 }
 
-SocketFrame::State SocketFrame::Read(ByteOrderDataStreamReader &stream)
+SocketFrame::State SocketFrame::Read(ByteOrderDataStreamReader& stream)
 {
-	if (m_writeLength)
-	{
-		stream >> m_length ;
-		if (stream.EofRead())
-			return stIncomplete;
+    if (m_writeLength) {
+        stream >> m_length;
+        if (stream.EofRead())
+            return stIncomplete;
 
-		if (!stream.GetBuffer().CheckRemain(m_length))
-			return stIncomplete;
-	}
-	if (m_writeCreated)
-		m_created.SetUS(stream.ReadScalar<int64_t>());
-	if (m_writeTransaction)
-		stream >> m_transactionId >> m_replyToTransactionId;
+        if (!stream.GetBuffer().CheckRemain(m_length))
+            return stIncomplete;
+    }
+    if (m_writeCreated)
+        m_created.SetUS(stream.ReadScalar<int64_t>());
+    if (m_writeTransaction)
+        stream >> m_transactionId >> m_replyToTransactionId;
 
-	auto result = ReadInternal(stream);
-	if (result != stOk)
-		return result;
+    auto result = ReadInternal(stream);
+    if (result != stOk)
+        return result;
 
-	return stOk;
+    return stOk;
 }
 
-SocketFrame::State SocketFrame::Write(ByteOrderDataStreamWriter &stream) const
+SocketFrame::State SocketFrame::Write(ByteOrderDataStreamWriter& stream) const
 {
-	ptrdiff_t initialOffset = 0;
-	if (m_writeLength)
-	{
-		m_length = 0;
-		initialOffset = stream.GetBuffer().GetOffsetWrite();
-		stream << m_length;
-	}
-	if (m_writeCreated)
-		stream << m_created.GetUS();
-	if (m_writeTransaction)
-		stream << m_transactionId << m_replyToTransactionId;
+    ptrdiff_t initialOffset = 0;
+    if (m_writeLength) {
+        m_length      = 0;
+        initialOffset = stream.GetBuffer().GetOffsetWrite();
+        stream << m_length;
+    }
+    if (m_writeCreated)
+        stream << m_created.GetUS();
+    if (m_writeTransaction)
+        stream << m_transactionId << m_replyToTransactionId;
 
-	auto result = WriteInternal(stream);
-	if (result != stOk)
-		return result;
+    auto result = WriteInternal(stream);
+    if (result != stOk)
+        return result;
 
-	if (m_writeLength)
-	{
-		m_length = static_cast<uint32_t>(stream.GetBuffer().GetOffsetWrite() - initialOffset - sizeof(m_length));
-		stream.WriteToOffset(m_length, initialOffset);
-	}
-	return result;
+    if (m_writeLength) {
+        m_length = static_cast<uint32_t>(stream.GetBuffer().GetOffsetWrite() - initialOffset - sizeof(m_length));
+        stream.WriteToOffset(m_length, initialOffset);
+    }
+    return result;
 }
 
 }

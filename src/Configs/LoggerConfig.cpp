@@ -15,18 +15,16 @@
 
 #include <iostream>
 
-namespace Wuild
-{
+namespace Wuild {
 
-bool LoggerConfig::Validate(std::ostream *errStream) const
+bool LoggerConfig::Validate(std::ostream* errStream) const
 {
-	if (m_logType == LogType::Files && m_dir.empty())
-	{
-		if (errStream)
-			*errStream << "File type log requires dir set.";
-		return false;
-	}
-	return true;
+    if (m_logType == LogType::Files && m_dir.empty()) {
+        if (errStream)
+            *errStream << "File type log requires dir set.";
+        return false;
+    }
+    return true;
 }
 
 }

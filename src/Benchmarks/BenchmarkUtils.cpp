@@ -14,111 +14,105 @@
 
 #include <ByteOrderStreamTypes.h>
 
-namespace Wuild
-{
+namespace Wuild {
 FileFrame::FileFrame()
 {
-	m_writeLength = true;
+    m_writeLength = true;
 }
 
-void FileFrame::LogTo(std::ostream &os) const
+void FileFrame::LogTo(std::ostream& os) const
 {
-	SocketFrame::LogTo(os);
-	os << " file: [" << m_fileData.size();
-	;
-
+    SocketFrame::LogTo(os);
+    os << " file: [" << m_fileData.size();
+    ;
 }
 
-SocketFrame::State FileFrame::ReadInternal(ByteOrderDataStreamReader &stream)
+SocketFrame::State FileFrame::ReadInternal(ByteOrderDataStreamReader& stream)
 {
-	stream >> m_processTime;
-	stream >> m_fileData;
-	return stOk;
+    stream >> m_processTime;
+    stream >> m_fileData;
+    return stOk;
 }
 
-SocketFrame::State FileFrame::WriteInternal(ByteOrderDataStreamWriter &stream) const
+SocketFrame::State FileFrame::WriteInternal(ByteOrderDataStreamWriter& stream) const
 {
-	stream << m_processTime;
-	stream << m_fileData;
-	return stOk;
+    stream << m_processTime;
+    stream << m_fileData;
+    return stOk;
 }
 
-
-namespace
-{
-const int segmentSize = 8192;
-const int bufferSize = 64 * 1024;
+namespace {
+const int segmentSize     = 8192;
+const int bufferSize      = 64 * 1024;
 const int testServicePort = 12345;
 
-void ProcessServerData(const ByteArrayHolder & input, ByteArrayHolder & output)
+void ProcessServerData(const ByteArrayHolder& input, ByteArrayHolder& output)
 {
-	output.resize(input.size());
-	for (size_t i = 0; i< input.size(); ++i)
-		output.data()[i] = input.data()[i] ^ uint8_t(0x80);
+    output.resize(input.size());
+    for (size_t i = 0; i < input.size(); ++i)
+        output.data()[i] = input.data()[i] ^ uint8_t(0x80);
 }
 }
 
 void TestService::startServer()
 {
-	Syslogger(Syslogger::Info) << "Listening on:" << testServicePort;
+    Syslogger(Syslogger::Info) << "Listening on:" << testServicePort;
 
-	SocketFrameHandlerSettings settings;
-	settings.m_recommendedRecieveBufferSize = bufferSize;
-	settings.m_recommendedSendBufferSize    = bufferSize;
-	settings.m_segmentSize = segmentSize;
+    SocketFrameHandlerSettings settings;
+    settings.m_recommendedRecieveBufferSize = bufferSize;
+    settings.m_recommendedSendBufferSize    = bufferSize;
+    settings.m_segmentSize                  = segmentSize;
 
-	m_server = std::make_unique<SocketFrameService>( settings );
-	m_server->AddTcpListener(testServicePort, "*");
-	m_server->RegisterFrameReader(SocketFrameReaderTemplate<FileFrame>::Create([](const FileFrame &inputMessage, SocketFrameHandler::OutputCallback outputCallback)
-	{
-		FileFrame::Ptr response(new FileFrame());
-		TimePoint processStart(true);
-		ProcessServerData(inputMessage.m_fileData, response->m_fileData);
-		response->m_processTime = processStart.GetElapsedTime();
-		outputCallback(response);
-	}));
-	m_server->Start();
+    m_server = std::make_unique<SocketFrameService>(settings);
+    m_server->AddTcpListener(testServicePort, "*");
+    m_server->RegisterFrameReader(SocketFrameReaderTemplate<FileFrame>::Create([](const FileFrame& inputMessage, SocketFrameHandler::OutputCallback outputCallback) {
+        FileFrame::Ptr response(new FileFrame());
+        TimePoint      processStart(true);
+        ProcessServerData(inputMessage.m_fileData, response->m_fileData);
+        response->m_processTime = processStart.GetElapsedTime();
+        outputCallback(response);
+    }));
+    m_server->Start();
 }
 
-void TestService::startClient(const std::string & host)
+void TestService::startClient(const std::string& host)
 {
-	Syslogger() << "startClient " << host  << ":" <<  testServicePort;
-	SocketFrameHandlerSettings settings;
-	settings.m_recommendedSendBufferSize = bufferSize;
-	settings.m_recommendedRecieveBufferSize = bufferSize;
-	settings.m_segmentSize = segmentSize;
-	SocketFrameHandler::Ptr h(new SocketFrameHandler(settings));
-	h->RegisterFrameReader(SocketFrameReaderTemplate<FileFrame>::Create([this](const FileFrame &inputMessage, SocketFrameHandler::OutputCallback )
-	{
-		Syslogger(Syslogger::Info) << "process time:" << inputMessage.m_processTime.ToProfilingTime();
-		std::unique_lock<std::mutex> lock(taskStateMutex);
-		taskCount--;
-		taskStateCond.notify_one();
-	}));
-	h->SetLogContext("client");
-	h->SetTcpChannel(host, testServicePort);
-	m_client = h;
-	m_client->Start();
+    Syslogger() << "startClient " << host << ":" << testServicePort;
+    SocketFrameHandlerSettings settings;
+    settings.m_recommendedSendBufferSize    = bufferSize;
+    settings.m_recommendedRecieveBufferSize = bufferSize;
+    settings.m_segmentSize                  = segmentSize;
+    SocketFrameHandler::Ptr h(new SocketFrameHandler(settings));
+    h->RegisterFrameReader(SocketFrameReaderTemplate<FileFrame>::Create([this](const FileFrame& inputMessage, SocketFrameHandler::OutputCallback) {
+        Syslogger(Syslogger::Info) << "process time:" << inputMessage.m_processTime.ToProfilingTime();
+        std::unique_lock<std::mutex> lock(taskStateMutex);
+        taskCount--;
+        taskStateCond.notify_one();
+    }));
+    h->SetLogContext("client");
+    h->SetTcpChannel(host, testServicePort);
+    m_client = h;
+    m_client->Start();
 }
 
 void TestService::sendFile(size_t size)
 {
-	FileFrame::Ptr request(new FileFrame());
-	request->m_fileData.resize(size);
-	for (size_t i = 0; i < size; ++i)
-		request->m_fileData.data()[i] = uint8_t(i % 256);
+    FileFrame::Ptr request(new FileFrame());
+    request->m_fileData.resize(size);
+    for (size_t i = 0; i < size; ++i)
+        request->m_fileData.data()[i] = uint8_t(i % 256);
 
-	m_client->QueueFrame(request);
-	std::unique_lock<std::mutex> lock(taskStateMutex);
-	taskCount++;
+    m_client->QueueFrame(request);
+    std::unique_lock<std::mutex> lock(taskStateMutex);
+    taskCount++;
 }
 
 void TestService::waitForReplies()
 {
-	std::unique_lock<std::mutex> lock(taskStateMutex);
-	taskStateCond.wait(lock, [this]{
-		return taskCount == 0;
-	});
+    std::unique_lock<std::mutex> lock(taskStateMutex);
+    taskStateCond.wait(lock, [this] {
+        return taskCount == 0;
+    });
 }
 
 }

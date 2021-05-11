@@ -18,50 +18,46 @@
 #include <TimePoint.h>
 #include <CommonTypes.h>
 
-namespace Wuild
-{
+namespace Wuild {
 
 /**
  * Tool invocation: arguments plus current working dir.
  */
-class ToolProxyRequest : public SocketFrameExt
-{
+class ToolProxyRequest : public SocketFrameExt {
 public:
-	static const uint8_t s_frameTypeId = s_minimalUserFrameId + 1;
-	using Ptr = std::shared_ptr<ToolProxyRequest>;
+    static const uint8_t s_frameTypeId = s_minimalUserFrameId + 1;
+    using Ptr                          = std::shared_ptr<ToolProxyRequest>;
 
 public:
-	ToolInvocation      m_invocation;
-	std::string         m_cwd;
+    ToolInvocation m_invocation;
+    std::string    m_cwd;
 
-	uint8_t             FrameTypeId() const override { return s_frameTypeId;}
+    uint8_t FrameTypeId() const override { return s_frameTypeId; }
 
-	void                LogTo(std::ostream& os)  const override;
-	State               ReadInternal(ByteOrderDataStreamReader &stream) override;
-	State               WriteInternal(ByteOrderDataStreamWriter &stream) const override;
-
+    void  LogTo(std::ostream& os) const override;
+    State ReadInternal(ByteOrderDataStreamReader& stream) override;
+    State WriteInternal(ByteOrderDataStreamWriter& stream) const override;
 };
 
 /**
  * Tool invocation result: success code and std output.
  */
-class ToolProxyResponse : public SocketFrameExt
-{
+class ToolProxyResponse : public SocketFrameExt {
 public:
-	static const uint8_t s_frameTypeId = s_minimalUserFrameId + 2;
-	using Ptr = std::shared_ptr<ToolProxyResponse>;
+    static const uint8_t s_frameTypeId = s_minimalUserFrameId + 2;
+    using Ptr                          = std::shared_ptr<ToolProxyResponse>;
 
 public:
-	bool                m_result = false;
-	std::string         m_stdOut;
+    bool        m_result = false;
+    std::string m_stdOut;
 
-	ToolProxyResponse  (std::string  stdOut = std::string(), bool result = false);
+    ToolProxyResponse(std::string stdOut = std::string(), bool result = false);
 
-	void                LogTo(std::ostream& os) const override;
-	uint8_t             FrameTypeId() const override { return s_frameTypeId;}
+    void    LogTo(std::ostream& os) const override;
+    uint8_t FrameTypeId() const override { return s_frameTypeId; }
 
-	State               ReadInternal(ByteOrderDataStreamReader &stream) override;
-	State               WriteInternal(ByteOrderDataStreamWriter &stream) const override;
+    State ReadInternal(ByteOrderDataStreamReader& stream) override;
+    State WriteInternal(ByteOrderDataStreamWriter& stream) const override;
 };
 
 }

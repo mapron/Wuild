@@ -15,24 +15,22 @@
 
 #include "IDataSocket.h"
 
-namespace Wuild
-{
+namespace Wuild {
 
 /// Abstract port listener.
-class IDataListener
-{
+class IDataListener {
 public:
-	using Ptr = std::shared_ptr<IDataListener>;
-	virtual ~IDataListener() = default;
+    using Ptr                = std::shared_ptr<IDataListener>;
+    virtual ~IDataListener() = default;
 
-	/// Get first available incoming connection. To use result, you should call Connect() on it.
-	virtual IDataSocket::Ptr GetPendingConnection() = 0;
+    /// Get first available incoming connection. To use result, you should call Connect() on it.
+    virtual IDataSocket::Ptr GetPendingConnection() = 0;
 
-	/// Start listen session on port. If fails to bind, returns false.
-	virtual bool StartListen() = 0;
+    /// Start listen session on port. If fails to bind, returns false.
+    virtual bool StartListen() = 0;
 
-	/// Some descriptive string for listener
-	virtual std::string GetLogContext() const = 0;
+    /// Some descriptive string for listener
+    virtual std::string GetLogContext() const = 0;
 };
 
 }

@@ -17,32 +17,30 @@
 
 #include <CommonTypes.h>
 
-namespace Wuild
-{
+namespace Wuild {
 /// Abstract command line parser for tool invocation
-class ICommandLineParser
-{
+class ICommandLineParser {
 public:
-	using Ptr = std::shared_ptr<ICommandLineParser>;
+    using Ptr = std::shared_ptr<ICommandLineParser>;
 
 public:
-	virtual ~ICommandLineParser() = default;
+    virtual ~ICommandLineParser() = default;
 
-	virtual ToolInvocation GetToolInvocation() const = 0;
-	virtual void SetToolInvocation(const ToolInvocation & invocation) = 0;
+    virtual ToolInvocation GetToolInvocation() const                           = 0;
+    virtual void           SetToolInvocation(const ToolInvocation& invocation) = 0;
 
-	ToolInvocation ProcessToolInvocation(const ToolInvocation & invocation)
-	{
-		SetToolInvocation(invocation);
-		return GetToolInvocation();
-	}
+    ToolInvocation ProcessToolInvocation(const ToolInvocation& invocation)
+    {
+        SetToolInvocation(invocation);
+        return GetToolInvocation();
+    }
 
-	virtual void SetInvokeType(ToolInvocation::InvokeType type) = 0;
+    virtual void SetInvokeType(ToolInvocation::InvokeType type) = 0;
 
-	virtual bool IsRemotePossible() const = 0;
+    virtual bool IsRemotePossible() const = 0;
 
-	virtual void RemoveLocalFlags() = 0;
-	virtual void RemoveDependencyFiles() = 0;
-	virtual void RemovePrepocessorFlags() = 0;
+    virtual void RemoveLocalFlags()       = 0;
+    virtual void RemoveDependencyFiles()  = 0;
+    virtual void RemovePrepocessorFlags() = 0;
 };
 }

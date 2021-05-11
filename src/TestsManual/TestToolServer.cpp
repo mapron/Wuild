@@ -19,8 +19,8 @@
 #include <LocalExecutor.h>
 #include <VersionChecker.h>
 
-const int g_toolsServerTestPort = 12345;
-const Wuild::CompressionType g_compType = Wuild::CompressionType::LZ4;
+const int                    g_toolsServerTestPort = 12345;
+const Wuild::CompressionType g_compType            = Wuild::CompressionType::LZ4;
 
 /*
  * This test should be invoked just as normal compiler; first toolId used.
@@ -28,77 +28,75 @@ const Wuild::CompressionType g_compType = Wuild::CompressionType::LZ4;
  */
 int main(int argc, char** argv)
 {
-	using namespace Wuild;
-	ArgStorage argStorage(argc, argv);
-	ConfiguredApplication app(argStorage.GetConfigValues(), "TestToolServer");
-	if (!CreateInvocationRewriter(app))
-	   return 1;
+    using namespace Wuild;
+    ArgStorage            argStorage(argc, argv);
+    ConfiguredApplication app(argStorage.GetConfigValues(), "TestToolServer");
+    if (!CreateInvocationRewriter(app))
+        return 1;
 
-	StringVector args = argStorage.GetArgs();
-	auto localExecutor = LocalExecutor::Create(TestConfiguration::s_invocationRewriter, app.m_tempDir);
+    StringVector args          = argStorage.GetArgs();
+    auto         localExecutor = LocalExecutor::Create(TestConfiguration::s_invocationRewriter, app.m_tempDir);
 
-	std::string err;
-	LocalExecutorTask::Ptr original(new LocalExecutorTask());
-	original->m_readOutput = original->m_writeInput = false;
-	original->m_invocation = ToolInvocation( args ).SetExecutable(TestConfiguration::s_invocationRewriter->GetConfig().GetFirstToolName());
-	auto tasks = localExecutor->SplitTask(original, err);
-	if (!tasks.first)
-	{
-		Syslogger(Syslogger::Err) << err;
-		return 1;
-	}
-	LocalExecutorTask::Ptr taskPP = tasks.first;
-	LocalExecutorTask::Ptr taskCC = tasks.second;
+    std::string            err;
+    LocalExecutorTask::Ptr original(new LocalExecutorTask());
+    original->m_readOutput = original->m_writeInput = false;
+    original->m_invocation                          = ToolInvocation(args).SetExecutable(TestConfiguration::s_invocationRewriter->GetConfig().GetFirstToolName());
+    auto tasks                                      = localExecutor->SplitTask(original, err);
+    if (!tasks.first) {
+        Syslogger(Syslogger::Err) << err;
+        return 1;
+    }
+    LocalExecutorTask::Ptr taskPP = tasks.first;
+    LocalExecutorTask::Ptr taskCC = tasks.second;
 
-	RemoteToolServer::Config toolServerConfig;
-	toolServerConfig.m_listenHost = "localhost";
-	toolServerConfig.m_listenPort = g_toolsServerTestPort;
-	toolServerConfig.m_coordinator.m_enabled = false;
-	toolServerConfig.m_compression.m_type = g_compType;
+    RemoteToolServer::Config toolServerConfig;
+    toolServerConfig.m_listenHost            = "localhost";
+    toolServerConfig.m_listenPort            = g_toolsServerTestPort;
+    toolServerConfig.m_coordinator.m_enabled = false;
+    toolServerConfig.m_compression.m_type    = g_compType;
 
-	const auto toolsVersions = VersionChecker::Create(localExecutor, TestConfiguration::s_invocationRewriter)->DetermineToolVersions({});
+    const auto toolsVersions = VersionChecker::Create(localExecutor, TestConfiguration::s_invocationRewriter)->DetermineToolVersions({});
 
-	RemoteToolServer rcServer(localExecutor, toolsVersions);
-	if (!rcServer.SetConfig(toolServerConfig))
-		return 1;
+    RemoteToolServer rcServer(localExecutor, toolsVersions);
+    if (!rcServer.SetConfig(toolServerConfig))
+        return 1;
 
-	rcServer.Start();
+    rcServer.Start();
 
-	RemoteToolClient rcClient(TestConfiguration::s_invocationRewriter, toolsVersions);
-	ToolServerInfo toolServerInfo;
-	toolServerInfo.m_connectionHost = "localhost";
-	toolServerInfo.m_connectionPort = g_toolsServerTestPort;
-	toolServerInfo.m_toolIds = TestConfiguration::s_invocationRewriter->GetConfig().m_toolIds;
-	toolServerInfo.m_totalThreads = 1;
-	rcClient.AddClient(toolServerInfo);
-	RemoteToolClient::Config clientConfig;
-	clientConfig.m_coordinator.m_enabled = false;
-	clientConfig.m_compression.m_type = g_compType;
-	rcClient.SetConfig(clientConfig);
-	rcClient.Start();
+    RemoteToolClient rcClient(TestConfiguration::s_invocationRewriter, toolsVersions);
+    ToolServerInfo   toolServerInfo;
+    toolServerInfo.m_connectionHost = "localhost";
+    toolServerInfo.m_connectionPort = g_toolsServerTestPort;
+    toolServerInfo.m_toolIds        = TestConfiguration::s_invocationRewriter->GetConfig().m_toolIds;
+    toolServerInfo.m_totalThreads   = 1;
+    rcClient.AddClient(toolServerInfo);
+    RemoteToolClient::Config clientConfig;
+    clientConfig.m_coordinator.m_enabled = false;
+    clientConfig.m_compression.m_type    = g_compType;
+    rcClient.SetConfig(clientConfig);
+    rcClient.Start();
 
-	rcClient.SetRemoteAvailableCallback([taskPP, &rcClient, taskCC, &localExecutor](){
+    rcClient.SetRemoteAvailableCallback([taskPP, &rcClient, taskCC, &localExecutor]() {
+        taskPP->m_callback = [&rcClient, taskCC](LocalExecutorResult::Ptr localResult) {
+            if (!localResult->m_result) {
+                Syslogger(Syslogger::Err) << "Preprocess failed\n"
+                                          << localResult->m_stdOut;
+                Application::Interrupt(1);
+                return;
+            }
 
-		taskPP->m_callback = [&rcClient, taskCC] ( LocalExecutorResult::Ptr localResult ) {
+            auto callback = [&rcClient](const Wuild::RemoteToolClient::TaskExecutionInfo& info) {
+                if (!info.m_stdOutput.empty())
+                    std::cout << info.m_stdOutput << std::endl
+                              << std::flush;
+                rcClient.FinishSession();
+                std::cout << rcClient.GetSessionInformation() << " \n";
+                Application::Interrupt(1 - info.m_result);
+            };
+            rcClient.InvokeTool(taskCC->m_invocation, callback);
+        };
+        localExecutor->AddTask(taskPP);
+    });
 
-			if (!localResult->m_result)
-			{
-				Syslogger(Syslogger::Err) << "Preprocess failed\n" << localResult->m_stdOut;
-				Application::Interrupt(1);
-				return;
-			}
-
-			auto callback = [&rcClient]( const Wuild::RemoteToolClient::TaskExecutionInfo& info){
-				if (!info.m_stdOutput.empty())
-					std::cout << info.m_stdOutput << std::endl << std::flush;
-				rcClient.FinishSession();
-				std::cout << rcClient.GetSessionInformation()  << " \n";
-				Application::Interrupt(1 - info.m_result);
-			};
-			rcClient.InvokeTool(taskCC->m_invocation, callback);
-		};
-		localExecutor->AddTask(taskPP);
-	});
-
-	return ExecAppLoop(TestConfiguration::ExitHandler);
+    return ExecAppLoop(TestConfiguration::ExitHandler);
 }

@@ -19,24 +19,22 @@
 
 #include <functional>
 
-namespace Wuild
+namespace Wuild {
+inline IInvocationRewriter::Ptr CheckedCreateInvocationRewriter(ConfiguredApplication& application)
 {
-inline IInvocationRewriter::Ptr CheckedCreateInvocationRewriter(ConfiguredApplication & application)
-{
-	IInvocationRewriter::Config config;
-	if (!application.GetInvocationRewriterConfig(config, false))
-		return nullptr;
-	return InvocationRewriter::Create(config);
+    IInvocationRewriter::Config config;
+    if (!application.GetInvocationRewriterConfig(config, false))
+        return nullptr;
+    return InvocationRewriter::Create(config);
 }
 
-inline int ExecAppLoop(std::function<void(int)> exitCodeHandler = std::function<void(int)> ())
+inline int ExecAppLoop(std::function<void(int)> exitCodeHandler = std::function<void(int)>())
 {
-	Application::Instance().SetSignalHandlers();
-	Application::Instance().WaitForTermination();
-	if (exitCodeHandler)
-		exitCodeHandler(Application::GetExitCode());
-	return Application::GetExitCode();
+    Application::Instance().SetSignalHandlers();
+    Application::Instance().WaitForTermination();
+    if (exitCodeHandler)
+        exitCodeHandler(Application::GetExitCode());
+    return Application::GetExitCode();
 }
 
 }
-

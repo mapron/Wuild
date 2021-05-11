@@ -15,19 +15,17 @@
 
 #include "AbstractCommandLineParser.h"
 
-namespace Wuild
-{
+namespace Wuild {
 /// Parse command line arguments for cl.exe
-class MsvcCommandLineParser: public AbstractCommandLineParser
-{
-	int m_invokeTypeIndex = -1;
+class MsvcCommandLineParser : public AbstractCommandLineParser {
+    int m_invokeTypeIndex = -1;
 
 public:
-	void UpdateInfo() override;
+    void UpdateInfo() override;
 
-	void SetInvokeType(ToolInvocation::InvokeType type) override;
+    void SetInvokeType(ToolInvocation::InvokeType type) override;
 
-	void RemoveLocalFlags() override;
-	void RemovePrepocessorFlags() override;
+    void RemoveLocalFlags() override;
+    void RemovePrepocessorFlags() override;
 };
 }

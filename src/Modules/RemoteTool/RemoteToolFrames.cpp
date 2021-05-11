@@ -16,78 +16,75 @@
 #include <ByteOrderStream.h>
 #include <ByteOrderStreamTypes.h>
 
-namespace Wuild
-{
+namespace Wuild {
 
-void RemoteToolRequest::LogTo(std::ostream &os) const
+void RemoteToolRequest::LogTo(std::ostream& os) const
 {
-	SocketFrame::LogTo(os);
-	os << " " << m_invocation.m_id.m_toolId << " args:" << m_invocation.GetArgsString(false);
-	os << " file: [" << m_fileData.size() << ", COMP:" << uint32_t(m_compression.m_type) << "]"
-		;
+    SocketFrame::LogTo(os);
+    os << " " << m_invocation.m_id.m_toolId << " args:" << m_invocation.GetArgsString(false);
+    os << " file: [" << m_fileData.size() << ", COMP:" << uint32_t(m_compression.m_type) << "]";
 }
 
-SocketFrame::State RemoteToolRequest::ReadInternal(ByteOrderDataStreamReader &stream)
+SocketFrame::State RemoteToolRequest::ReadInternal(ByteOrderDataStreamReader& stream)
 {
-	stream >> m_clientId;
-	stream >> m_sessionId;
-	stream >> m_fileData;
-	stream >> m_invocation.m_args;
-	stream >> m_invocation.m_id.m_toolId;
-	stream >> m_compression;
-	return stOk;
+    stream >> m_clientId;
+    stream >> m_sessionId;
+    stream >> m_fileData;
+    stream >> m_invocation.m_args;
+    stream >> m_invocation.m_id.m_toolId;
+    stream >> m_compression;
+    return stOk;
 }
 
-SocketFrame::State RemoteToolRequest::WriteInternal(ByteOrderDataStreamWriter &stream) const
+SocketFrame::State RemoteToolRequest::WriteInternal(ByteOrderDataStreamWriter& stream) const
 {
-	stream << m_clientId;
-	stream << m_sessionId;
-	stream << m_fileData;
-	stream << m_invocation.m_args;
-	stream << m_invocation.m_id.m_toolId;
-	stream << m_compression;
-	return stOk;
+    stream << m_clientId;
+    stream << m_sessionId;
+    stream << m_fileData;
+    stream << m_invocation.m_args;
+    stream << m_invocation.m_id.m_toolId;
+    stream << m_compression;
+    return stOk;
 }
 
-void RemoteToolResponse::LogTo(std::ostream &os) const
+void RemoteToolResponse::LogTo(std::ostream& os) const
 {
-	SocketFrame::LogTo(os);
-	os << " -> " << (m_result ? "OK" : "FAIL") << " ["
-	   << m_fileData.size() << ", COMP:" << uint32_t(m_compression.m_type) << "], std["
-	   << m_stdOut.size() << "]"
-		  ;
+    SocketFrame::LogTo(os);
+    os << " -> " << (m_result ? "OK" : "FAIL") << " ["
+       << m_fileData.size() << ", COMP:" << uint32_t(m_compression.m_type) << "], std["
+       << m_stdOut.size() << "]";
 }
 
-SocketFrame::State RemoteToolResponse::ReadInternal(ByteOrderDataStreamReader &stream)
+SocketFrame::State RemoteToolResponse::ReadInternal(ByteOrderDataStreamReader& stream)
 {
-	stream >> m_result;
-	stream >> m_fileData;
-	stream >> m_stdOut;
-	stream >> m_executionTime;
-	stream >> m_compression;
-	return stOk;
+    stream >> m_result;
+    stream >> m_fileData;
+    stream >> m_stdOut;
+    stream >> m_executionTime;
+    stream >> m_compression;
+    return stOk;
 }
 
-SocketFrame::State RemoteToolResponse::WriteInternal(ByteOrderDataStreamWriter &stream) const
+SocketFrame::State RemoteToolResponse::WriteInternal(ByteOrderDataStreamWriter& stream) const
 {
-	stream << m_result;
-	stream << m_fileData;
-	stream << m_stdOut;
-	stream << m_executionTime;
-	stream << m_compression;
-	return stOk;
+    stream << m_result;
+    stream << m_fileData;
+    stream << m_stdOut;
+    stream << m_executionTime;
+    stream << m_compression;
+    return stOk;
 }
 
-SocketFrame::State ToolsVersionResponse::ReadInternal(ByteOrderDataStreamReader &stream)
+SocketFrame::State ToolsVersionResponse::ReadInternal(ByteOrderDataStreamReader& stream)
 {
-	stream >> m_versions;
-	return stOk;
+    stream >> m_versions;
+    return stOk;
 }
 
-SocketFrame::State ToolsVersionResponse::WriteInternal(ByteOrderDataStreamWriter &stream) const
+SocketFrame::State ToolsVersionResponse::WriteInternal(ByteOrderDataStreamWriter& stream) const
 {
-	stream << m_versions;
-	return stOk;
+    stream << m_versions;
+    return stOk;
 }
 
 }

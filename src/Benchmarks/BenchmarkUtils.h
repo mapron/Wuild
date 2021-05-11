@@ -25,43 +25,39 @@
 #include <condition_variable>
 #include <cassert>
 
+namespace Wuild {
 
-namespace Wuild
-{
-
-class FileFrame : public SocketFrameExt
-{
+class FileFrame : public SocketFrameExt {
 public:
-	using Ptr = std::shared_ptr<FileFrame>;
+    using Ptr = std::shared_ptr<FileFrame>;
 
-	static const uint8_t s_frameTypeId = s_minimalUserFrameId + 1;
+    static const uint8_t s_frameTypeId = s_minimalUserFrameId + 1;
 
-	ByteArrayHolder     m_fileData;
-	TimePoint           m_processTime;
+    ByteArrayHolder m_fileData;
+    TimePoint       m_processTime;
 
-	FileFrame();
-	uint8_t             FrameTypeId() const override { return s_frameTypeId;}
+    FileFrame();
+    uint8_t FrameTypeId() const override { return s_frameTypeId; }
 
-	void                LogTo(std::ostream& os)  const override;
-	State               ReadInternal(ByteOrderDataStreamReader &stream) override;
-	State               WriteInternal(ByteOrderDataStreamWriter &stream) const override;
+    void  LogTo(std::ostream& os) const override;
+    State ReadInternal(ByteOrderDataStreamReader& stream) override;
+    State WriteInternal(ByteOrderDataStreamWriter& stream) const override;
 };
 
-class TestService
-{
-	std::unique_ptr<SocketFrameService> m_server;
-	SocketFrameHandler::Ptr m_client;
+class TestService {
+    std::unique_ptr<SocketFrameService> m_server;
+    SocketFrameHandler::Ptr             m_client;
 
-	TimePoint m_waitForConnectedClientsTimeout = TimePoint (1.0);
+    TimePoint m_waitForConnectedClientsTimeout = TimePoint(1.0);
 
-	size_t                  taskCount = 0;
-	std::condition_variable taskStateCond;
-	std::mutex              taskStateMutex;
+    size_t                  taskCount = 0;
+    std::condition_variable taskStateCond;
+    std::mutex              taskStateMutex;
+
 public:
-	void startServer();
-	void startClient(const std::string & host);
-	void sendFile(size_t size);
-	void waitForReplies();
-
+    void startServer();
+    void startClient(const std::string& host);
+    void sendFile(size_t size);
+    void waitForReplies();
 };
 }

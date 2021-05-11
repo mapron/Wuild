@@ -28,418 +28,387 @@
 #include <algorithm>
 #include <utility>
 
-namespace Wuild
-{
+namespace Wuild {
 static const size_t g_recommendedBufferSize = 64 * 1024;
 
-
-class RemoteToolRequestWrap
-{
+class RemoteToolRequestWrap {
 public:
-	TimePoint m_start;
-	int64_t m_taskIndex = 0;
-	ToolInvocation m_invocation;
-	std::string m_originalFilename;
-	RemoteToolRequest::Ptr m_toolRequest;
-	RemoteToolClient::InvokeCallback m_callback;
-	TimePoint m_expirationMoment;
-	TimePoint m_requestTimeout;
-	int m_attemptsRemain = 1;
+    TimePoint                        m_start;
+    int64_t                          m_taskIndex = 0;
+    ToolInvocation                   m_invocation;
+    std::string                      m_originalFilename;
+    RemoteToolRequest::Ptr           m_toolRequest;
+    RemoteToolClient::InvokeCallback m_callback;
+    TimePoint                        m_expirationMoment;
+    TimePoint                        m_requestTimeout;
+    int                              m_attemptsRemain = 1;
 };
 
-class RemoteToolClientImpl
-{
+class RemoteToolClientImpl {
 public:
-	RemoteToolClient *m_parent{}; // ugly..
-	ToolBalancer m_balancer;
-	std::mutex m_clientsMutex;
-	std::deque<SocketFrameHandler::Ptr> m_clients;
-	std::mutex m_requestsMutex;
-	std::deque<RemoteToolRequestWrap> m_requests;
-	std::unique_ptr<SocketFrameService> m_server;
-	CoordinatorClient m_coordinator;
-	size_t m_clientIndex = 0;
-	std::atomic_int m_pendingTasks {0};
+    RemoteToolClient*                   m_parent{}; // ugly..
+    ToolBalancer                        m_balancer;
+    std::mutex                          m_clientsMutex;
+    std::deque<SocketFrameHandler::Ptr> m_clients;
+    std::mutex                          m_requestsMutex;
+    std::deque<RemoteToolRequestWrap>   m_requests;
+    std::unique_ptr<SocketFrameService> m_server;
+    CoordinatorClient                   m_coordinator;
+    size_t                              m_clientIndex = 0;
+    std::atomic_int                     m_pendingTasks{ 0 };
 
-	void QueueTask(const RemoteToolRequestWrap & task)
-	{
-		std::lock_guard<std::mutex> lock(m_requestsMutex);
-		m_requests.push_back(task);
-		m_pendingTasks++;
-	}
+    void QueueTask(const RemoteToolRequestWrap& task)
+    {
+        std::lock_guard<std::mutex> lock(m_requestsMutex);
+        m_requests.push_back(task);
+        m_pendingTasks++;
+    }
 
-	void ProcessTasks()
-	{
-		RemoteToolRequestWrap task;
-		{
-			std::lock_guard<std::mutex> lock(m_requestsMutex);
-			if (m_requests.empty())
-				return;
-			TimePoint now(true);
-			for (auto it = m_requests.begin(); it != m_requests.end(); )
-			{
-				if (it->m_expirationMoment < now)
-				{
-					Syslogger(Syslogger::Err) << "Task expired: " << SocketFrame::Ptr(it->m_toolRequest)
-											  << " expiration moment:" << it->m_expirationMoment.ToString() << ", now:" << now.ToString();
-					if (it->m_callback)
-					{
-						RemoteToolClient::TaskExecutionInfo info;
-						info.m_stdOutput = "Timeout expired.";
-						it->m_callback(info);
-					}
-					it = m_requests.erase(it);
-				}
-				else
-				{
-					it++;
-				}
-			}
+    void ProcessTasks()
+    {
+        RemoteToolRequestWrap task;
+        {
+            std::lock_guard<std::mutex> lock(m_requestsMutex);
+            if (m_requests.empty())
+                return;
+            TimePoint now(true);
+            for (auto it = m_requests.begin(); it != m_requests.end();) {
+                if (it->m_expirationMoment < now) {
+                    Syslogger(Syslogger::Err) << "Task expired: " << SocketFrame::Ptr(it->m_toolRequest)
+                                              << " expiration moment:" << it->m_expirationMoment.ToString() << ", now:" << now.ToString();
+                    if (it->m_callback) {
+                        RemoteToolClient::TaskExecutionInfo info;
+                        info.m_stdOutput = "Timeout expired.";
+                        it->m_callback(info);
+                    }
+                    it = m_requests.erase(it);
+                } else {
+                    it++;
+                }
+            }
 
-			if (m_requests.empty())
-				return;
+            if (m_requests.empty())
+                return;
 
-			task = *m_requests.begin();
-		}
+            task = *m_requests.begin();
+        }
 
-		size_t clientIndex = m_balancer.FindFreeClient(task.m_invocation.m_id.m_toolId);
-		if (clientIndex == std::numeric_limits<size_t>::max())
-			return;
+        size_t clientIndex = m_balancer.FindFreeClient(task.m_invocation.m_id.m_toolId);
+        if (clientIndex == std::numeric_limits<size_t>::max())
+            return;
 
-		SocketFrameHandler::Ptr handler;
-		{
-			std::lock_guard<std::mutex> lock2(m_clientsMutex);
-			handler = m_clients[clientIndex];
-		}
-		auto frameCallback = [this, task, clientIndex](SocketFrame::Ptr responseFrame, SocketFrameHandler::ReplyState state, const std::string & errorInfo)
-		{
-			m_balancer.FinishTask(clientIndex);
-			const std::string outputFilename =  task.m_originalFilename;
-			Syslogger(Syslogger::Info) << "RECIEVING [" << task.m_taskIndex << "]:" << outputFilename;
-			RemoteToolClient::TaskExecutionInfo info;
-			bool retry = false;
-			if (state == SocketFrameHandler::ReplyState::Timeout)
-			{
-				info.m_stdOutput = "Timeout expired:" + outputFilename + ", start:" + task.m_start.ToString()
-						+ " exp:" + task.m_expirationMoment.ToString() + ", remain:" + std::to_string(task.m_attemptsRemain)
-						+ ", balancer.free:" + std::to_string(m_balancer.GetFreeThreads()) + ", extraInfo:" + errorInfo;
-				retry = true;
-			}
-			else if (state == SocketFrameHandler::ReplyState::Error)
-			{
-				info.m_stdOutput = "Internal error. " + errorInfo;
-				retry = true;
-			}
-			else
-			{
-				RemoteToolResponse::Ptr result = std::dynamic_pointer_cast<RemoteToolResponse>(responseFrame);
-				info.m_toolExecutionTime = result->m_executionTime;
-				info.m_networkRequestTime = task.m_start.GetElapsedTime();
+        SocketFrameHandler::Ptr handler;
+        {
+            std::lock_guard<std::mutex> lock2(m_clientsMutex);
+            handler = m_clients[clientIndex];
+        }
+        auto frameCallback = [this, task, clientIndex](SocketFrame::Ptr responseFrame, SocketFrameHandler::ReplyState state, const std::string& errorInfo) {
+            m_balancer.FinishTask(clientIndex);
+            const std::string outputFilename = task.m_originalFilename;
+            Syslogger(Syslogger::Info) << "RECIEVING [" << task.m_taskIndex << "]:" << outputFilename;
+            RemoteToolClient::TaskExecutionInfo info;
+            bool                                retry = false;
+            if (state == SocketFrameHandler::ReplyState::Timeout) {
+                info.m_stdOutput = "Timeout expired:" + outputFilename + ", start:" + task.m_start.ToString()
+                                   + " exp:" + task.m_expirationMoment.ToString() + ", remain:" + std::to_string(task.m_attemptsRemain)
+                                   + ", balancer.free:" + std::to_string(m_balancer.GetFreeThreads()) + ", extraInfo:" + errorInfo;
+                retry = true;
+            } else if (state == SocketFrameHandler::ReplyState::Error) {
+                info.m_stdOutput = "Internal error. " + errorInfo;
+                retry            = true;
+            } else {
+                RemoteToolResponse::Ptr result = std::dynamic_pointer_cast<RemoteToolResponse>(responseFrame);
+                info.m_toolExecutionTime       = result->m_executionTime;
+                info.m_networkRequestTime      = task.m_start.GetElapsedTime();
 
-				info.m_result = result->m_result;
-				info.m_stdOutput = result->m_stdOut;
-				std::replace(info.m_stdOutput.begin(), info.m_stdOutput.end(), '\r', ' ');
+                info.m_result    = result->m_result;
+                info.m_stdOutput = result->m_stdOut;
+                std::replace(info.m_stdOutput.begin(), info.m_stdOutput.end(), '\r', ' ');
 
-				if (info.m_result && !outputFilename.empty())
-				{
-					this->m_parent->m_recievedBytes += result->m_fileData.size();
-					TimePoint start(true);
-					info.m_result = FileInfo(outputFilename).WriteCompressed(result->m_fileData, result->m_compression);
-					this->m_parent->m_totalCompressionTime += start.GetElapsedTime();
-				}
-			}
-			m_parent->UpdateSessionInfo(info);
-			if (task.m_attemptsRemain > 0 && retry)
-			{
-				Syslogger(Syslogger::Warning) << info.m_stdOutput << " Retrying (" << task.m_attemptsRemain << " attempts remain), args:" << task.m_invocation.GetArgsString(false);
-				auto taskCopy = task;
-				taskCopy.m_attemptsRemain--;
-				taskCopy.m_taskIndex = this->m_parent->m_taskIndex++;
-				taskCopy.m_expirationMoment = TimePoint(true) + m_parent->m_config.m_queueTimeout;
-				this->QueueTask(taskCopy);
-			}
-			else
-			{
-				task.m_callback(info);
-			}
-		};
-		m_balancer.StartTask(clientIndex);
-		m_pendingTasks--;
-		handler->QueueFrame(task.m_toolRequest, frameCallback, task.m_requestTimeout);
-		{
-			std::lock_guard<std::mutex> lock(m_requestsMutex);
-			m_requests.pop_front();
-		}
-	}
+                if (info.m_result && !outputFilename.empty()) {
+                    this->m_parent->m_recievedBytes += result->m_fileData.size();
+                    TimePoint start(true);
+                    info.m_result = FileInfo(outputFilename).WriteCompressed(result->m_fileData, result->m_compression);
+                    this->m_parent->m_totalCompressionTime += start.GetElapsedTime();
+                }
+            }
+            m_parent->UpdateSessionInfo(info);
+            if (task.m_attemptsRemain > 0 && retry) {
+                Syslogger(Syslogger::Warning) << info.m_stdOutput << " Retrying (" << task.m_attemptsRemain << " attempts remain), args:" << task.m_invocation.GetArgsString(false);
+                auto taskCopy = task;
+                taskCopy.m_attemptsRemain--;
+                taskCopy.m_taskIndex        = this->m_parent->m_taskIndex++;
+                taskCopy.m_expirationMoment = TimePoint(true) + m_parent->m_config.m_queueTimeout;
+                this->QueueTask(taskCopy);
+            } else {
+                task.m_callback(info);
+            }
+        };
+        m_balancer.StartTask(clientIndex);
+        m_pendingTasks--;
+        handler->QueueFrame(task.m_toolRequest, frameCallback, task.m_requestTimeout);
+        {
+            std::lock_guard<std::mutex> lock(m_requestsMutex);
+            m_requests.pop_front();
+        }
+    }
 };
 
-
-RemoteToolClient::RemoteToolClient(IInvocationRewriter::Ptr invocationRewriter, const IVersionChecker::VersionMap & versionMap)
-	: m_impl(new RemoteToolClientImpl())
-	, m_invocationRewriter(std::move(invocationRewriter))
-	, m_toolVersionMap(versionMap)
+RemoteToolClient::RemoteToolClient(IInvocationRewriter::Ptr invocationRewriter, const IVersionChecker::VersionMap& versionMap)
+    : m_impl(new RemoteToolClientImpl())
+    , m_invocationRewriter(std::move(invocationRewriter))
+    , m_toolVersionMap(versionMap)
 {
-	m_impl->m_parent = this;
-	m_impl->m_coordinator.SetInfoArrivedCallback([this](const CoordinatorInfo& info){
-		for (const auto & client : info.m_toolServers)
-			this->AddClient(client, true);
-	});
+    m_impl->m_parent = this;
+    m_impl->m_coordinator.SetInfoArrivedCallback([this](const CoordinatorInfo& info) {
+        for (const auto& client : info.m_toolServers)
+            this->AddClient(client, true);
+    });
 }
 
 RemoteToolClient::~RemoteToolClient()
 {
-	FinishSession();
-	m_thread.Stop();
+    FinishSession();
+    m_thread.Stop();
 
-	for (auto & client : m_impl->m_clients)
-		client->Stop();
+    for (auto& client : m_impl->m_clients)
+        client->Stop();
 }
 
-bool RemoteToolClient::SetConfig(const RemoteToolClient::Config &config)
+bool RemoteToolClient::SetConfig(const RemoteToolClient::Config& config)
 {
-	std::ostringstream os;
-	if (!config.Validate(&os))
-	{
-		Syslogger(Syslogger::Err) << os.str();
-		return false;
-	}
-	m_config = config;
-	return true;
+    std::ostringstream os;
+    if (!config.Validate(&os)) {
+        Syslogger(Syslogger::Err) << os.str();
+        return false;
+    }
+    m_config = config;
+    return true;
 }
 
 int RemoteToolClient::GetFreeRemoteThreads() const
 {
-	return static_cast<int>(m_impl->m_balancer.GetFreeThreads()) - m_impl->m_pendingTasks; // may be negative.
+    return static_cast<int>(m_impl->m_balancer.GetFreeThreads()) - m_impl->m_pendingTasks; // may be negative.
 }
 
-void RemoteToolClient::Start(const StringVector & requiredToolIds)
+void RemoteToolClient::Start(const StringVector& requiredToolIds)
 {
-	m_started = true;
-	m_start = m_lastFinish = TimePoint(true);
-	m_sessionInfo = ToolServerSessionInfo();
-	m_sessionInfo.m_sessionId = m_sessionId = m_start.GetUS();
-	m_sessionInfo.m_clientId = m_config.m_clientId;
-	m_impl->m_balancer.SetRequiredTools(requiredToolIds);
-	m_impl->m_balancer.SetSessionId(m_sessionId);
-	m_requiredToolIds = requiredToolIds;
+    m_started = true;
+    m_start = m_lastFinish    = TimePoint(true);
+    m_sessionInfo             = ToolServerSessionInfo();
+    m_sessionInfo.m_sessionId = m_sessionId = m_start.GetUS();
+    m_sessionInfo.m_clientId                = m_config.m_clientId;
+    m_impl->m_balancer.SetRequiredTools(requiredToolIds);
+    m_impl->m_balancer.SetSessionId(m_sessionId);
+    m_requiredToolIds = requiredToolIds;
 
-	const auto & initialToolServers = m_config.m_initialToolServers;
-	for (const auto & toolserverHost : initialToolServers.m_hosts)
-	{
-		ToolServerInfo info;
-		info.m_connectionHost = toolserverHost;
-		info.m_connectionPort = static_cast<int16_t>(initialToolServers.m_port);
-		info.m_toolIds        = initialToolServers.m_toolIds;
-		AddClient(info);
-	}
+    const auto& initialToolServers = m_config.m_initialToolServers;
+    for (const auto& toolserverHost : initialToolServers.m_hosts) {
+        ToolServerInfo info;
+        info.m_connectionHost = toolserverHost;
+        info.m_connectionPort = static_cast<int16_t>(initialToolServers.m_port);
+        info.m_toolIds        = initialToolServers.m_toolIds;
+        AddClient(info);
+    }
 
-	for (auto & handler : m_impl->m_clients)
-		handler->Start();
+    for (auto& handler : m_impl->m_clients)
+        handler->Start();
 
-	if (!m_impl->m_coordinator.SetConfig(m_config.m_coordinator))
-		return;
+    if (!m_impl->m_coordinator.SetConfig(m_config.m_coordinator))
+        return;
 
-	m_impl->m_coordinator.Start();
+    m_impl->m_coordinator.Start();
 
-	m_thread.Exec(std::bind(&RemoteToolClientImpl::ProcessTasks, m_impl.get()));
+    m_thread.Exec(std::bind(&RemoteToolClientImpl::ProcessTasks, m_impl.get()));
 }
 
 void RemoteToolClient::FinishSession()
 {
-	if (!m_started)
-		return;
-	m_started = false;
-	m_sessionInfo.m_elapsedTime = m_lastFinish - m_start;
-	m_impl->m_coordinator.SendToolServerSessionInfo(m_sessionInfo, true);
+    if (!m_started)
+        return;
+    m_started                   = false;
+    m_sessionInfo.m_elapsedTime = m_lastFinish - m_start;
+    m_impl->m_coordinator.SendToolServerSessionInfo(m_sessionInfo, true);
 }
 
 void RemoteToolClient::SetRemoteAvailableCallback(RemoteToolClient::RemoteAvailableCallback callback)
 {
-	m_remoteAvailableCallback = std::move(callback);
+    m_remoteAvailableCallback = std::move(callback);
 }
 
-void RemoteToolClient::AddClient(const ToolServerInfo &info, bool start)
+void RemoteToolClient::AddClient(const ToolServerInfo& info, bool start)
 {
-	size_t index = 0;
-	ToolBalancer & balancer = m_impl->m_balancer;
-	auto status = balancer.UpdateClient(info, index);
-	if (status == ToolBalancer::ClientStatus::Skipped)
-		return;
+    size_t        index    = 0;
+    ToolBalancer& balancer = m_impl->m_balancer;
+    auto          status   = balancer.UpdateClient(info, index);
+    if (status == ToolBalancer::ClientStatus::Skipped)
+        return;
 
-	AvailableCheck();
+    AvailableCheck();
 
-	if (status == ToolBalancer::ClientStatus::Updated)
-		return;
+    if (status == ToolBalancer::ClientStatus::Updated)
+        return;
 
-	Syslogger() << "RemoteToolClient::AddClient " << info.m_connectionHost  << ":" <<  info.m_connectionPort;
+    Syslogger() << "RemoteToolClient::AddClient " << info.m_connectionHost << ":" << info.m_connectionPort;
 
-	SocketFrameHandlerSettings settings;
-	settings.m_channelProtocolVersion       = RemoteToolRequest::s_version + RemoteToolResponse::s_version;
-	settings.m_recommendedRecieveBufferSize = g_recommendedBufferSize;
-	settings.m_recommendedSendBufferSize    = g_recommendedBufferSize;
-	settings.m_segmentSize = 8192;
-	settings.m_hasConnStatus = true;
-	SocketFrameHandler::Ptr handler(new SocketFrameHandler( settings ));
-	handler->RegisterFrameReader(SocketFrameReaderTemplate<RemoteToolResponse>::Create());
-	handler->RegisterFrameReader(SocketFrameReaderTemplate<ToolsVersionResponse>::Create());
-	handler->SetTcpChannel(info.m_connectionHost, info.m_connectionPort);
+    SocketFrameHandlerSettings settings;
+    settings.m_channelProtocolVersion       = RemoteToolRequest::s_version + RemoteToolResponse::s_version;
+    settings.m_recommendedRecieveBufferSize = g_recommendedBufferSize;
+    settings.m_recommendedSendBufferSize    = g_recommendedBufferSize;
+    settings.m_segmentSize                  = 8192;
+    settings.m_hasConnStatus                = true;
+    SocketFrameHandler::Ptr handler(new SocketFrameHandler(settings));
+    handler->RegisterFrameReader(SocketFrameReaderTemplate<RemoteToolResponse>::Create());
+    handler->RegisterFrameReader(SocketFrameReaderTemplate<ToolsVersionResponse>::Create());
+    handler->SetTcpChannel(info.m_connectionHost, info.m_connectionPort);
 
-	handler->SetChannelNotifier([&balancer, index, this](bool state){
-		balancer.SetClientActive(index, state);
-		AvailableCheck();
-	});
-	handler->SetConnectionStatusNotifier([&balancer, index, this](SocketFrameHandler::ConnectionStatus status){
-		balancer.SetServerSideLoad(index, status.uniqueRepliesQueued);
-		AvailableCheck();
-	});
-	auto versionFrameCallback = [&balancer, index, this, info](SocketFrame::Ptr responseFrame, SocketFrameHandler::ReplyState state, const std::string & errorInfo)
-	{
-		bool isCompatible = false;
-		if (state == SocketFrameHandler::ReplyState::Timeout || state == SocketFrameHandler::ReplyState::Error)
-		{
-			Syslogger(Syslogger::Err) << "Error on requesting toolserver " << info.m_connectionHost << ", " << errorInfo;
-		}
-		else
-		{
-			ToolsVersionResponse::Ptr result = std::dynamic_pointer_cast<ToolsVersionResponse>(responseFrame);
-			isCompatible = this->CheckRemoteToolVersions(result->m_versions, info.m_connectionHost);
-		}
-		balancer.SetClientCompatible(index, isCompatible);
-		AvailableCheck();
-	};
-	handler->QueueFrame(ToolsVersionRequest::Ptr(new ToolsVersionRequest()), versionFrameCallback, m_config.m_requestTimeout);
+    handler->SetChannelNotifier([&balancer, index, this](bool state) {
+        balancer.SetClientActive(index, state);
+        AvailableCheck();
+    });
+    handler->SetConnectionStatusNotifier([&balancer, index, this](SocketFrameHandler::ConnectionStatus status) {
+        balancer.SetServerSideLoad(index, status.uniqueRepliesQueued);
+        AvailableCheck();
+    });
+    auto versionFrameCallback = [&balancer, index, this, info](SocketFrame::Ptr responseFrame, SocketFrameHandler::ReplyState state, const std::string& errorInfo) {
+        bool isCompatible = false;
+        if (state == SocketFrameHandler::ReplyState::Timeout || state == SocketFrameHandler::ReplyState::Error) {
+            Syslogger(Syslogger::Err) << "Error on requesting toolserver " << info.m_connectionHost << ", " << errorInfo;
+        } else {
+            ToolsVersionResponse::Ptr result = std::dynamic_pointer_cast<ToolsVersionResponse>(responseFrame);
+            isCompatible                     = this->CheckRemoteToolVersions(result->m_versions, info.m_connectionHost);
+        }
+        balancer.SetClientCompatible(index, isCompatible);
+        AvailableCheck();
+    };
+    handler->QueueFrame(ToolsVersionRequest::Ptr(new ToolsVersionRequest()), versionFrameCallback, m_config.m_requestTimeout);
 
-	{
-		std::lock_guard<std::mutex> lock2(m_impl->m_clientsMutex);
-		m_impl->m_clients.push_back(handler);
-	}
-	if (start)
-	   handler->Start();
+    {
+        std::lock_guard<std::mutex> lock2(m_impl->m_clientsMutex);
+        m_impl->m_clients.push_back(handler);
+    }
+    if (start)
+        handler->Start();
 }
 
-void RemoteToolClient::InvokeTool(const ToolInvocation & invocation, const InvokeCallback& callback)
+void RemoteToolClient::InvokeTool(const ToolInvocation& invocation, const InvokeCallback& callback)
 {
-	TimePoint start(true);
-	const std::string inputFilename  = invocation.GetInput();
-	ByteArrayHolder inputData;
-	if (!inputFilename.empty() && !FileInfo(inputFilename).ReadCompressed(inputData, m_config.m_compression))
-	{
-		callback(RemoteToolClient::TaskExecutionInfo("failed to read " + inputFilename));
-		return;
-	}
-	m_totalCompressionTime += start.GetElapsedTime();
+    TimePoint         start(true);
+    const std::string inputFilename = invocation.GetInput();
+    ByteArrayHolder   inputData;
+    if (!inputFilename.empty() && !FileInfo(inputFilename).ReadCompressed(inputData, m_config.m_compression)) {
+        callback(RemoteToolClient::TaskExecutionInfo("failed to read " + inputFilename));
+        return;
+    }
+    m_totalCompressionTime += start.GetElapsedTime();
 
-	RemoteToolRequest::Ptr toolRequest(new RemoteToolRequest());
-	toolRequest->m_invocation = m_invocationRewriter->PrepareRemote(invocation);
-	toolRequest->m_fileData = inputData;
-	toolRequest->m_compression = m_config.m_compression;
-	toolRequest->m_sessionId = m_sessionId;
-	toolRequest->m_clientId = m_config.m_clientId;
+    RemoteToolRequest::Ptr toolRequest(new RemoteToolRequest());
+    toolRequest->m_invocation  = m_invocationRewriter->PrepareRemote(invocation);
+    toolRequest->m_fileData    = inputData;
+    toolRequest->m_compression = m_config.m_compression;
+    toolRequest->m_sessionId   = m_sessionId;
+    toolRequest->m_clientId    = m_config.m_clientId;
 
-	RemoteToolRequestWrap wrap;
-	wrap.m_start = start;
-	wrap.m_toolRequest = toolRequest;
-	wrap.m_taskIndex = m_taskIndex++;
-	wrap.m_invocation = toolRequest->m_invocation;
-	wrap.m_originalFilename = invocation.GetOutput();
-	wrap.m_callback = callback;
-	wrap.m_expirationMoment = TimePoint(true) + m_config.m_queueTimeout;
-	wrap.m_attemptsRemain = m_config.m_invocationAttempts;
-	wrap.m_requestTimeout = m_config.m_requestTimeout;
+    RemoteToolRequestWrap wrap;
+    wrap.m_start            = start;
+    wrap.m_toolRequest      = toolRequest;
+    wrap.m_taskIndex        = m_taskIndex++;
+    wrap.m_invocation       = toolRequest->m_invocation;
+    wrap.m_originalFilename = invocation.GetOutput();
+    wrap.m_callback         = callback;
+    wrap.m_expirationMoment = TimePoint(true) + m_config.m_queueTimeout;
+    wrap.m_attemptsRemain   = m_config.m_invocationAttempts;
+    wrap.m_requestTimeout   = m_config.m_requestTimeout;
 
-	m_sentBytes += inputData.size();
+    m_sentBytes += inputData.size();
 
-	Syslogger(Syslogger::Info) << "QueueFrame [" << wrap.m_taskIndex << "] -> " << toolRequest->m_invocation.m_id.m_toolId
-							   << " " << toolRequest->m_invocation.GetArgsString(false)
-						<< ", balancerFree:" <<m_impl->m_balancer.GetFreeThreads()
-						<< ", pending:" << m_impl->m_pendingTasks;
+    Syslogger(Syslogger::Info) << "QueueFrame [" << wrap.m_taskIndex << "] -> " << toolRequest->m_invocation.m_id.m_toolId
+                               << " " << toolRequest->m_invocation.GetArgsString(false)
+                               << ", balancerFree:" << m_impl->m_balancer.GetFreeThreads()
+                               << ", pending:" << m_impl->m_pendingTasks;
 
-	m_impl->QueueTask(wrap);
+    m_impl->QueueTask(wrap);
 }
 
 std::string RemoteToolClient::GetSessionInformation() const
 {
-	std::ostringstream os;
-	os <<  m_sessionInfo.ToString(false, true);
-	os <<  " sent KiB: "  << m_sentBytes/1024 << ", ";
-	os <<  " recieved KiB: "  << m_recievedBytes/1024 << ", ";
-	os <<  " compression time: "  << m_totalCompressionTime.ToProfilingTime() << ", ";
-	return os.str();
+    std::ostringstream os;
+    os << m_sessionInfo.ToString(false, true);
+    os << " sent KiB: " << m_sentBytes / 1024 << ", ";
+    os << " recieved KiB: " << m_recievedBytes / 1024 << ", ";
+    os << " compression time: " << m_totalCompressionTime.ToProfilingTime() << ", ";
+    return os.str();
 }
 
-
-void RemoteToolClient::UpdateSessionInfo(const RemoteToolClient::TaskExecutionInfo &executionResult)
+void RemoteToolClient::UpdateSessionInfo(const RemoteToolClient::TaskExecutionInfo& executionResult)
 {
-	std::lock_guard<std::mutex> lock(m_sessionInfoMutex);
-	m_lastFinish = TimePoint(true);
-	m_sessionInfo.m_tasksCount ++;
-	if (!executionResult.m_result)
-		m_sessionInfo.m_failuresCount++;
-	m_sessionInfo.m_totalNetworkTime += executionResult.m_networkRequestTime;
-	m_sessionInfo.m_totalExecutionTime += executionResult.m_toolExecutionTime;
-	m_sessionInfo.m_currentUsedThreads = m_impl->m_balancer.GetUsedThreads();
-	m_sessionInfo.m_maxUsedThreads = std::max(m_sessionInfo.m_maxUsedThreads, m_sessionInfo.m_currentUsedThreads);
+    std::lock_guard<std::mutex> lock(m_sessionInfoMutex);
+    m_lastFinish = TimePoint(true);
+    m_sessionInfo.m_tasksCount++;
+    if (!executionResult.m_result)
+        m_sessionInfo.m_failuresCount++;
+    m_sessionInfo.m_totalNetworkTime += executionResult.m_networkRequestTime;
+    m_sessionInfo.m_totalExecutionTime += executionResult.m_toolExecutionTime;
+    m_sessionInfo.m_currentUsedThreads = m_impl->m_balancer.GetUsedThreads();
+    m_sessionInfo.m_maxUsedThreads     = std::max(m_sessionInfo.m_maxUsedThreads, m_sessionInfo.m_currentUsedThreads);
 
-	m_impl->m_coordinator.SendToolServerSessionInfo(m_sessionInfo, false);
+    m_impl->m_coordinator.SendToolServerSessionInfo(m_sessionInfo, false);
 }
 
 void RemoteToolClient::AvailableCheck()
 {
-	std::lock_guard<std::mutex> lock(m_availableCheckMutex);
-	if (!m_remoteIsAvailable && m_impl->m_balancer.IsAllChecked() && m_impl->m_balancer.GetFreeThreads() > 0)
-	{
-		m_remoteIsAvailable = true;
-		if (m_remoteAvailableCallback)
-			m_remoteAvailableCallback();
-		const auto free  = m_impl->m_balancer.GetFreeThreads();
-		const auto total = m_impl->m_balancer.GetTotalThreads();
-		Syslogger(Syslogger::Notice) << "Recieved info from coordinator: total remote threads=" << total << ", free=" << free;
-	}
+    std::lock_guard<std::mutex> lock(m_availableCheckMutex);
+    if (!m_remoteIsAvailable && m_impl->m_balancer.IsAllChecked() && m_impl->m_balancer.GetFreeThreads() > 0) {
+        m_remoteIsAvailable = true;
+        if (m_remoteAvailableCallback)
+            m_remoteAvailableCallback();
+        const auto free  = m_impl->m_balancer.GetFreeThreads();
+        const auto total = m_impl->m_balancer.GetTotalThreads();
+        Syslogger(Syslogger::Notice) << "Recieved info from coordinator: total remote threads=" << total << ", free=" << free;
+    }
 }
 
-bool RemoteToolClient::CheckRemoteToolVersions(const IVersionChecker::VersionMap &versionMap, const std::string & hostname)
+bool RemoteToolClient::CheckRemoteToolVersions(const IVersionChecker::VersionMap& versionMap, const std::string& hostname)
 {
-	bool result = true;
-	for (const auto & versionPair : versionMap)
-	{
-		const auto & toolId = versionPair.first;
-		const auto & remoteVersion = versionPair.second;
-		if (std::find(m_requiredToolIds.cbegin(), m_requiredToolIds.cend(), toolId) == m_requiredToolIds.cend())
-			continue; // OK, we do not even need that tool.
+    bool result = true;
+    for (const auto& versionPair : versionMap) {
+        const auto& toolId        = versionPair.first;
+        const auto& remoteVersion = versionPair.second;
+        if (std::find(m_requiredToolIds.cbegin(), m_requiredToolIds.cend(), toolId) == m_requiredToolIds.cend())
+            continue; // OK, we do not even need that tool.
 
-		const auto localIt = m_toolVersionMap.find(toolId);
-		if (localIt == m_toolVersionMap.end())
-			continue; // OK, we do not have such a tool locally.
+        const auto localIt = m_toolVersionMap.find(toolId);
+        if (localIt == m_toolVersionMap.end())
+            continue; // OK, we do not have such a tool locally.
 
-		const auto & localVersion = localIt->second;
-		if (localVersion.empty() && remoteVersion.empty())
-			continue; // OK, it's non-versioned tool
+        const auto& localVersion = localIt->second;
+        if (localVersion.empty() && remoteVersion.empty())
+            continue; // OK, it's non-versioned tool
 
-		if (localVersion == remoteVersion)
-			continue; // OK, most common situation
+        if (localVersion == remoteVersion)
+            continue; // OK, most common situation
 
-		if (localVersion == InvocationRewriterConfig::VERSION_NO_CHECK || remoteVersion == InvocationRewriterConfig::VERSION_NO_CHECK)
-			continue;
+        if (localVersion == InvocationRewriterConfig::VERSION_NO_CHECK || remoteVersion == InvocationRewriterConfig::VERSION_NO_CHECK)
+            continue;
 
-		Syslogger(Syslogger::Err) << "Tool id=" << toolId << " has local version='" << localVersion
-								  << "' and remote version='" << remoteVersion << "' on '" << hostname  << "'"
-								  << ", host will be excluded from build process.";
-		result = false;
-	}
-	return result;
+        Syslogger(Syslogger::Err) << "Tool id=" << toolId << " has local version='" << localVersion
+                                  << "' and remote version='" << remoteVersion << "' on '" << hostname << "'"
+                                  << ", host will be excluded from build process.";
+        result = false;
+    }
+    return result;
 }
 
 std::string RemoteToolClient::TaskExecutionInfo::GetProfilingStr() const
 {
-	std::ostringstream os;
-	auto cus = m_toolExecutionTime.GetUS();
-	auto nus = m_networkRequestTime.GetUS();
-	auto overheadPercent = ((nus - cus) * 100) / (cus ? cus : 1);
-	os << "compilationTime: " << cus << " us., "
-	   << "networkTime: "  << nus << " us., "
-	   << "overhead: " << overheadPercent << "%";
-	return os.str();
+    std::ostringstream os;
+    auto               cus             = m_toolExecutionTime.GetUS();
+    auto               nus             = m_networkRequestTime.GetUS();
+    auto               overheadPercent = ((nus - cus) * 100) / (cus ? cus : 1);
+    os << "compilationTime: " << cus << " us., "
+       << "networkTime: " << nus << " us., "
+       << "overhead: " << overheadPercent << "%";
+    return os.str();
 }
-
 
 }

@@ -16,40 +16,38 @@
 #include "IDataListener.h"
 #include "TcpConnectionParams.h"
 
-namespace Wuild
-{
+namespace Wuild {
 
 class TcpListenerPrivate;
 class TcpSocket;
 
 /// Implementation of TCP socket listener.
-class TcpListener : public IDataListener
-{
+class TcpListener : public IDataListener {
 public:
-	TcpListener (TcpListenerParams  params);
-	~TcpListener ();
+    TcpListener(TcpListenerParams params);
+    ~TcpListener();
 
-	static IDataListener::Ptr Create(const TcpListenerParams & params);
+    static IDataListener::Ptr Create(const TcpListenerParams& params);
 
-	IDataSocket::Ptr GetPendingConnection() override;
-	bool StartListen() override;
-	std::string GetLogContext() const override { return m_logContext;}
+    IDataSocket::Ptr GetPendingConnection() override;
+    bool             StartListen() override;
+    std::string      GetLogContext() const override { return m_logContext; }
 
-	/// Accepting TcpSocket, which was created through GetPendingConnection.
-	/// TcpSocket calls this, there is no need to call DoAccept manually.
-	/// After accept, state of TcpSocket changed from Pending to Connected.
-	bool DoAccept(TcpSocket* client);
+    /// Accepting TcpSocket, which was created through GetPendingConnection.
+    /// TcpSocket calls this, there is no need to call DoAccept manually.
+    /// After accept, state of TcpSocket changed from Pending to Connected.
+    bool DoAccept(TcpSocket* client);
 
 private:
-	bool HasPendingConnections();
+    bool HasPendingConnections();
 
-	bool IsListenerReadReady ();
-	std::unique_ptr<TcpListenerPrivate> m_impl;
-	TcpListenerParams m_params;
-	std::string m_logContext;
+    bool                                IsListenerReadReady();
+    std::unique_ptr<TcpListenerPrivate> m_impl;
+    TcpListenerParams                   m_params;
+    std::string                         m_logContext;
 
-	bool m_listenerFailed = false;
-	bool m_waitingAccept = false;
+    bool m_listenerFailed = false;
+    bool m_waitingAccept  = false;
 };
 
 }

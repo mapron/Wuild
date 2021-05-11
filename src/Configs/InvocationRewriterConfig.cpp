@@ -16,51 +16,46 @@
 #include <iostream>
 #include <sstream>
 
-namespace Wuild
-{
+namespace Wuild {
 const std::string InvocationRewriterConfig::VERSION_NO_CHECK = "NO_CHECK";
 
 std::string InvocationRewriterConfig::GetFirstToolId() const
 {
-	return m_tools.empty() ? "" : m_tools[0].m_id;
+    return m_tools.empty() ? "" : m_tools[0].m_id;
 }
 
 std::string InvocationRewriterConfig::GetFirstToolName() const
 {
-	return m_tools.empty() || m_tools[0].m_names.empty() ? "" : m_tools[0].m_names[0];
+    return m_tools.empty() || m_tools[0].m_names.empty() ? "" : m_tools[0].m_names[0];
 }
 
-bool InvocationRewriterConfig::Validate(std::ostream *errStream) const
+bool InvocationRewriterConfig::Validate(std::ostream* errStream) const
 {
-	if (m_tools.empty())
-	{
-		if (errStream)
-			*errStream << "Toolchain modules are empty.";
-		return false;
-	}
-	for (const auto & unit : m_tools)
-	{
-		if (unit.m_names.empty())
-		{
-			if (errStream)
-				*errStream << "Invalid config for " << unit.m_id;
-			return false;
-		}
-	}
-	return true;
+    if (m_tools.empty()) {
+        if (errStream)
+            *errStream << "Toolchain modules are empty.";
+        return false;
+    }
+    for (const auto& unit : m_tools) {
+        if (unit.m_names.empty()) {
+            if (errStream)
+                *errStream << "Invalid config for " << unit.m_id;
+            return false;
+        }
+    }
+    return true;
 }
 
 std::string InvocationRewriterConfig::Dump() const
 {
-	std::ostringstream os;
-	for (const Tool & tool : m_tools)
-	{
-		os << tool.m_id << ": ";
-		for (const auto & name : tool.m_names)
-			os << name << ", ";
-		os << "\n";
-	}
-	return os.str();
+    std::ostringstream os;
+    for (const Tool& tool : m_tools) {
+        os << tool.m_id << ": ";
+        for (const auto& name : tool.m_names)
+            os << name << ", ";
+        os << "\n";
+    }
+    return os.str();
 }
 
 }

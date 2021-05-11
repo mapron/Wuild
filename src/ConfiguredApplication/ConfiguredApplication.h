@@ -25,55 +25,53 @@
 
 #include <algorithm>
 
-namespace Wuild
-{
+namespace Wuild {
 class AbstractConfig;
 
 /// Contains prepared configs for different services
-class ConfiguredApplication
-{
+class ConfiguredApplication {
 public:
-	LoggerConfig m_loggerConfig;
-	InvocationRewriterConfig m_invocationRewriterConfig;
-	RemoteToolClientConfig m_remoteToolClientConfig;
-	RemoteToolServerConfig m_remoteToolServerConfig;
-	CoordinatorServerConfig m_coordinatorServerConfig;
-	ToolProxyServerConfig m_toolProxyServerConfig;
+    LoggerConfig             m_loggerConfig;
+    InvocationRewriterConfig m_invocationRewriterConfig;
+    RemoteToolClientConfig   m_remoteToolClientConfig;
+    RemoteToolServerConfig   m_remoteToolServerConfig;
+    CoordinatorServerConfig  m_coordinatorServerConfig;
+    ToolProxyServerConfig    m_toolProxyServerConfig;
 
-	std::string m_tempDir;
+    std::string m_tempDir;
 
-	/// parses parameter from commandline, reading wuild configuration, filling Config structures.
-	ConfiguredApplication(const StringVector & argConfig, const std::string & appName = std::string(), const std::string & defaultGroupName = std::string());
-	/// this function keeps argc and argv untouched; if you need to modification after parsing, use previous constructor with ArgStorage() call.
-	ConfiguredApplication(int argc, char ** argv, const std::string & appName = std::string(), const std::string & defaultGroupName = std::string());
+    /// parses parameter from commandline, reading wuild configuration, filling Config structures.
+    ConfiguredApplication(const StringVector& argConfig, const std::string& appName = std::string(), const std::string& defaultGroupName = std::string());
+    /// this function keeps argc and argv untouched; if you need to modification after parsing, use previous constructor with ArgStorage() call.
+    ConfiguredApplication(int argc, char** argv, const std::string& appName = std::string(), const std::string& defaultGroupName = std::string());
 
-	~ConfiguredApplication();
+    ~ConfiguredApplication();
 
-	bool InitLogging(const LoggerConfig & loggerConfig);
+    bool InitLogging(const LoggerConfig& loggerConfig);
 
-	bool GetInvocationRewriterConfig(InvocationRewriterConfig & config, bool silent = false) const;
-	bool GetCoordinatorServerConfig(CoordinatorServerConfig & config) const;
-	bool GetToolProxyServerConfig(ToolProxyServerConfig & config) const;
+    bool GetInvocationRewriterConfig(InvocationRewriterConfig& config, bool silent = false) const;
+    bool GetCoordinatorServerConfig(CoordinatorServerConfig& config) const;
+    bool GetToolProxyServerConfig(ToolProxyServerConfig& config) const;
 
-	bool GetRemoteToolClientConfig(RemoteToolClientConfig & config, bool silent = false) const;
-	bool GetRemoteToolServerConfig(RemoteToolServerConfig & config, bool silent = false) const;
+    bool GetRemoteToolClientConfig(RemoteToolClientConfig& config, bool silent = false) const;
+    bool GetRemoteToolServerConfig(RemoteToolServerConfig& config, bool silent = false) const;
 
-	std::string DumpAllConfigValues() const;
-
-private:
-	ConfiguredApplication(const ConfiguredApplication& ) = delete;
-
-	void ReadLoggingConfig();
-	void ReadInvocationRewriterConfig();
-	void ReadRemoteToolClientConfig();
-	void ReadRemoteToolServerConfig();
-	void ReadCoordinatorClientConfig(CoordinatorClientConfig & config, const std::string & groupName);
-	void ReadCoordinatorServerConfig();
-	void ReadCompressionConfig(CompressionInfo & compressionInfo, const std::string & groupName);
-	void ReadToolProxyServerConfig();
+    std::string DumpAllConfigValues() const;
 
 private:
-	std::unique_ptr<AbstractConfig> m_config;
-	std::string m_defaultGroupName;
+    ConfiguredApplication(const ConfiguredApplication&) = delete;
+
+    void ReadLoggingConfig();
+    void ReadInvocationRewriterConfig();
+    void ReadRemoteToolClientConfig();
+    void ReadRemoteToolServerConfig();
+    void ReadCoordinatorClientConfig(CoordinatorClientConfig& config, const std::string& groupName);
+    void ReadCoordinatorServerConfig();
+    void ReadCompressionConfig(CompressionInfo& compressionInfo, const std::string& groupName);
+    void ReadToolProxyServerConfig();
+
+private:
+    std::unique_ptr<AbstractConfig> m_config;
+    std::string                     m_defaultGroupName;
 };
 }

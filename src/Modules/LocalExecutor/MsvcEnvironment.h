@@ -14,7 +14,6 @@
 #include <CommonTypes.h>
 #include <ILocalExecutor.h>
 
-namespace Wuild
-{
-StringVector ExtractVsVars(const std::string & vsvarsCommand, ILocalExecutor & executor);
+namespace Wuild {
+StringVector ExtractVsVars(const std::string& vsvarsCommand, ILocalExecutor& executor);
 }

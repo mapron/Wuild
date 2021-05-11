@@ -25,8 +25,7 @@
 #include <functional>
 #include <atomic>
 
-namespace Wuild
-{
+namespace Wuild {
 class RemoteToolClientImpl;
 
 /**
@@ -35,75 +34,76 @@ class RemoteToolClientImpl;
  * Recieves remote tool servers list from Coordinator; then connects to all servers.
  * After reciving new task through InvokeTool() - distributes them to servers.
  */
-class RemoteToolClient
-{
-	friend class RemoteToolClientImpl;
-public:
-	/// Remote tool execution result.
-	struct TaskExecutionInfo
-	{
-		TimePoint m_toolExecutionTime;
-		TimePoint m_networkRequestTime;
-		std::string GetProfilingStr() const;
-
-		std::string m_stdOutput;
-		bool m_result = false;
-
-		TaskExecutionInfo(const std::string & stdOutput = std::string()) : m_stdOutput(stdOutput) {}
-	};
-	using Config = RemoteToolClientConfig;
-	using RemoteAvailableCallback = std::function<void()>;
-	using InvokeCallback = std::function<void(const TaskExecutionInfo& )>;
+class RemoteToolClient {
+    friend class RemoteToolClientImpl;
 
 public:
-	RemoteToolClient(IInvocationRewriter::Ptr invocationRewriter, const IVersionChecker::VersionMap & versionMap);
-	~RemoteToolClient();
+    /// Remote tool execution result.
+    struct TaskExecutionInfo {
+        TimePoint   m_toolExecutionTime;
+        TimePoint   m_networkRequestTime;
+        std::string GetProfilingStr() const;
 
-	bool SetConfig(const Config & config);
+        std::string m_stdOutput;
+        bool        m_result = false;
 
-	/// Explicitly add new remote tool server client (used for testing)
-	void AddClient(const ToolServerInfo & info, bool start = false);
+        TaskExecutionInfo(const std::string& stdOutput = std::string())
+            : m_stdOutput(stdOutput)
+        {}
+    };
+    using Config                  = RemoteToolClientConfig;
+    using RemoteAvailableCallback = std::function<void()>;
+    using InvokeCallback          = std::function<void(const TaskExecutionInfo&)>;
 
-	int GetFreeRemoteThreads() const;
+public:
+    RemoteToolClient(IInvocationRewriter::Ptr invocationRewriter, const IVersionChecker::VersionMap& versionMap);
+    ~RemoteToolClient();
 
-	void Start(const StringVector & requiredToolIds = StringVector());
-	void FinishSession();
+    bool SetConfig(const Config& config);
 
-	void SetRemoteAvailableCallback(RemoteAvailableCallback callback);
+    /// Explicitly add new remote tool server client (used for testing)
+    void AddClient(const ToolServerInfo& info, bool start = false);
 
-	/// Starts new remote task.
-	void InvokeTool(const ToolInvocation & invocation, const InvokeCallback& callback);
+    int GetFreeRemoteThreads() const;
 
-	std::string GetSessionInformation() const;
+    void Start(const StringVector& requiredToolIds = StringVector());
+    void FinishSession();
+
+    void SetRemoteAvailableCallback(RemoteAvailableCallback callback);
+
+    /// Starts new remote task.
+    void InvokeTool(const ToolInvocation& invocation, const InvokeCallback& callback);
+
+    std::string GetSessionInformation() const;
 
 protected:
-	void UpdateSessionInfo(const TaskExecutionInfo& executionResult);
-	void AvailableCheck();
-	bool CheckRemoteToolVersions(const IVersionChecker::VersionMap & versionMap, const std::string & hostname);
+    void UpdateSessionInfo(const TaskExecutionInfo& executionResult);
+    void AvailableCheck();
+    bool CheckRemoteToolVersions(const IVersionChecker::VersionMap& versionMap, const std::string& hostname);
 
-	ThreadLoop m_thread;
+    ThreadLoop m_thread;
 
-	std::unique_ptr<RemoteToolClientImpl> m_impl;
+    std::unique_ptr<RemoteToolClientImpl> m_impl;
 
-	bool m_started = false;
-	TimePoint m_start;
-	TimePoint m_lastFinish;
-	int64_t m_sessionId  = 0;
-	int64_t m_taskIndex  = 0;
-	TimePoint m_totalCompressionTime;
-	std::atomic<std::uint64_t> m_sentBytes {0};
-	std::atomic<std::uint64_t> m_recievedBytes{0};
-	ToolServerSessionInfo m_sessionInfo;
-	std::mutex m_sessionInfoMutex;
-	std::mutex m_availableCheckMutex;
+    bool                       m_started = false;
+    TimePoint                  m_start;
+    TimePoint                  m_lastFinish;
+    int64_t                    m_sessionId = 0;
+    int64_t                    m_taskIndex = 0;
+    TimePoint                  m_totalCompressionTime;
+    std::atomic<std::uint64_t> m_sentBytes{ 0 };
+    std::atomic<std::uint64_t> m_recievedBytes{ 0 };
+    ToolServerSessionInfo      m_sessionInfo;
+    std::mutex                 m_sessionInfoMutex;
+    std::mutex                 m_availableCheckMutex;
 
-	bool m_remoteIsAvailable = false;
-	RemoteAvailableCallback m_remoteAvailableCallback;
-	Config m_config;
+    bool                    m_remoteIsAvailable = false;
+    RemoteAvailableCallback m_remoteAvailableCallback;
+    Config                  m_config;
 
-	IInvocationRewriter::Ptr m_invocationRewriter;
-	IVersionChecker::VersionMap m_toolVersionMap;
-	StringVector m_requiredToolIds;
+    IInvocationRewriter::Ptr    m_invocationRewriter;
+    IVersionChecker::VersionMap m_toolVersionMap;
+    StringVector                m_requiredToolIds;
 };
 
 }

@@ -26,55 +26,51 @@
  */
 int main(int argc, char** argv)
 {
-	using namespace Wuild;
-	ConfiguredApplication app(argc, argv, "TestCompiler");
-	if (!CreateInvocationRewriter(app))
-	   return 1;
+    using namespace Wuild;
+    ConfiguredApplication app(argc, argv, "TestCompiler");
+    if (!CreateInvocationRewriter(app))
+        return 1;
 
-	//Syslogger() << app.DumpAllConfigValues();
-	Syslogger() << app.m_invocationRewriterConfig.Dump();
+    //Syslogger() << app.DumpAllConfigValues();
+    Syslogger() << app.m_invocationRewriterConfig.Dump();
 
-	const auto args = CreateTestProgramInvocation();
+    const auto args = CreateTestProgramInvocation();
 
-	auto localExecutor = LocalExecutor::Create(TestConfiguration::s_invocationRewriter, app.m_tempDir);
+    auto localExecutor = LocalExecutor::Create(TestConfiguration::s_invocationRewriter, app.m_tempDir);
 
-	std::string err;
-	LocalExecutorTask::Ptr original(new LocalExecutorTask());
-	original->m_readOutput = original->m_writeInput = false;
-	original->m_invocation = ToolInvocation( args ).SetExecutable(TestConfiguration::s_invocationRewriter->GetConfig().GetFirstToolName());
-	auto tasks = localExecutor->SplitTask(original, err);
-	if (!tasks.first)
-	{
-		Syslogger(Syslogger::Err) << err;
-		return 1;
-	}
-	LocalExecutorTask::Ptr taskPP = tasks.first;
-	LocalExecutorTask::Ptr taskCC = tasks.second;
+    std::string            err;
+    LocalExecutorTask::Ptr original(new LocalExecutorTask());
+    original->m_readOutput = original->m_writeInput = false;
+    original->m_invocation                          = ToolInvocation(args).SetExecutable(TestConfiguration::s_invocationRewriter->GetConfig().GetFirstToolName());
+    auto tasks                                      = localExecutor->SplitTask(original, err);
+    if (!tasks.first) {
+        Syslogger(Syslogger::Err) << err;
+        return 1;
+    }
+    LocalExecutorTask::Ptr taskPP = tasks.first;
+    LocalExecutorTask::Ptr taskCC = tasks.second;
 
-	taskCC->m_callback = []( Wuild::LocalExecutorResult::Ptr result)
-	{
-		Syslogger() << "CC result = " << result->m_result;
-		std::replace(result->m_stdOut.begin(), result->m_stdOut.end(), '\r', ' ');
-		if (result->m_result && !result->m_stdOut.empty())
-			Syslogger(Syslogger::Notice) << result->m_stdOut;
-		if (!result->m_result)
-			Syslogger(Syslogger::Err) << result->m_stdOut;
+    taskCC->m_callback = [](Wuild::LocalExecutorResult::Ptr result) {
+        Syslogger() << "CC result = " << result->m_result;
+        std::replace(result->m_stdOut.begin(), result->m_stdOut.end(), '\r', ' ');
+        if (result->m_result && !result->m_stdOut.empty())
+            Syslogger(Syslogger::Notice) << result->m_stdOut;
+        if (!result->m_result)
+            Syslogger(Syslogger::Err) << result->m_stdOut;
 
-		Application::Interrupt(1 - result->m_result);
-	};
+        Application::Interrupt(1 - result->m_result);
+    };
 
-	taskPP->m_callback = [&localExecutor, taskCC] ( LocalExecutorResult::Ptr localResult ) {
+    taskPP->m_callback = [&localExecutor, taskCC](LocalExecutorResult::Ptr localResult) {
+        if (!localResult->m_result) {
+            Syslogger(Syslogger::Err) << "Preprocess failed: \n"
+                                      << localResult->m_stdOut;
+            Application::Interrupt(1);
+            return;
+        }
+        localExecutor->AddTask(taskCC);
+    };
+    localExecutor->AddTask(taskPP);
 
-		if (!localResult->m_result)
-		{
-
-			Syslogger(Syslogger::Err) << "Preprocess failed: \n" << localResult->m_stdOut;
-			Application::Interrupt(1);
-			return;
-		}
-		localExecutor->AddTask(taskCC);
-	};
-	localExecutor->AddTask(taskPP);
-
-	return ExecAppLoop(TestConfiguration::ExitHandler);
+    return ExecAppLoop(TestConfiguration::ExitHandler);
 }

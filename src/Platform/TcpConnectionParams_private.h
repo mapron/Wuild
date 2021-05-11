@@ -18,40 +18,44 @@
 #include <string>
 #include <vector>
 
-namespace Wuild
-{
-	class TcpEndPointPrivate
-	{
-		friend class TcpEndPoint;
-	public:
-		void FreeAddr() { if (ai) freeaddrinfo(ai); ai = nullptr; }
-		~TcpEndPointPrivate() { FreeAddr(); }
+namespace Wuild {
+class TcpEndPointPrivate {
+    friend class TcpEndPoint;
 
-		SOCKET MakeSocket() const
-		{
-			return socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
-		}
-		int Connect(SOCKET sock) const
-		{
-			return connect(sock, ai->ai_addr, static_cast<int>(ai->ai_addrlen));
-		}
-		int Bind(SOCKET sock) const
-		{
-			return ::bind( sock, ai->ai_addr, static_cast<int>(ai->ai_addrlen));
-		}
-		static std::string AddrToString(struct in_addr * sockinaddr )
-		{
-			std::vector<char> ipinput(INET_ADDRSTRLEN + 1);
-			const char * str = inet_ntop(AF_INET, sockinaddr, ipinput.data(), INET_ADDRSTRLEN);
-			return str ? str : "";
-		}
-		std::string ToString() const
-		{
-			sockaddr_in * sockin = (sockaddr_in *)ai->ai_addr;
-			return AddrToString(&sockin->sin_addr);
-		}
+public:
+    void FreeAddr()
+    {
+        if (ai)
+            freeaddrinfo(ai);
+        ai = nullptr;
+    }
+    ~TcpEndPointPrivate() { FreeAddr(); }
 
-	private:
-		addrinfo * ai = nullptr;
-	};
+    SOCKET MakeSocket() const
+    {
+        return socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
+    }
+    int Connect(SOCKET sock) const
+    {
+        return connect(sock, ai->ai_addr, static_cast<int>(ai->ai_addrlen));
+    }
+    int Bind(SOCKET sock) const
+    {
+        return ::bind(sock, ai->ai_addr, static_cast<int>(ai->ai_addrlen));
+    }
+    static std::string AddrToString(struct in_addr* sockinaddr)
+    {
+        std::vector<char> ipinput(INET_ADDRSTRLEN + 1);
+        const char*       str = inet_ntop(AF_INET, sockinaddr, ipinput.data(), INET_ADDRSTRLEN);
+        return str ? str : "";
+    }
+    std::string ToString() const
+    {
+        sockaddr_in* sockin = (sockaddr_in*) ai->ai_addr;
+        return AddrToString(&sockin->sin_addr);
+    }
+
+private:
+    addrinfo* ai = nullptr;
+};
 }

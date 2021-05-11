@@ -20,15 +20,20 @@
 
 namespace Wuild {
 
-enum class CompressionType { None, LZ4, Gzip, ZStd };
-
-struct CompressionInfo
+enum class CompressionType
 {
-	CompressionType m_type = CompressionType::None;
-	int m_level = 5;
+    None,
+    LZ4,
+    Gzip,
+    ZStd
 };
 
-void UncompressDataBuffer(const ByteArrayHolder & input, ByteArrayHolder & output, CompressionInfo compressionInfo);
-void CompressDataBuffer  (const ByteArrayHolder & input, ByteArrayHolder & output, CompressionInfo compressionInfo);
+struct CompressionInfo {
+    CompressionType m_type  = CompressionType::None;
+    int             m_level = 5;
+};
+
+void UncompressDataBuffer(const ByteArrayHolder& input, ByteArrayHolder& output, CompressionInfo compressionInfo);
+void CompressDataBuffer(const ByteArrayHolder& input, ByteArrayHolder& output, CompressionInfo compressionInfo);
 
 }

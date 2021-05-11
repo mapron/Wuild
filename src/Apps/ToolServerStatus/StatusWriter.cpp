@@ -16,80 +16,77 @@
 #include "json.hpp"
 
 StandardTextWriter::StandardTextWriter(std::ostream& stream)
-	: m_ostream(stream)
+    : m_ostream(stream)
 {
 }
 
 StandardTextWriter::~StandardTextWriter()
 {
-	m_ostream << std::endl;
+    m_ostream << std::endl;
 }
 
 void StandardTextWriter::FormatMessage(const std::string& msg)
 {
-	m_ostream << msg;
+    m_ostream << msg;
 }
 
-void StandardTextWriter::FormatToolsVersions(const std::string & host, const VersionMap & versionByToolId)
+void StandardTextWriter::FormatToolsVersions(const std::string& host, const VersionMap& versionByToolId)
 {
-	m_ostream << "\t" << host << ":\n";
-	for (const auto & toolId : versionByToolId)
-		m_ostream << "\t\t"<< toolId.first << "=\"" << toolId.second << "\"\n";
-	m_ostream << "\n";
+    m_ostream << "\t" << host << ":\n";
+    for (const auto& toolId : versionByToolId)
+        m_ostream << "\t\t" << toolId.first << "=\"" << toolId.second << "\"\n";
+    m_ostream << "\n";
 
-	std::flush(m_ostream);
+    std::flush(m_ostream);
 }
 
-void StandardTextWriter::FormatToolsConflicts(const ConflictMap & conflictedIds)
+void StandardTextWriter::FormatToolsConflicts(const ConflictMap& conflictedIds)
 {
-	if (conflictedIds.empty())
-		return;
-	m_ostream << "\nConflicted tool ids:\n";
-	for (const auto & toolId : conflictedIds)
-	{
-		m_ostream << "\t"<< toolId.first << ":\n";
-		for (const auto & hosts : toolId.second)
-		{
-			m_ostream << "\t\t"<< hosts.first << "=\"" << hosts.second << "\"\n";
-		}
-	}
+    if (conflictedIds.empty())
+        return;
+    m_ostream << "\nConflicted tool ids:\n";
+    for (const auto& toolId : conflictedIds) {
+        m_ostream << "\t" << toolId.first << ":\n";
+        for (const auto& hosts : toolId.second) {
+            m_ostream << "\t\t" << hosts.first << "=\"" << hosts.second << "\"\n";
+        }
+    }
 }
 
-struct JsonWriter::Impl
-{
-	nlohmann::ordered_json jsonResult;
+struct JsonWriter::Impl {
+    nlohmann::ordered_json jsonResult;
 };
 
-JsonWriter::JsonWriter(std::ostream & stream)
-	: m_impl(new Impl)
-	, m_ostream(stream) {
-};
+JsonWriter::JsonWriter(std::ostream& stream)
+    : m_impl(new Impl)
+    , m_ostream(stream){};
 
-JsonWriter::~JsonWriter() {
-	m_ostream << m_impl->jsonResult.dump(4) << std::endl;
+JsonWriter::~JsonWriter()
+{
+    m_ostream << m_impl->jsonResult.dump(4) << std::endl;
 }
 
 void JsonWriter::FormatMessage(const std::string&)
 {
-	// stub
+    // stub
 }
 
-void JsonWriter::FormatToolsVersions(const std::string & host, const VersionMap & versionByToolId)
+void JsonWriter::FormatToolsVersions(const std::string& host, const VersionMap& versionByToolId)
 {
-	auto & versionByToolIdJson = m_impl->jsonResult["tools_versions"];
-	versionByToolIdJson[host] = versionByToolId;
+    auto& versionByToolIdJson = m_impl->jsonResult["tools_versions"];
+    versionByToolIdJson[host] = versionByToolId;
 }
 
-void JsonWriter::FormatToolsConflicts(const ConflictMap & conflictedIds)
+void JsonWriter::FormatToolsConflicts(const ConflictMap& conflictedIds)
 {
-	auto & conflictedIdsJson = m_impl->jsonResult["conflicted_tools"];
-	for (const auto & toolId : conflictedIds)
-		conflictedIdsJson[toolId.first] = toolId.second;
+    auto& conflictedIdsJson = m_impl->jsonResult["conflicted_tools"];
+    for (const auto& toolId : conflictedIds)
+        conflictedIdsJson[toolId.first] = toolId.second;
 }
 
-std::unique_ptr<AbstractWriter> AbstractWriter::createWriter(OutType outType, std::ostream & stream)
+std::unique_ptr<AbstractWriter> AbstractWriter::createWriter(OutType outType, std::ostream& stream)
 {
-	if (outType == OutType::JSON)
-		return std::make_unique<JsonWriter> (stream);
-	return std::make_unique<StandardTextWriter> (stream);
+    if (outType == OutType::JSON)
+        return std::make_unique<JsonWriter>(stream);
+    return std::make_unique<StandardTextWriter>(stream);
 }

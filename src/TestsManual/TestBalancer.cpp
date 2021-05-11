@@ -17,82 +17,82 @@
 #include <Application.h>
 
 namespace {
-	const std::string g_tool = "gcc";
-	const size_t g_noIndex = std::numeric_limits<size_t>::max();
+const std::string g_tool    = "gcc";
+const size_t      g_noIndex = std::numeric_limits<size_t>::max();
 }
 
 /*
  * Simple autotest for balancer. Arguments not required.
  */
-int main(int argc, char ** argv)
+int main(int argc, char** argv)
 {
-	using namespace Wuild;
-	ConfiguredApplication app(argc, argv, "TestBalancer");
-	using LoadVector = std::vector<uint16_t>;
+    using namespace Wuild;
+    ConfiguredApplication app(argc, argv, "TestBalancer");
+    using LoadVector = std::vector<uint16_t>;
 
-	ToolBalancer balancer;
-	balancer.SetSessionId(1);
-	balancer.SetRequiredTools(StringVector(1, g_tool));
-	TEST_ASSERT(balancer.GetFreeThreads() == 0);
-	TEST_ASSERT(balancer.FindFreeClient(g_tool) == g_noIndex);
+    ToolBalancer balancer;
+    balancer.SetSessionId(1);
+    balancer.SetRequiredTools(StringVector(1, g_tool));
+    TEST_ASSERT(balancer.GetFreeThreads() == 0);
+    TEST_ASSERT(balancer.FindFreeClient(g_tool) == g_noIndex);
 
-	ToolServerInfo info1, info2;
-	info1.m_toolIds = StringVector(1, g_tool);
-	info1.m_totalThreads = 8;
-	info1.m_toolServerId = "test1";
-	info2 = info1;
-	info2.m_toolServerId = "test2";
+    ToolServerInfo info1, info2;
+    info1.m_toolIds      = StringVector(1, g_tool);
+    info1.m_totalThreads = 8;
+    info1.m_toolServerId = "test1";
+    info2                = info1;
+    info2.m_toolServerId = "test2";
 
-	size_t index = 0;
-	balancer.UpdateClient(info1, index);
-	TEST_ASSERT(index == 0);
-	balancer.UpdateClient(info1, index);
-	TEST_ASSERT(index == 0);
-	balancer.UpdateClient(info2, index);
-	TEST_ASSERT(index == 1);
+    size_t index = 0;
+    balancer.UpdateClient(info1, index);
+    TEST_ASSERT(index == 0);
+    balancer.UpdateClient(info1, index);
+    TEST_ASSERT(index == 0);
+    balancer.UpdateClient(info2, index);
+    TEST_ASSERT(index == 1);
 
-	TEST_ASSERT(balancer.GetFreeThreads() == 0);
-	TEST_ASSERT((balancer.TestGetBusy() == LoadVector{0, 0}));
+    TEST_ASSERT(balancer.GetFreeThreads() == 0);
+    TEST_ASSERT((balancer.TestGetBusy() == LoadVector{ 0, 0 }));
 
-	balancer.SetClientCompatible(0, true);
-	balancer.SetClientCompatible(1, true);
-	balancer.SetClientActive(0, true);
-	TEST_ASSERT(balancer.GetFreeThreads() == 8);
-	balancer.SetClientActive(0, false);
-	TEST_ASSERT(balancer.GetFreeThreads() == 0);
-	balancer.SetClientActive(0, true);
-	balancer.SetClientActive(1, true);
-	TEST_ASSERT(balancer.GetFreeThreads() == 16);
+    balancer.SetClientCompatible(0, true);
+    balancer.SetClientCompatible(1, true);
+    balancer.SetClientActive(0, true);
+    TEST_ASSERT(balancer.GetFreeThreads() == 8);
+    balancer.SetClientActive(0, false);
+    TEST_ASSERT(balancer.GetFreeThreads() == 0);
+    balancer.SetClientActive(0, true);
+    balancer.SetClientActive(1, true);
+    TEST_ASSERT(balancer.GetFreeThreads() == 16);
 
-	balancer.SetClientCompatible(0, false);
-	TEST_ASSERT(balancer.GetFreeThreads() == 8);
-	balancer.SetClientCompatible(0, true);
-	TEST_ASSERT(balancer.GetFreeThreads() == 16);
+    balancer.SetClientCompatible(0, false);
+    TEST_ASSERT(balancer.GetFreeThreads() == 8);
+    balancer.SetClientCompatible(0, true);
+    TEST_ASSERT(balancer.GetFreeThreads() == 16);
 
-	info2.m_connectedClients.resize(1);
-	info2.m_connectedClients[0].m_usedThreads = 2;
-	info2.m_connectedClients[0].m_sessionId  = 2;
-	balancer.UpdateClient(info2, index);
-	TEST_ASSERT((balancer.TestGetBusy() == LoadVector{0, 1}));
+    info2.m_connectedClients.resize(1);
+    info2.m_connectedClients[0].m_usedThreads = 2;
+    info2.m_connectedClients[0].m_sessionId   = 2;
+    balancer.UpdateClient(info2, index);
+    TEST_ASSERT((balancer.TestGetBusy() == LoadVector{ 0, 1 }));
 
-	index = balancer.FindFreeClient(g_tool);
-	TEST_ASSERT(index == 0);
-	balancer.StartTask(index);
-	TEST_ASSERT((balancer.TestGetBusy() == LoadVector{1, 1}));
+    index = balancer.FindFreeClient(g_tool);
+    TEST_ASSERT(index == 0);
+    balancer.StartTask(index);
+    TEST_ASSERT((balancer.TestGetBusy() == LoadVector{ 1, 1 }));
 
-	index = balancer.FindFreeClient(g_tool);
-	TEST_ASSERT(index == 0);
-	balancer.StartTask(index);
-	TEST_ASSERT((balancer.TestGetBusy() == LoadVector{2, 1}));
+    index = balancer.FindFreeClient(g_tool);
+    TEST_ASSERT(index == 0);
+    balancer.StartTask(index);
+    TEST_ASSERT((balancer.TestGetBusy() == LoadVector{ 2, 1 }));
 
-	balancer.StartTask( balancer.FindFreeClient(g_tool) );
-	balancer.StartTask( balancer.FindFreeClient(g_tool) );
+    balancer.StartTask(balancer.FindFreeClient(g_tool));
+    balancer.StartTask(balancer.FindFreeClient(g_tool));
 
-	index = balancer.FindFreeClient(g_tool);
-	TEST_ASSERT(index == 1);
-	balancer.StartTask(index);
-	TEST_ASSERT((balancer.TestGetBusy() == LoadVector{3, 3}));
+    index = balancer.FindFreeClient(g_tool);
+    TEST_ASSERT(index == 1);
+    balancer.StartTask(index);
+    TEST_ASSERT((balancer.TestGetBusy() == LoadVector{ 3, 3 }));
 
-	std::cout << "OK\n";
-	return 0;
+    std::cout << "OK\n";
+    return 0;
 }

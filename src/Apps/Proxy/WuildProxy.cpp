@@ -20,36 +20,36 @@
 
 int main(int argc, char** argv)
 {
-	using namespace Wuild;
-	ConfiguredApplication app(argc, argv, "WuildProxyServer", "proxy");
+    using namespace Wuild;
+    ConfiguredApplication app(argc, argv, "WuildProxyServer", "proxy");
 
-	auto invocationRewriter = CheckedCreateInvocationRewriter(app);
-	if (!invocationRewriter)
-		return 1;
+    auto invocationRewriter = CheckedCreateInvocationRewriter(app);
+    if (!invocationRewriter)
+        return 1;
 
-	ToolProxyServer::Config proxyConfig;
-	if (!app.GetToolProxyServerConfig(proxyConfig))
-		return 1;
+    ToolProxyServer::Config proxyConfig;
+    if (!app.GetToolProxyServerConfig(proxyConfig))
+        return 1;
 
-	RemoteToolClient::Config config;
-	if (!app.GetRemoteToolClientConfig(config))
-		return 1;
-	
-	auto localExecutor = LocalExecutor::Create(invocationRewriter, app.m_tempDir);
-	const auto toolsVersions = VersionChecker::Create(localExecutor, invocationRewriter)->DetermineToolVersions({proxyConfig.m_toolId});
+    RemoteToolClient::Config config;
+    if (!app.GetRemoteToolClientConfig(config))
+        return 1;
 
-	RemoteToolClient rcClient(invocationRewriter, toolsVersions);
-	if (!rcClient.SetConfig(config))
-		return 1;
+    auto       localExecutor = LocalExecutor::Create(invocationRewriter, app.m_tempDir);
+    const auto toolsVersions = VersionChecker::Create(localExecutor, invocationRewriter)->DetermineToolVersions({ proxyConfig.m_toolId });
 
-	ToolProxyServer proxyServer(localExecutor, rcClient);
-	if (!proxyServer.SetConfig(proxyConfig))
-		return 1;
+    RemoteToolClient rcClient(invocationRewriter, toolsVersions);
+    if (!rcClient.SetConfig(config))
+        return 1;
 
-	rcClient.Start();
-	proxyServer.Start([]{
-		Application::Interrupt(1);
-	});
+    ToolProxyServer proxyServer(localExecutor, rcClient);
+    if (!proxyServer.SetConfig(proxyConfig))
+        return 1;
 
-	return ExecAppLoop();
+    rcClient.Start();
+    proxyServer.Start([] {
+        Application::Interrupt(1);
+    });
+
+    return ExecAppLoop();
 }

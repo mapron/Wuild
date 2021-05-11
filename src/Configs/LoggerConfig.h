@@ -16,21 +16,32 @@
 #include "IConfig.h"
 #include "Syslogger.h"
 
-namespace Wuild
-{
-class LoggerConfig : public IConfig
-{
+namespace Wuild {
+class LoggerConfig : public IConfig {
 public:
-	enum class LogType { Cout, Cerr, Printf, Syslog, Files };
-	int m_maxLogLevel = Syslogger::Notice;
-	LogType m_logType = LogType::Cout;
-	std::string m_dir;
-	int m_maxMessagesInFile = 10000;
-	int m_maxFilesInDir = 5;
-	bool m_outputTimestamp = false;
-	bool m_outputTimeoffsets = false;
-	bool m_outputLoglevel = false;
-	LoggerConfig(int maxLogLevel = Syslogger::Notice, LogType logType = LogType::Cout) : m_maxLogLevel(maxLogLevel), m_logType(logType) {}
-	bool Validate(std::ostream * errStream = nullptr) const override;
+    enum class LogType
+    {
+        Cout,
+        Cerr,
+        Printf,
+        Syslog,
+        Files
+    };
+
+    int         m_maxLogLevel = Syslogger::Notice;
+    LogType     m_logType     = LogType::Cout;
+    std::string m_dir;
+    int         m_maxMessagesInFile = 10000;
+    int         m_maxFilesInDir     = 5;
+    bool        m_outputTimestamp   = false;
+    bool        m_outputTimeoffsets = false;
+    bool        m_outputLoglevel    = false;
+
+    LoggerConfig(int maxLogLevel = Syslogger::Notice, LogType logType = LogType::Cout)
+        : m_maxLogLevel(maxLogLevel)
+        , m_logType(logType)
+    {}
+
+    bool Validate(std::ostream* errStream = nullptr) const override;
 };
 }

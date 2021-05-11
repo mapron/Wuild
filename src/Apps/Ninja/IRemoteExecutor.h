@@ -20,46 +20,54 @@
 struct Edge;
 struct SubprocessSet;
 
-class IRemoteExecutor
-{
+class IRemoteExecutor {
 public:
-    enum class PreprocessResult { Success, Skipped, UnknownCompiler };
+    enum class PreprocessResult
+    {
+        Success,
+        Skipped,
+        UnknownCompiler
+    };
 
 public:
     virtual ~IRemoteExecutor() = default;
 
-    virtual PreprocessResult PreprocessCode(const std::vector<std::string> & originalRule,
-                                            const std::vector<std::string> & ignoredArgs,
-                                            std::string & toolId,
-                                            std::vector<std::string> & preprocessRule,
-                                            std::vector<std::string> & compileRule) const = 0;
+    virtual PreprocessResult PreprocessCode(const std::vector<std::string>& originalRule,
+                                            const std::vector<std::string>& ignoredArgs,
+                                            std::string&                    toolId,
+                                            std::vector<std::string>&       preprocessRule,
+                                            std::vector<std::string>&       compileRule) const = 0;
 
-    virtual std::string GetPreprocessedPath(const std::string & sourcePath, const std::string & objectPath) const = 0;
+    virtual std::string GetPreprocessedPath(const std::string& sourcePath, const std::string& objectPath) const = 0;
 
-    virtual bool CheckRemotePossibleForFlags(const std::string & toolId, const std::string & flags) const = 0;
-    virtual std::string FilterPreprocessorFlags(const std::string & toolId, const std::string & flags) const = 0;
-    virtual std::string FilterCompilerFlags(const std::string & toolId, const std::string & flags) const = 0;
+    virtual bool        CheckRemotePossibleForFlags(const std::string& toolId, const std::string& flags) const = 0;
+    virtual std::string FilterPreprocessorFlags(const std::string& toolId, const std::string& flags) const     = 0;
+    virtual std::string FilterCompilerFlags(const std::string& toolId, const std::string& flags) const         = 0;
 
-    virtual void RunIfNeeded(const std::vector<std::string> & toolIds, const std::shared_ptr<SubprocessSet> & subprocessSet) = 0;
-    virtual int GetMinimalRemoteTasks() const = 0;
-    virtual void SleepSome() const = 0;
+    virtual void RunIfNeeded(const std::vector<std::string>& toolIds, const std::shared_ptr<SubprocessSet>& subprocessSet) = 0;
+    virtual int  GetMinimalRemoteTasks() const                                                                             = 0;
+    virtual void SleepSome() const                                                                                         = 0;
 
-    virtual bool CanRunMore() = 0;
-    virtual bool StartCommand(Edge* userData, const std::string & command) = 0;
+    virtual bool CanRunMore()                                             = 0;
+    virtual bool StartCommand(Edge* userData, const std::string& command) = 0;
 
     /// The result of waiting for a command.
     struct Result {
-      Result() = default;
-      Result(Edge* u, bool s, const std::string & o) : userData(u), status(s), output(o) {}
-      Edge* userData = nullptr;
-      bool status = false;
-      std::string output;
-      bool success() const { return status; }
+        Result() = default;
+        Result(Edge* u, bool s, const std::string& o)
+            : userData(u)
+            , status(s)
+            , output(o)
+        {}
+        Edge*       userData = nullptr;
+        bool        status   = false;
+        std::string output;
+        bool        success() const { return status; }
     };
     /// Wait for a command to complete, or return false if interrupted.
     virtual bool WaitForCommand(Result* result) = 0;
 
-    virtual void Abort() = 0;
+    virtual void            Abort()          = 0;
     virtual std::set<Edge*> GetActiveEdges() = 0;
 
     virtual std::vector<std::string> GetKnownToolNames() const = 0;

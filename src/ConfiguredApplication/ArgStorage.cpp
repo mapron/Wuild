@@ -15,45 +15,42 @@
 
 #include "StringUtils.h"
 
-namespace
-{
+namespace {
 const std::string g_commandLinePrefix = "--wuild-";
 }
 
-namespace Wuild
+namespace Wuild {
+
+ArgStorage::ArgStorage(int& argcRef, char**& argvRef)
+    : m_argv(1)
 {
+    m_argv[0] = argvRef[0];
+    StringVector unprefixed;
+    const auto   inputArgs = StringUtils::StringVectorFromArgv(argcRef, argvRef);
+    for (const auto& arg : inputArgs) {
+        if (arg.find(g_commandLinePrefix) == 0)
+            m_configValues.push_back(arg.substr(g_commandLinePrefix.size()));
+        else
+            m_args.push_back(arg);
+    }
+    m_argv.resize(m_args.size() + 2);
+    for (size_t i = 0; i < m_args.size(); ++i)
+        m_argv[i + 1] = const_cast<char*>(m_args[i].data()); // non-const .data() is C++17+ only.
+    m_argv[m_argv.size() - 1] = nullptr;
 
-ArgStorage::ArgStorage(int & argcRef, char **& argvRef)
-	: m_argv(1)
-{
-	m_argv[0] = argvRef[0];
-	StringVector unprefixed;
-	const auto inputArgs = StringUtils::StringVectorFromArgv(argcRef, argvRef);
-	for (const auto & arg : inputArgs)
-	{
-		if (arg.find(g_commandLinePrefix) == 0)
-			m_configValues.push_back(arg.substr(g_commandLinePrefix.size()));
-		else
-			m_args.push_back(arg);
-	}
-	m_argv.resize(m_args.size() + 2);
-	for (size_t i = 0; i < m_args.size(); ++i)
-		m_argv[i+1] = const_cast<char*>(m_args[i].data()); // non-const .data() is C++17+ only.
-	m_argv[m_argv.size() - 1] = nullptr;
+    argcRef = m_argv.size() - 1;
 
-	argcRef = m_argv.size() - 1;
-
-	argvRef = m_argv.data();
+    argvRef = m_argv.data();
 }
 
-const StringVector & ArgStorage::GetConfigValues() const
+const StringVector& ArgStorage::GetConfigValues() const
 {
-	return m_configValues;
+    return m_configValues;
 }
 
-const StringVector & ArgStorage::GetArgs() const
+const StringVector& ArgStorage::GetArgs() const
 {
-	return m_args;
+    return m_args;
 }
 
 }

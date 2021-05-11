@@ -19,76 +19,70 @@
 #include <FileUtils.h>
 
 /// Declaration of channel structures for RemoteToolServer and RemoteToolClient
-namespace Wuild
-{
+namespace Wuild {
 
-class RemoteToolRequest : public SocketFrameExt
-{
+class RemoteToolRequest : public SocketFrameExt {
 public:
-	static const uint32_t s_version = 2;
-	static const uint8_t s_frameTypeId = s_minimalUserFrameId + 1;
-	using Ptr = std::shared_ptr<RemoteToolRequest>;
+    static const uint32_t s_version     = 2;
+    static const uint8_t  s_frameTypeId = s_minimalUserFrameId + 1;
+    using Ptr                           = std::shared_ptr<RemoteToolRequest>;
 
-	std::string         m_clientId;
-	uint64_t            m_sessionId;
-	ToolInvocation      m_invocation;
-	ByteArrayHolder     m_fileData;
-	CompressionInfo		m_compression;
+    std::string     m_clientId;
+    uint64_t        m_sessionId;
+    ToolInvocation  m_invocation;
+    ByteArrayHolder m_fileData;
+    CompressionInfo m_compression;
 
-	uint8_t             FrameTypeId() const override { return s_frameTypeId;}
+    uint8_t FrameTypeId() const override { return s_frameTypeId; }
 
-	void                LogTo(std::ostream& os)  const override;
-	State               ReadInternal(ByteOrderDataStreamReader &stream) override;
-	State               WriteInternal(ByteOrderDataStreamWriter &stream) const override;
-
+    void  LogTo(std::ostream& os) const override;
+    State ReadInternal(ByteOrderDataStreamReader& stream) override;
+    State WriteInternal(ByteOrderDataStreamWriter& stream) const override;
 };
 
-class RemoteToolResponse : public SocketFrameExt
-{
+class RemoteToolResponse : public SocketFrameExt {
 public:
-	static const uint32_t s_version = 2;
-	static const uint8_t s_frameTypeId = s_minimalUserFrameId + 2;
-	using Ptr = std::shared_ptr<RemoteToolResponse>;
+    static const uint32_t s_version     = 2;
+    static const uint8_t  s_frameTypeId = s_minimalUserFrameId + 2;
+    using Ptr                           = std::shared_ptr<RemoteToolResponse>;
 
-	bool                m_result = true;
-	ByteArrayHolder     m_fileData;
-	CompressionInfo		m_compression;
-	std::string         m_stdOut;
-	TimePoint           m_executionTime;
+    bool            m_result = true;
+    ByteArrayHolder m_fileData;
+    CompressionInfo m_compression;
+    std::string     m_stdOut;
+    TimePoint       m_executionTime;
 
-	void                LogTo(std::ostream& os) const override;
-	uint8_t             FrameTypeId() const override { return s_frameTypeId;}
+    void    LogTo(std::ostream& os) const override;
+    uint8_t FrameTypeId() const override { return s_frameTypeId; }
 
-	State               ReadInternal(ByteOrderDataStreamReader &stream) override;
-	State               WriteInternal(ByteOrderDataStreamWriter &stream) const override;
+    State ReadInternal(ByteOrderDataStreamReader& stream) override;
+    State WriteInternal(ByteOrderDataStreamWriter& stream) const override;
 };
 
-class ToolsVersionRequest : public SocketFrameExt
-{
+class ToolsVersionRequest : public SocketFrameExt {
 public:
-	static const uint32_t s_version = 1;
-	static const uint8_t s_frameTypeId = s_minimalUserFrameId + 3;
-	using Ptr = std::shared_ptr<ToolsVersionRequest>;
+    static const uint32_t s_version     = 1;
+    static const uint8_t  s_frameTypeId = s_minimalUserFrameId + 3;
+    using Ptr                           = std::shared_ptr<ToolsVersionRequest>;
 
-	uint8_t             FrameTypeId() const override { return s_frameTypeId;}
+    uint8_t FrameTypeId() const override { return s_frameTypeId; }
 
-	State               ReadInternal(ByteOrderDataStreamReader &) override { return stOk;}
-	State               WriteInternal(ByteOrderDataStreamWriter &) const override { return stOk;}
+    State ReadInternal(ByteOrderDataStreamReader&) override { return stOk; }
+    State WriteInternal(ByteOrderDataStreamWriter&) const override { return stOk; }
 };
 
-class ToolsVersionResponse : public SocketFrameExt
-{
+class ToolsVersionResponse : public SocketFrameExt {
 public:
-	static const uint32_t s_version = 1;
-	static const uint8_t s_frameTypeId = s_minimalUserFrameId + 4; // I believe some day constexpr counters will be easier: http://b.atch.se/posts/constexpr-counter/
-	using Ptr = std::shared_ptr<ToolsVersionResponse>;
+    static const uint32_t s_version     = 1;
+    static const uint8_t  s_frameTypeId = s_minimalUserFrameId + 4; // I believe some day constexpr counters will be easier: http://b.atch.se/posts/constexpr-counter/
+    using Ptr                           = std::shared_ptr<ToolsVersionResponse>;
 
-	std::map<std::string, std::string> m_versions;
+    std::map<std::string, std::string> m_versions;
 
-	uint8_t             FrameTypeId() const override { return s_frameTypeId;}
+    uint8_t FrameTypeId() const override { return s_frameTypeId; }
 
-	State               ReadInternal(ByteOrderDataStreamReader &stream) override;
-	State               WriteInternal(ByteOrderDataStreamWriter &stream) const override;
+    State ReadInternal(ByteOrderDataStreamReader& stream) override;
+    State WriteInternal(ByteOrderDataStreamWriter& stream) const override;
 };
 
 }

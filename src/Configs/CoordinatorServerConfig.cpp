@@ -15,18 +15,16 @@
 
 #include <iostream>
 
-namespace Wuild
-{
+namespace Wuild {
 
-bool CoordinatorServerConfig::Validate(std::ostream *errStream) const
+bool CoordinatorServerConfig::Validate(std::ostream* errStream) const
 {
-	if (m_listenPort <= 0 || m_listenPort > 0xffff)
-	{
-		if (errStream)
-			*errStream << "listenPort should be between 1 and 65535";
-		return false;
-	}
-	return true;
+    if (m_listenPort <= 0 || m_listenPort > 0xffff) {
+        if (errStream)
+            *errStream << "listenPort should be between 1 and 65535";
+        return false;
+    }
+    return true;
 }
 
 }

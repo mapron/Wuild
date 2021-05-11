@@ -16,124 +16,115 @@
 #include <ByteOrderStream.h>
 #include <ByteOrderStreamTypes.h>
 
-namespace Wuild
-{
+namespace Wuild {
 
 template<>
-inline ByteOrderDataStreamReader& ByteOrderDataStreamReader::operator >> (ToolServerInfo::ConnectedClientInfo &client)
+inline ByteOrderDataStreamReader& ByteOrderDataStreamReader::operator>>(ToolServerInfo::ConnectedClientInfo& client)
 {
-	*this
-		>> client.m_usedThreads
-		>> client.m_clientId
-		>> client.m_sessionId
-	   ;
-	return *this;
+    *this
+        >> client.m_usedThreads
+        >> client.m_clientId
+        >> client.m_sessionId;
+    return *this;
 }
 template<>
-inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator << (const ToolServerInfo::ConnectedClientInfo &client)
+inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator<<(const ToolServerInfo::ConnectedClientInfo& client)
 {
-	*this
-		<< client.m_usedThreads
-		<< client.m_clientId
-		<< client.m_sessionId
-			;
-	return *this;
+    *this
+        << client.m_usedThreads
+        << client.m_clientId
+        << client.m_sessionId;
+    return *this;
 }
 
 template<>
-inline ByteOrderDataStreamReader& ByteOrderDataStreamReader::operator >> (ToolServerInfo &info)
+inline ByteOrderDataStreamReader& ByteOrderDataStreamReader::operator>>(ToolServerInfo& info)
 {
-	*this
-		>> info.m_toolServerId
-		>> info.m_connectionHost
-		>> info.m_connectionPort
-		>> info.m_toolIds
-		>> info.m_totalThreads
-		>> info.m_queuedTasks
-		>> info.m_runningTasks
-		>> info.m_connectedClients
-			;
-	return *this;
+    *this
+        >> info.m_toolServerId
+        >> info.m_connectionHost
+        >> info.m_connectionPort
+        >> info.m_toolIds
+        >> info.m_totalThreads
+        >> info.m_queuedTasks
+        >> info.m_runningTasks
+        >> info.m_connectedClients;
+    return *this;
 }
 template<>
-inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator << (const ToolServerInfo &info)
+inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator<<(const ToolServerInfo& info)
 {
-	*this
-		<< info.m_toolServerId
-		<< info.m_connectionHost
-		<< info.m_connectionPort
-		<< info.m_toolIds
-		<< info.m_totalThreads
-		<< info.m_queuedTasks
-		<< info.m_runningTasks
-		<< info.m_connectedClients
-	   ;
-	return *this;
+    *this
+        << info.m_toolServerId
+        << info.m_connectionHost
+        << info.m_connectionPort
+        << info.m_toolIds
+        << info.m_totalThreads
+        << info.m_queuedTasks
+        << info.m_runningTasks
+        << info.m_connectedClients;
+    return *this;
 }
 template<>
-inline ByteOrderDataStreamReader& ByteOrderDataStreamReader::operator >> (ToolServerSessionInfo &session)
+inline ByteOrderDataStreamReader& ByteOrderDataStreamReader::operator>>(ToolServerSessionInfo& session)
 {
-	*this
-		>> session.m_clientId
-		>> session.m_sessionId
-		>> session.m_totalExecutionTime
-		>> session.m_tasksCount
-		>> session.m_failuresCount
-		>> session.m_maxUsedThreads
-		   ;
-	return *this;
+    *this
+        >> session.m_clientId
+        >> session.m_sessionId
+        >> session.m_totalExecutionTime
+        >> session.m_tasksCount
+        >> session.m_failuresCount
+        >> session.m_maxUsedThreads;
+    return *this;
 }
 template<>
-inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator << (const ToolServerSessionInfo &session)
+inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator<<(const ToolServerSessionInfo& session)
 {
-	*this
-		<< session.m_clientId
-		<< session.m_sessionId
-		<< session.m_totalExecutionTime
-		<< session.m_tasksCount
-		<< session.m_failuresCount
-		<< session.m_maxUsedThreads
-		   ;
-	return *this;
+    *this
+        << session.m_clientId
+        << session.m_sessionId
+        << session.m_totalExecutionTime
+        << session.m_tasksCount
+        << session.m_failuresCount
+        << session.m_maxUsedThreads;
+    return *this;
 }
 
-
-SocketFrame::State CoordinatorListResponse::ReadInternal(ByteOrderDataStreamReader &stream)
+SocketFrame::State CoordinatorListResponse::ReadInternal(ByteOrderDataStreamReader& stream)
 {
-	stream  >> m_info.m_toolServers >> m_info.m_latestSessions >> m_info.m_activeSessions;
+    stream >> m_info.m_toolServers >> m_info.m_latestSessions >> m_info.m_activeSessions;
 
-	return stOk;
+    return stOk;
 }
 
-SocketFrame::State CoordinatorListResponse::WriteInternal(ByteOrderDataStreamWriter &stream) const
+SocketFrame::State CoordinatorListResponse::WriteInternal(ByteOrderDataStreamWriter& stream) const
 {
-	stream << m_info.m_toolServers <<  m_info.m_latestSessions << m_info.m_activeSessions;
-	return stOk;
+    stream << m_info.m_toolServers << m_info.m_latestSessions << m_info.m_activeSessions;
+    return stOk;
 }
 
-SocketFrame::State CoordinatorToolServerStatus::ReadInternal(ByteOrderDataStreamReader &stream)
+SocketFrame::State CoordinatorToolServerStatus::ReadInternal(ByteOrderDataStreamReader& stream)
 {
-	stream >> m_info;
-	return stOk;
+    stream >> m_info;
+    return stOk;
 }
 
-SocketFrame::State CoordinatorToolServerStatus::WriteInternal(ByteOrderDataStreamWriter &stream) const
+SocketFrame::State CoordinatorToolServerStatus::WriteInternal(ByteOrderDataStreamWriter& stream) const
 {
-	stream << m_info;
-	return stOk;
+    stream << m_info;
+    return stOk;
 }
 
-SocketFrame::State CoordinatorToolServerSession::ReadInternal(ByteOrderDataStreamReader &stream)
+SocketFrame::State CoordinatorToolServerSession::ReadInternal(ByteOrderDataStreamReader& stream)
 {
-	stream >> m_isFinished >> m_session;
-	return stOk;
+    stream >> m_isFinished >> m_session;
+    return stOk;
 }
 
-SocketFrame::State CoordinatorToolServerSession::WriteInternal(ByteOrderDataStreamWriter &stream) const
+SocketFrame::State CoordinatorToolServerSession::WriteInternal(ByteOrderDataStreamWriter& stream) const
 {
-	stream << m_isFinished << m_session;
-	return stOk;
+    stream << m_isFinished << m_session;
+    return stOk;
 }
-
 
 }

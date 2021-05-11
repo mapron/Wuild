@@ -25,53 +25,51 @@
 #include <atomic>
 #include <map>
 
-namespace Wuild
-{
+namespace Wuild {
 
-inline Syslogger& operator << (Syslogger& logger, const SocketFrame::Ptr& frame)
+inline Syslogger& operator<<(Syslogger& logger, const SocketFrame::Ptr& frame)
 {
-	std::ostringstream os;
-	if (frame)
-		frame->LogTo(os);
-	else
-		os << "nullptr";
-	logger << os.str();
-	return logger;
+    std::ostringstream os;
+    if (frame)
+        frame->LogTo(os);
+    else
+        os << "nullptr";
+    logger << os.str();
+    return logger;
 }
 
 class SocketFrameHandler;
 /// Settings for FrameHandler - network channel layer
-struct SocketFrameHandlerSettings
-{
-	SocketFrameHandlerSettings();
+struct SocketFrameHandlerSettings {
+    SocketFrameHandlerSettings();
 
-	uint32_t       m_channelProtocolVersion = 1;		          //!< Channel protocol version. Client and server must have the same.
+    uint32_t m_channelProtocolVersion = 1; //!< Channel protocol version. Client and server must have the same.
 
-	size_t         m_acknowledgeMinimalReadSize = 100;            //!< minimal bytes read without ack; must be greater than 5.
-	uint8_t        m_byteOrder;                                   //!< network channel byte order. Default is big-endian.
+    size_t  m_acknowledgeMinimalReadSize = 100; //!< minimal bytes read without ack; must be greater than 5.
+    uint8_t m_byteOrder;                        //!< network channel byte order. Default is big-endian.
 
-	TimePoint      m_clientThreadSleep       = TimePoint(0.001);  //!< thread usleep value.
-	TimePoint      m_mainThreadSleep         = TimePoint(0.001);  //!< thread usleep value for FrameHandlerService.
+    TimePoint m_clientThreadSleep = TimePoint(0.001); //!< thread usleep value.
+    TimePoint m_mainThreadSleep   = TimePoint(0.001); //!< thread usleep value for FrameHandlerService.
 
-	TimePoint      m_channelActivityTimeout  = TimePoint(10.0);   //!< After this time, channel with no read event will be dead.
-	TimePoint      m_acknowledgeTimeout      = TimePoint(10.0);   //!< After this time, unacknowledged data send will stated failed.
-	TimePoint      m_lineTestInterval        = TimePoint(3.0);    //!< If no channel activity for this time, line test frame will be send.
-	TimePoint      m_afterDisconnectWait     = TimePoint(10.0);   //!< If channel was disconnected, connect retry will be after that time.
-	TimePoint      m_replyTimeoutCheckInterval = TimePoint(1.0);  //!< How often check for timeouted requests.
-	TimePoint      m_connStatusInterval        = TimePoint(1.0);
+    TimePoint m_channelActivityTimeout    = TimePoint(10.0); //!< After this time, channel with no read event will be dead.
+    TimePoint m_acknowledgeTimeout        = TimePoint(10.0); //!< After this time, unacknowledged data send will stated failed.
+    TimePoint m_lineTestInterval          = TimePoint(3.0);  //!< If no channel activity for this time, line test frame will be send.
+    TimePoint m_afterDisconnectWait       = TimePoint(10.0); //!< If channel was disconnected, connect retry will be after that time.
+    TimePoint m_replyTimeoutCheckInterval = TimePoint(1.0);  //!< How often check for timeouted requests.
+    TimePoint m_connStatusInterval        = TimePoint(1.0);
 
-	TimePoint      m_tcpReadTimeout          = TimePoint(0.0);    //!< Read timeout for underlying physical channel.
-	size_t         m_recommendedRecieveBufferSize = 4 * 1024;     //!< Recommended TCP-buffer size.
-	size_t         m_recommendedSendBufferSize = 4 * 1024;        //!< Recommended TCP-buffer size.
-	size_t         m_segmentSize             = 240;               //!< Maximal length of channel layer frame.
-																  // Network features used by FrameHandler
-	bool           m_hasAcknowledges = true;                      //!< Acknowledges
-	bool           m_hasLineTest     = true;                      //!< Test frames
-	bool           m_hasConnOptions  = true;                      //!< Send connect options after connection established.
-	bool           m_hasChannelTypes = true;                      //!< Use frame type marker in stream. Without that, all frames should have SocketFrame::s_minimalUserFrameId id.
-	bool           m_hasConnStatus   = false;
+    TimePoint m_tcpReadTimeout               = TimePoint(0.0); //!< Read timeout for underlying physical channel.
+    size_t    m_recommendedRecieveBufferSize = 4 * 1024;       //!< Recommended TCP-buffer size.
+    size_t    m_recommendedSendBufferSize    = 4 * 1024;       //!< Recommended TCP-buffer size.
+    size_t    m_segmentSize                  = 240;            //!< Maximal length of channel layer frame.
+                                                               // Network features used by FrameHandler
+    bool m_hasAcknowledges = true;                             //!< Acknowledges
+    bool m_hasLineTest     = true;                             //!< Test frames
+    bool m_hasConnOptions  = true;                             //!< Send connect options after connection established.
+    bool m_hasChannelTypes = true;                             //!< Use frame type marker in stream. Without that, all frames should have SocketFrame::s_minimalUserFrameId id.
+    bool m_hasConnStatus   = false;
 
-	int            m_writeFailureLogLevel = Syslogger::Err;
+    int m_writeFailureLogLevel = Syslogger::Err;
 };
 
 /**
@@ -82,204 +80,226 @@ struct SocketFrameHandlerSettings
  * -Working with acknowledges and line tests;
  * -Managing frame queue and output write buffer.
  */
-class SocketFrameHandler final
-{
+class SocketFrameHandler final {
 public:
-	enum class ReplyState { Success, Error, Timeout };
+    enum class ReplyState
+    {
+        Success,
+        Error,
+        Timeout
+    };
 
-	using Ptr = std::shared_ptr<SocketFrameHandler>;
-	using StateNotifierCallback = std::function<void(bool)> ;
-	using ReplyNotifier  = std::function<void(SocketFrame::Ptr, ReplyState, const std::string &)>;
-	using OutputCallback = std::function<void(SocketFrame::Ptr)>;
+    using Ptr                   = std::shared_ptr<SocketFrameHandler>;
+    using StateNotifierCallback = std::function<void(bool)>;
+    using ReplyNotifier         = std::function<void(SocketFrame::Ptr, ReplyState, const std::string&)>;
+    using OutputCallback        = std::function<void(SocketFrame::Ptr)>;
 
-	class IFrameReader
-	{
-	public:
-		using Ptr = std::shared_ptr<IFrameReader>;
-		virtual ~IFrameReader() = default;
+    class IFrameReader {
+    public:
+        using Ptr               = std::shared_ptr<IFrameReader>;
+        virtual ~IFrameReader() = default;
 
-		/// Uniue identifier of frame type for one handler. Should be at least==SocketFrame::s_minimalUserFrameId.
-		virtual uint8_t FrameTypeId() const = 0;
+        /// Uniue identifier of frame type for one handler. Should be at least==SocketFrame::s_minimalUserFrameId.
+        virtual uint8_t FrameTypeId() const = 0;
 
-		/// Creates new frame.
-		virtual SocketFrame::Ptr FrameFactory() const = 0;
+        /// Creates new frame.
+        virtual SocketFrame::Ptr FrameFactory() const = 0;
 
-		/// This function specify handling of incoming frames. In function, call outputCallback() to enqueue new frames as reply in hadler.
-		virtual void ProcessFrame(SocketFrame::Ptr incomingMessage, OutputCallback outputCallback) = 0;
-	};
-	
-	struct ConnectionStatus
-	{
-		uint16_t uniqueRepliesQueued;
-	};
-	using ConnectionStatusCallback = std::function<void(const ConnectionStatus &)>;
+        /// This function specify handling of incoming frames. In function, call outputCallback() to enqueue new frames as reply in hadler.
+        virtual void ProcessFrame(SocketFrame::Ptr incomingMessage, OutputCallback outputCallback) = 0;
+    };
+
+    struct ConnectionStatus {
+        uint16_t uniqueRepliesQueued;
+    };
+    using ConnectionStatusCallback = std::function<void(const ConnectionStatus&)>;
 
 public:
-	explicit SocketFrameHandler(int threadId, const SocketFrameHandlerSettings & settings = SocketFrameHandlerSettings());
-	explicit SocketFrameHandler(const SocketFrameHandlerSettings & settings = SocketFrameHandlerSettings());
-	~SocketFrameHandler();
+    explicit SocketFrameHandler(int threadId, const SocketFrameHandlerSettings& settings = SocketFrameHandlerSettings());
+    explicit SocketFrameHandler(const SocketFrameHandlerSettings& settings = SocketFrameHandlerSettings());
+    ~SocketFrameHandler();
 
-// Process cycle management:
-	/// For tcp listener accepted connections, we should ignore connection failure. So, pass retry = false for this behaviour.
-	void   SetRetryConnectOnFail(bool retry);
+    // Process cycle management:
+    /// For tcp listener accepted connections, we should ignore connection failure. So, pass retry = false for this behaviour.
+    void SetRetryConnectOnFail(bool retry);
 
-	/// Runs new thread. Returns immediately.
-	void   Start();
+    /// Runs new thread. Returns immediately.
+    void Start();
 
-	/// Stops process thread.
-	void   Stop();
+    /// Stops process thread.
+    void Stop();
 
-	/// Stop quant function.
-	void   Cancel();
+    /// Stop quant function.
+    void Cancel();
 
-	void   MainLoop();
-	bool   Quant();
+    void MainLoop();
+    bool Quant();
 
-	/// Check loop and connection status.
-	bool   IsActive() const;
+    /// Check loop and connection status.
+    bool IsActive() const;
 
-// Underlying channel functions:
-	/// Set tcp client
-	void   SetTcpChannel(const std::string &host, int port, TimePoint connectionTimeout = 1.0);
+    // Underlying channel functions:
+    /// Set tcp client
+    void SetTcpChannel(const std::string& host, int port, TimePoint connectionTimeout = 1.0);
 
-	/// Set abscract channel. Used for accepted connections.
-	void   SetChannel(IDataSocket::Ptr channel);
+    /// Set abscract channel. Used for accepted connections.
+    void SetChannel(IDataSocket::Ptr channel);
 
-	void   DisconnectChannel();
+    void DisconnectChannel();
 
-	/// callback will be called when underlying state changes. It also will called on initial state.
-	void   SetChannelNotifier(StateNotifierCallback stateNotifier);
-	
-	/// register watcher for connection status change. 
-	void   SetConnectionStatusNotifier(ConnectionStatusCallback callback);
+    /// callback will be called when underlying state changes. It also will called on initial state.
+    void SetChannelNotifier(StateNotifierCallback stateNotifier);
 
-// Application logic:
-	///  Adding new frame to queue. If replyNotifier is set, it will called instead of IFrameReader::ProcessFrame, when reply arrived or failure occurs.
-	void   QueueFrame(const SocketFrame::Ptr& message, const ReplyNotifier& replyNotifier = ReplyNotifier(), TimePoint timeout = TimePoint());
+    /// register watcher for connection status change.
+    void SetConnectionStatusNotifier(ConnectionStatusCallback callback);
 
-	/// Register new frame reader. FrameId should start from s_minimalUserFrameId!
-	void   RegisterFrameReader(const IFrameReader::Ptr& reader);
+    // Application logic:
+    ///  Adding new frame to queue. If replyNotifier is set, it will called instead of IFrameReader::ProcessFrame, when reply arrived or failure occurs.
+    void QueueFrame(const SocketFrame::Ptr& message, const ReplyNotifier& replyNotifier = ReplyNotifier(), TimePoint timeout = TimePoint());
 
-//Logging:
-	void   SetLogContext(const std::string & context);
-	void   UpdateLogContext();
+    /// Register new frame reader. FrameId should start from s_minimalUserFrameId!
+    void RegisterFrameReader(const IFrameReader::Ptr& reader);
 
-	int    GetThreadId() const;
+    //Logging:
+    void SetLogContext(const std::string& context);
+    void UpdateLogContext();
 
-protected:
-
-	enum class ServiceMessageType { None, Ack, LineTest, ConnOptions, ConnStatus, User = SocketFrame::s_minimalUserFrameId };
-
-	enum class ConsumeState { Ok, Broken, Incomplete, FatalError };
-
-	enum class ConnectionState { Pending, Ok, Failed };
-
-	struct AliveStateHolder
-	{
-		using Ptr = std::shared_ptr<AliveStateHolder>;
-		bool m_isAlive = true;
-	};
-
-	class ReplyManager
-	{
-		std::mutex m_mutex;
-		std::map<uint64_t, ReplyNotifier>    m_replyNotifiers;
-		std::map<uint64_t, TimePoint >		 m_timeouts;
-	public:
-		void ClearAndSendError();
-		void AddNotifier(uint64_t id, ReplyNotifier callback, TimePoint timeout);
-		void CheckTimeouts(const std::string & extraInfo);
-		ReplyNotifier TakeNotifier(uint64_t id);
-	};
+    int GetThreadId() const;
 
 protected:
-	void						SetConnectionState(ConnectionState connectionState);
-	bool                        ReadFrames();
-	ConsumeState                ConsumeReadBuffer();
-	ConsumeState                ConsumeFrameBuffer();
-	bool                        WriteFrames();
-	bool                        CheckConnection() const;
-	bool                        CheckAndCreateConnection();
-	bool                        IsOutputBufferEmpty();
+    enum class ServiceMessageType
+    {
+        None,
+        Ack,
+        LineTest,
+        ConnOptions,
+        ConnStatus,
+        User = SocketFrame::s_minimalUserFrameId
+    };
 
-	void                        PreprocessFrame(const SocketFrame::Ptr& incomingMessage);
-	ConnectionStatus            CalculateStatus();
+    enum class ConsumeState
+    {
+        Ok,
+        Broken,
+        Incomplete,
+        FatalError
+    };
+
+    enum class ConnectionState
+    {
+        Pending,
+        Ok,
+        Failed
+    };
+
+    struct AliveStateHolder {
+        using Ptr      = std::shared_ptr<AliveStateHolder>;
+        bool m_isAlive = true;
+    };
+
+    class ReplyManager {
+        std::mutex                        m_mutex;
+        std::map<uint64_t, ReplyNotifier> m_replyNotifiers;
+        std::map<uint64_t, TimePoint>     m_timeouts;
+
+    public:
+        void          ClearAndSendError();
+        void          AddNotifier(uint64_t id, ReplyNotifier callback, TimePoint timeout);
+        void          CheckTimeouts(const std::string& extraInfo);
+        ReplyNotifier TakeNotifier(uint64_t id);
+    };
 
 protected:
-	const int                         m_threadId;
+    void         SetConnectionState(ConnectionState connectionState);
+    bool         ReadFrames();
+    ConsumeState ConsumeReadBuffer();
+    ConsumeState ConsumeFrameBuffer();
+    bool         WriteFrames();
+    bool         CheckConnection() const;
+    bool         CheckAndCreateConnection();
+    bool         IsOutputBufferEmpty();
 
-	bool                              m_retryConnectOnFail = true;
-	ConnectionState                   m_prevConnectionState = ConnectionState::Pending;
+    void             PreprocessFrame(const SocketFrame::Ptr& incomingMessage);
+    ConnectionStatus CalculateStatus();
 
-	StateNotifierCallback             m_stateNotifier;
-	ConnectionStatusCallback          m_connStatusNotifier;
-	std::atomic_uint_fast64_t         m_transaction {0};
+protected:
+    const int m_threadId;
 
-	IDataSocket::Ptr                  m_channel;
-	const SocketFrameHandlerSettings  m_settings;
+    bool            m_retryConnectOnFail  = true;
+    ConnectionState m_prevConnectionState = ConnectionState::Pending;
 
-	ByteOrderBuffer                   m_readBuffer;
-	ByteOrderBuffer                   m_frameDataBuffer;
-	struct SegmentInfo 
-	{
-		ByteArrayHolder data;
-		size_t transaction = 0;
-		ServiceMessageType type() const { return ServiceMessageType(data.data()[0]);}
-		SegmentInfo() = default;
-		SegmentInfo(const ByteArrayHolder & d) : data(d) {};
-	};
-	std::deque<SegmentInfo>           m_outputSegments;
-	ServiceMessageType                m_pendingReadType = ServiceMessageType::None;
+    StateNotifierCallback     m_stateNotifier;
+    ConnectionStatusCallback  m_connStatusNotifier;
+    std::atomic_uint_fast64_t m_transaction{ 0 };
 
-	ThreadSafeQueue<SocketFrame::Ptr>    m_framesQueueOutput;
-	size_t                               m_outputAcknowledgesSize = 0;
-	ReplyManager                         m_replyManager;
-	std::map<uint8_t, IFrameReader::Ptr> m_frameReaders;
+    IDataSocket::Ptr                 m_channel;
+    const SocketFrameHandlerSettings m_settings;
 
-	uint8_t                     m_outputLoadPercent = 0;
-	size_t                      m_maxUnAcknowledgedSize = 0;
+    ByteOrderBuffer m_readBuffer;
+    ByteOrderBuffer m_frameDataBuffer;
+    struct SegmentInfo {
+        ByteArrayHolder    data;
+        size_t             transaction = 0;
+        ServiceMessageType type() const { return ServiceMessageType(data.data()[0]); }
+        SegmentInfo() = default;
+        SegmentInfo(const ByteArrayHolder& d)
+            : data(d){};
+    };
+    std::deque<SegmentInfo> m_outputSegments;
+    ServiceMessageType      m_pendingReadType = ServiceMessageType::None;
 
-	size_t                      m_bytesWaitingAcknowledge = 0;
-	TimePoint                   m_lastSucceessfulRead;
-	TimePoint                   m_lastSucceessfulWrite;
-	TimePoint                   m_acknowledgeTimer;
-	TimePoint                   m_lastTestActivity;
-	TimePoint                   m_lastTimeoutCheck;
-	TimePoint                   m_lastConnStatusSend;
-	bool mutable                m_doTestActivity = false;
-	bool mutable                m_setConnectionOptionsNeedSend = false;
-	TimePoint                   m_remoteTimeDiffToPast;
-	bool                        m_lineTestQueued = false;
+    ThreadSafeQueue<SocketFrame::Ptr>    m_framesQueueOutput;
+    size_t                               m_outputAcknowledgesSize = 0;
+    ReplyManager                         m_replyManager;
+    std::map<uint8_t, IFrameReader::Ptr> m_frameReaders;
 
-	std::string                 m_logContextAdditional;
-	std::string                 m_logContext;
-	ThreadLoop                  m_thread;
-	AliveStateHolder::Ptr       m_aliveHolder;
+    uint8_t m_outputLoadPercent     = 0;
+    size_t  m_maxUnAcknowledgedSize = 0;
+
+    size_t    m_bytesWaitingAcknowledge = 0;
+    TimePoint m_lastSucceessfulRead;
+    TimePoint m_lastSucceessfulWrite;
+    TimePoint m_acknowledgeTimer;
+    TimePoint m_lastTestActivity;
+    TimePoint m_lastTimeoutCheck;
+    TimePoint m_lastConnStatusSend;
+    bool mutable m_doTestActivity               = false;
+    bool mutable m_setConnectionOptionsNeedSend = false;
+    TimePoint m_remoteTimeDiffToPast;
+    bool      m_lineTestQueued = false;
+
+    std::string           m_logContextAdditional;
+    std::string           m_logContext;
+    ThreadLoop            m_thread;
+    AliveStateHolder::Ptr m_aliveHolder;
 };
 
 /// Convenience FrameReader creator. FrameType is SocketFrame successor.
 /// Requirenments: FrameType must have static uint8_t s_frameTypeId field.
 /// OutputCallback paramenter in constructor is optional.
 template<typename FrameType>
-class SocketFrameReaderTemplate : public SocketFrameHandler::IFrameReader
-{
+class SocketFrameReaderTemplate : public SocketFrameHandler::IFrameReader {
 public:
-	using Callback = std::function<void(const FrameType &, SocketFrameHandler::OutputCallback)>;
-	SocketFrameReaderTemplate(const Callback & callback = Callback()) : m_callback(callback){ }
+    using Callback = std::function<void(const FrameType&, SocketFrameHandler::OutputCallback)>;
+    SocketFrameReaderTemplate(const Callback& callback = Callback())
+        : m_callback(callback)
+    {}
 
-	static SocketFrameHandler::IFrameReader::Ptr Create(const Callback & callback = Callback())
-	{ return SocketFrameHandler::IFrameReader::Ptr(new SocketFrameReaderTemplate(callback)); }
+    static SocketFrameHandler::IFrameReader::Ptr Create(const Callback& callback = Callback())
+    {
+        return SocketFrameHandler::IFrameReader::Ptr(new SocketFrameReaderTemplate(callback));
+    }
 
-	SocketFrame::Ptr     FrameFactory()  const override { return SocketFrame::Ptr(new FrameType()); }
-	uint8_t FrameTypeId() const override{ return FrameType::s_frameTypeId; }
-	void ProcessFrame(SocketFrame::Ptr incomingMessage, SocketFrameHandler::OutputCallback outputCallback) override
-	{
-		if (m_callback)
-			m_callback(dynamic_cast<const FrameType&>(*incomingMessage.get()), outputCallback);
-	}
+    SocketFrame::Ptr FrameFactory() const override { return SocketFrame::Ptr(new FrameType()); }
+    uint8_t          FrameTypeId() const override { return FrameType::s_frameTypeId; }
+    void             ProcessFrame(SocketFrame::Ptr incomingMessage, SocketFrameHandler::OutputCallback outputCallback) override
+    {
+        if (m_callback)
+            m_callback(dynamic_cast<const FrameType&>(*incomingMessage.get()), outputCallback);
+    }
 
 private:
-	Callback m_callback;
+    Callback m_callback;
 };
 
 }

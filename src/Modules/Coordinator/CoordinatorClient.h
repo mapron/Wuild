@@ -22,69 +22,65 @@
 #include <atomic>
 #include <mutex>
 
-namespace Wuild
-{
+namespace Wuild {
 class SocketFrameHandler;
 
 /// Retrives and send tool server information.
-class CoordinatorClient
-{
+class CoordinatorClient {
 public:
-	using InfoArrivedCallback = std::function<void(const CoordinatorInfo&)>;
-	using Config = CoordinatorClientConfig;
+    using InfoArrivedCallback = std::function<void(const CoordinatorInfo&)>;
+    using Config              = CoordinatorClientConfig;
 
 public:
-	CoordinatorClient();
-	~CoordinatorClient();
+    CoordinatorClient();
+    ~CoordinatorClient();
 
-	bool SetConfig(const Config & config);
-	void SetInfoArrivedCallback(InfoArrivedCallback callback);
+    bool SetConfig(const Config& config);
+    void SetInfoArrivedCallback(InfoArrivedCallback callback);
 
-	void Start();
+    void Start();
 
-	void SetToolServerInfo(const ToolServerInfo & info);
-	void SendToolServerSessionInfo(const ToolServerSessionInfo & sessionInfo, bool isFinished);
+    void SetToolServerInfo(const ToolServerInfo& info);
+    void SendToolServerSessionInfo(const ToolServerSessionInfo& sessionInfo, bool isFinished);
 
-	void StopExtraClients(const std::string& hostExcept);
+    void StopExtraClients(const std::string& hostExcept);
 
 protected:
+    InfoArrivedCallback m_infoArrivedCallback;
 
-	InfoArrivedCallback m_infoArrivedCallback;
+    struct CoordWorker {
+        CoordinatorClient*                  m_coordClient = nullptr;
+        std::shared_ptr<SocketFrameHandler> m_client;
+        std::atomic_bool                    m_clientState{ false };
 
-	struct CoordWorker
-	{
-		CoordinatorClient * m_coordClient = nullptr;
-		std::shared_ptr<SocketFrameHandler> m_client;
-		std::atomic_bool m_clientState { false };
+        std::atomic_bool m_needSendToolServerInfo{ true };
+        std::atomic_bool m_needRequestData{ true };
+        TimePoint        m_lastSend;
 
-		std::atomic_bool m_needSendToolServerInfo {true};
-		std::atomic_bool m_needRequestData {true};
-		TimePoint m_lastSend;
+        ThreadLoop  m_thread;
+        std::string m_host;
 
-		ThreadLoop m_thread;
-		std::string m_host;
+        ToolServerInfo m_toolServerInfo;
+        std::mutex     m_toolServerInfoMutex;
 
-		ToolServerInfo m_toolServerInfo;
-		std::mutex m_toolServerInfoMutex;
+        void SetToolServerInfo(const ToolServerInfo& info);
 
-		void SetToolServerInfo(const ToolServerInfo & info);
+        void Quant();
+        void Start(const std::string& host, int port);
+        void Stop();
+        ~CoordWorker();
+    };
 
-		void Quant();
-		void Start(const std::string& host, int port);
-		void Stop();
-		~CoordWorker();
-	};
+    std::deque<std::shared_ptr<CoordWorker>> m_workers;
 
-	std::deque<std::shared_ptr<CoordWorker>> m_workers;
+    CoordinatorInfo m_coord;
+    ToolServerInfo  m_lastInfo;
 
-	CoordinatorInfo m_coord;
-	ToolServerInfo m_lastInfo;
+    std::mutex m_coordMutex;
 
-	std::mutex m_coordMutex;
+    std::atomic_bool m_exclusiveModeSet{ false };
 
-	std::atomic_bool m_exclusiveModeSet {false};
-
-	Config m_config;
+    Config m_config;
 };
 
 }

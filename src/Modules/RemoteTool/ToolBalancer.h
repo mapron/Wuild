@@ -18,8 +18,7 @@
 #include <mutex>
 #include <atomic>
 
-namespace Wuild
-{
+namespace Wuild {
 /**
  * Balancer used to split request between several tool servers.
  * Main goal: the request should gone to server with least load at this moment.
@@ -30,67 +29,70 @@ namespace Wuild
  * StartTask and FinishTask updates load cache.
  * Get*Threads funcation used for overall statistics.
  */
-class ToolBalancer
-{
+class ToolBalancer {
 public:
-	enum class ClientStatus { Added, Skipped, Updated };
+    enum class ClientStatus
+    {
+        Added,
+        Skipped,
+        Updated
+    };
 
 public:
-	ToolBalancer();
-	~ToolBalancer();
+    ToolBalancer();
+    ~ToolBalancer();
 
-	void SetRequiredTools(const StringVector & requiredToolIds);
-	void SetSessionId(int64_t sessionId);
+    void SetRequiredTools(const StringVector& requiredToolIds);
+    void SetSessionId(int64_t sessionId);
 
-	ClientStatus UpdateClient(const ToolServerInfo & toolServer, size_t & index);
-	void SetClientActive(size_t index, bool isActive);
-	void SetClientCompatible(size_t index, bool isCompatible);
-	void SetServerSideLoad(size_t index, uint16_t load);
+    ClientStatus UpdateClient(const ToolServerInfo& toolServer, size_t& index);
+    void         SetClientActive(size_t index, bool isActive);
+    void         SetClientCompatible(size_t index, bool isCompatible);
+    void         SetServerSideLoad(size_t index, uint16_t load);
 
-	size_t FindFreeClient(const std::string & toolId) const;
-	void StartTask(size_t index);
-	void FinishTask(size_t index);
+    size_t FindFreeClient(const std::string& toolId) const;
+    void   StartTask(size_t index);
+    void   FinishTask(size_t index);
 
-	uint16_t GetTotalThreads() const { return m_totalRemoteThreads; }
-	uint16_t GetFreeThreads() const { return m_freeRemoteThreads; }
-	uint16_t GetUsedThreads() const { return m_usedThreads; }
+    uint16_t GetTotalThreads() const { return m_totalRemoteThreads; }
+    uint16_t GetFreeThreads() const { return m_freeRemoteThreads; }
+    uint16_t GetUsedThreads() const { return m_usedThreads; }
 
-	bool IsAllChecked() const;
+    bool IsAllChecked() const;
 
-	/// Used for tests.
-	std::vector<uint16_t> TestGetBusy() const;
+    /// Used for tests.
+    std::vector<uint16_t> TestGetBusy() const;
 
 protected:
-	struct ClientInfo
-	{
-		ToolServerInfo m_toolServer;
-		bool m_checked = false;
-		bool m_active = false;
-		bool m_compatible = false;
-		uint16_t m_serverSideQueue = 0;
-		uint16_t m_serverSideQueuePrev = 0;
-		uint16_t m_serverSideQueueAvg = 0;
-		uint16_t m_busyMine = 0;
-		uint16_t m_busyOthers = 0;
-		uint16_t m_busyTotal = 0;
-		uint16_t m_busyByNetworkLoad = 0;
-		int64_t m_clientLoad = 0;
-		int m_eachTaskWeight = 32768; //TODO: priority? configaration?
-		void UpdateLoad(int64_t mySessionId);
-	};
+    struct ClientInfo {
+        ToolServerInfo m_toolServer;
+        bool           m_checked             = false;
+        bool           m_active              = false;
+        bool           m_compatible          = false;
+        uint16_t       m_serverSideQueue     = 0;
+        uint16_t       m_serverSideQueuePrev = 0;
+        uint16_t       m_serverSideQueueAvg  = 0;
+        uint16_t       m_busyMine            = 0;
+        uint16_t       m_busyOthers          = 0;
+        uint16_t       m_busyTotal           = 0;
+        uint16_t       m_busyByNetworkLoad   = 0;
+        int64_t        m_clientLoad          = 0;
+        int            m_eachTaskWeight      = 32768; //TODO: priority? configaration?
+        void           UpdateLoad(int64_t mySessionId);
+    };
 
 protected:
-	void RecalcAvailable();
+    void RecalcAvailable();
 
-	std::atomic<uint16_t> m_totalRemoteThreads {0};
-	std::atomic<uint16_t> m_freeRemoteThreads {0};
-	std::atomic<uint16_t> m_usedThreads {0};
+    std::atomic<uint16_t> m_totalRemoteThreads{ 0 };
+    std::atomic<uint16_t> m_freeRemoteThreads{ 0 };
+    std::atomic<uint16_t> m_usedThreads{ 0 };
 
-	int64_t m_sessionId = 0;
+    int64_t m_sessionId = 0;
 
-	std::deque<ClientInfo> m_clients;
-	StringVector m_requiredToolIds;
-	mutable std::mutex m_clientsMutex;
+    std::deque<ClientInfo> m_clients;
+    StringVector           m_requiredToolIds;
+    mutable std::mutex     m_clientsMutex;
 };
 
 }

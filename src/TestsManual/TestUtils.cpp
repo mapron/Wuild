@@ -13,59 +13,53 @@
 
 #include "TestUtils.h"
 
-namespace Wuild
-{
-const std::string TestConfiguration::g_testProgram =
-		"#include<iostream> \n"
-		"int main() { std::cout << \"OK\\n\"; return 0; } \n"
-		;
+namespace Wuild {
+const std::string TestConfiguration::g_testProgram = "#include<iostream> \n"
+                                                     "int main() { std::cout << \"OK\\n\"; return 0; } \n";
 
 IInvocationRewriter::Ptr TestConfiguration::s_invocationRewriter;
 
 StringVector CreateTestProgramInvocation()
 {
-	std::string tempDir = Application::Instance().GetTempDir();
-	std::string testFileCpp = tempDir + "/test.cpp";
-	ByteArrayHolder fileData;
-	fileData.ref().insert(fileData.ref().begin(), TestConfiguration::g_testProgram.cbegin(), TestConfiguration::g_testProgram.cend());
-	FileInfo(testFileCpp).WriteFile(fileData);
+    std::string     tempDir     = Application::Instance().GetTempDir();
+    std::string     testFileCpp = tempDir + "/test.cpp";
+    ByteArrayHolder fileData;
+    fileData.ref().insert(fileData.ref().begin(), TestConfiguration::g_testProgram.cbegin(), TestConfiguration::g_testProgram.cend());
+    FileInfo(testFileCpp).WriteFile(fileData);
 
-	StringVector args;
-	args.push_back("-c");
-	args.push_back(testFileCpp);
-	args.push_back("-o");
-	args.push_back(tempDir + "/test.o");
+    StringVector args;
+    args.push_back("-c");
+    args.push_back(testFileCpp);
+    args.push_back("-o");
+    args.push_back(tempDir + "/test.o");
 
 #ifdef __APPLE__
-	args.push_back("-isysroot");
-	args.push_back("/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk");
+    args.push_back("-isysroot");
+    args.push_back("/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk");
 #endif
-	return args;
+    return args;
 }
 
 int HandleTestResult()
 {
-	std::cout << (Application::GetExitCode() == 0 ? "OK" : "FAIL") << std::endl;
-	return Application::GetExitCode();
+    std::cout << (Application::GetExitCode() == 0 ? "OK" : "FAIL") << std::endl;
+    return Application::GetExitCode();
 }
 
-bool CreateInvocationRewriter(ConfiguredApplication &app, bool stub)
+bool CreateInvocationRewriter(ConfiguredApplication& app, bool stub)
 {
-	if (!stub)
-	{
-		IInvocationRewriter::Config config;
-		if (!app.GetInvocationRewriterConfig( config ))
-			return false;
+    if (!stub) {
+        IInvocationRewriter::Config config;
+        if (!app.GetInvocationRewriterConfig(config))
+            return false;
 
-		TestConfiguration::s_invocationRewriter = InvocationRewriter::Create(config);
-	}
-	else
-	{
-		IInvocationRewriter::Config config;
-		TestConfiguration::GetTestToolConfig( config );
-		TestConfiguration::s_invocationRewriter.reset( new InvocationRewriterStub(config) );
-	}
-	return true;
+        TestConfiguration::s_invocationRewriter = InvocationRewriter::Create(config);
+    } else {
+        IInvocationRewriter::Config config;
+        TestConfiguration::GetTestToolConfig(config);
+        TestConfiguration::s_invocationRewriter.reset(new InvocationRewriterStub(config));
+    }
+    return true;
 }
 
 }

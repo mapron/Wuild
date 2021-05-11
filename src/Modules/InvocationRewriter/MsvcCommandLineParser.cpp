@@ -13,169 +13,143 @@
 
 #include "MsvcCommandLineParser.h"
 
-namespace Wuild
-{
+namespace Wuild {
 
 void MsvcCommandLineParser::UpdateInfo()
 {
-	StringVector realArgs;
-	bool skipNext = false;
-	bool ignoreNext = false;
+    StringVector realArgs;
+    bool         skipNext   = false;
+    bool         ignoreNext = false;
 
-	m_invocation.m_inputNameIndex  = -1;
-	m_invocation.m_outputNameIndex = -1;
-	m_invocation.m_type = ToolInvocation::InvokeType::Unknown;
-	for (const auto & arg : m_invocation.m_args)
-	{
-	   // argIndex++;
-		if (skipNext)
-		{
-			skipNext = false;
-			continue;
-		}
-		if (arg[0] == '/' || arg[0] == '-')
-		{
-			if (arg[1] == 'c' )
-			{
-				m_invocation.m_type = ToolInvocation::InvokeType::Compile;
-				m_invokeTypeIndex = realArgs.size();
-			}
-			if (arg[1] == 'P' )
-			{
-				m_invocation.m_type = ToolInvocation::InvokeType::Preprocess;
-				m_invokeTypeIndex = realArgs.size();
-			}
-			if (arg.size() > 3 && arg[1] == 'A' &&  arg[2] == 'I')
-			{
-				m_remotePossible = false;
-			}
-			if ((arg[1] == 'D' || arg[1] == 'I') && arg.size() == 2) // /D DEFINE  /I path
-			{
-				ignoreNext = true;
-			}
+    m_invocation.m_inputNameIndex  = -1;
+    m_invocation.m_outputNameIndex = -1;
+    m_invocation.m_type            = ToolInvocation::InvokeType::Unknown;
+    for (const auto& arg : m_invocation.m_args) {
+        if (skipNext) {
+            skipNext = false;
+            continue;
+        }
+        if (arg[0] == '/' || arg[0] == '-') {
+            if (arg[1] == 'c') {
+                m_invocation.m_type = ToolInvocation::InvokeType::Compile;
+                m_invokeTypeIndex   = realArgs.size();
+            }
+            if (arg[1] == 'P') {
+                m_invocation.m_type = ToolInvocation::InvokeType::Preprocess;
+                m_invokeTypeIndex   = realArgs.size();
+            }
+            if (arg.size() > 3 && arg[1] == 'A' && arg[2] == 'I') {
+                m_remotePossible = false;
+            }
+            if ((arg[1] == 'D' || arg[1] == 'I') && arg.size() == 2) // /D DEFINE  /I path
+            {
+                ignoreNext = true;
+            }
 
-			if (arg[1] == 'F' )
-			{
-				char fileType = arg[2];
-				if (fileType == 'd' || fileType == 'i' || fileType == 'o')
-				{
-				   int fileIndex;
-				   if (arg[3] != ':')
-				   {
-					   realArgs.push_back(arg.substr(0,3) + ":");
-					   fileIndex = realArgs.size();
-					   auto filename = arg.substr(3);
-					   if (!filename.empty())
-						  realArgs.push_back(filename);
-					   ignoreNext = true;
-				   }
-				   else
-				   {
-					   realArgs.push_back(arg);
-					   ignoreNext = true;
-					   fileIndex = realArgs.size();
-				   }
-				   if (fileType == 'o')
-				   {
-						m_invocation.m_outputNameIndex = fileIndex;
-				   }
-				   if (fileType == 'i')
-				   {
-						m_invocation.m_outputNameIndex = fileIndex;
-				   }
-				   continue;
-				}
-			}
-		}
-		else if (!IsIgnored(arg) && !ignoreNext)
-		{
-			if (m_invocation.m_inputNameIndex != -1)
-			{
-				m_invocation.m_type = ToolInvocation::InvokeType::Unknown;
-				return;
-			}
-			m_invocation.m_inputNameIndex = realArgs.size();
-		}
-		realArgs.push_back(arg);
-		ignoreNext = false;
-	}
-	m_invocation.m_args = realArgs;
-	if (m_invocation.m_inputNameIndex == -1 || m_invocation.m_outputNameIndex == -1 || m_invocation.m_outputNameIndex >= (int)m_invocation.m_args.size())
-	{
-		m_invocation.m_inputNameIndex = -1;
-		m_invocation.m_outputNameIndex = -1;
-		m_invocation.m_type = ToolInvocation::InvokeType::Unknown;
-	}
+            if (arg[1] == 'F') {
+                char fileType = arg[2];
+                if (fileType == 'd'
+                    || fileType == 'i'
+                    || fileType == 'o') {
+                    int fileIndex;
+                    if (arg[3] != ':') {
+                        realArgs.push_back(arg.substr(0, 3) + ":");
+                        fileIndex     = realArgs.size();
+                        auto filename = arg.substr(3);
+                        if (!filename.empty())
+                            realArgs.push_back(filename);
+                        ignoreNext = true;
+                    } else {
+                        realArgs.push_back(arg);
+                        ignoreNext = true;
+                        fileIndex  = realArgs.size();
+                    }
+                    if (fileType == 'o') {
+                        m_invocation.m_outputNameIndex = fileIndex;
+                    }
+                    if (fileType == 'i') {
+                        m_invocation.m_outputNameIndex = fileIndex;
+                    }
+                    continue;
+                }
+            }
+        } else if (!IsIgnored(arg) && !ignoreNext) {
+            if (m_invocation.m_inputNameIndex != -1) {
+                m_invocation.m_type = ToolInvocation::InvokeType::Unknown;
+                return;
+            }
+            m_invocation.m_inputNameIndex = realArgs.size();
+        }
+        realArgs.push_back(arg);
+        ignoreNext = false;
+    }
+    m_invocation.m_args = realArgs;
+    if (m_invocation.m_inputNameIndex == -1
+        || m_invocation.m_outputNameIndex == -1
+        || m_invocation.m_outputNameIndex >= (int) m_invocation.m_args.size()) {
+        m_invocation.m_inputNameIndex  = -1;
+        m_invocation.m_outputNameIndex = -1;
+        m_invocation.m_type            = ToolInvocation::InvokeType::Unknown;
+    }
 }
 
 void MsvcCommandLineParser::SetInvokeType(ToolInvocation::InvokeType type)
 {
-	if (m_invocation.m_type == ToolInvocation::InvokeType::Unknown)
-		return;
-	bool pp = type == ToolInvocation::InvokeType::Preprocess;
-	m_invocation.m_type = type;
-	m_invocation.m_args[m_invokeTypeIndex] = pp ? "/P" : "/C";
-	m_invocation.m_args[m_invocation.m_outputNameIndex - 1] = pp ? "/Fi:" : "/Fo:";
+    if (m_invocation.m_type == ToolInvocation::InvokeType::Unknown)
+        return;
+    bool pp                                                 = type == ToolInvocation::InvokeType::Preprocess;
+    m_invocation.m_type                                     = type;
+    m_invocation.m_args[m_invokeTypeIndex]                  = pp ? "/P" : "/C";
+    m_invocation.m_args[m_invocation.m_outputNameIndex - 1] = pp ? "/Fi:" : "/Fo:";
 }
-
 
 void MsvcCommandLineParser::RemoveLocalFlags()
 {
-	StringVector newArgs;
-	bool skipNext = false;
-	for (const auto & arg : m_invocation.m_args)
-	{
-		if (skipNext)
-		{
-			skipNext = false;
-			continue;
-		}
-		if (arg == "/Fd:")
-		{
-			skipNext = true;
-			continue;
-		}
-		if (arg == "/ZI" || arg == "/Zi")
-		{
-			newArgs.push_back("/Z7");
-			continue;
-		}
-		if (arg == "/Gm" || arg == "/FS")
-		{
-			continue;
-		}
-		newArgs.push_back(arg);
-	}
-	m_invocation.m_args = newArgs;
-	UpdateInfo();
+    StringVector newArgs;
+    bool         skipNext = false;
+    for (const auto& arg : m_invocation.m_args) {
+        if (skipNext) {
+            skipNext = false;
+            continue;
+        }
+        if (arg == "/Fd:") {
+            skipNext = true;
+            continue;
+        }
+        if (arg == "/ZI" || arg == "/Zi") {
+            newArgs.push_back("/Z7");
+            continue;
+        }
+        if (arg == "/Gm" || arg == "/FS") {
+            continue;
+        }
+        newArgs.push_back(arg);
+    }
+    m_invocation.m_args = newArgs;
+    UpdateInfo();
 }
 
 void MsvcCommandLineParser::RemovePrepocessorFlags()
 {
-	StringVector newArgs;
-	bool skipNext = false;
-	for (const auto & arg : m_invocation.m_args)
-	{
-		if (skipNext)
-		{
-			skipNext = false;
-			continue;
-		}
-		if (arg[0] == '-' || arg[0] == '/')
-		{
-			if (arg[1] == 'I' || arg[1] == 'D' || arg.substr(1) == "showIncludes")
-			{
-				if (arg.size() == 2)
-				{
-					skipNext = true;
-				}
-				continue;
-			}
-		}
-		newArgs.push_back(arg);
-	}
-	m_invocation.m_args = newArgs;
-	UpdateInfo();
+    StringVector newArgs;
+    bool         skipNext = false;
+    for (const auto& arg : m_invocation.m_args) {
+        if (skipNext) {
+            skipNext = false;
+            continue;
+        }
+        if (arg[0] == '-' || arg[0] == '/') {
+            if (arg[1] == 'I' || arg[1] == 'D' || arg.substr(1) == "showIncludes") {
+                if (arg.size() == 2) {
+                    skipNext = true;
+                }
+                continue;
+            }
+        }
+        newArgs.push_back(arg);
+    }
+    m_invocation.m_args = newArgs;
+    UpdateInfo();
 }
 
 }

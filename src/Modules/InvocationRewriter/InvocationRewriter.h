@@ -16,58 +16,54 @@
 #include "IInvocationRewriter.h"
 #include "ICommandLineParser.h"
 
-namespace Wuild
-{
+namespace Wuild {
 
-class InvocationRewriter : public IInvocationRewriter
-{
-	InvocationRewriter();
+class InvocationRewriter : public IInvocationRewriter {
+    InvocationRewriter();
+
 public:
+    static IInvocationRewriter::Ptr Create(const IInvocationRewriter::Config& config)
+    {
+        auto res = IInvocationRewriter::Ptr(new InvocationRewriter());
+        res->SetConfig(config);
+        return res;
+    }
 
-	static IInvocationRewriter::Ptr Create(const IInvocationRewriter::Config & config)
-	{
-		auto res = IInvocationRewriter::Ptr(new InvocationRewriter());
-		res->SetConfig(config);
-		return res;
-	}
+    void          SetConfig(const Config& config) override;
+    const Config& GetConfig() const override;
 
-	void SetConfig(const Config & config) override;
-	const Config& GetConfig() const override;
+    bool IsCompilerInvocation(const ToolInvocation& original) const override;
 
-	bool IsCompilerInvocation(const ToolInvocation & original) const override;
+    bool SplitInvocation(const ToolInvocation& original,
+                         ToolInvocation&       preprocessor,
+                         ToolInvocation&       compilation,
+                         std::string*          remoteToolId = nullptr) const override;
 
-	bool SplitInvocation(const ToolInvocation & original,
-						 ToolInvocation & preprocessor,
-						 ToolInvocation & compilation,
-						 std::string * remoteToolId = nullptr) const override;
+    ToolInvocation CompleteInvocation(const ToolInvocation& original) const override;
 
-   ToolInvocation CompleteInvocation(const ToolInvocation & original) const override;
+    ToolInvocation::Id CompleteToolId(const ToolInvocation::Id& original) const override;
 
-   ToolInvocation::Id CompleteToolId(const ToolInvocation::Id & original) const override;
+    bool           CheckRemotePossibleForFlags(const ToolInvocation& original) const override;
+    ToolInvocation FilterFlags(const ToolInvocation& original) const override;
 
-   bool CheckRemotePossibleForFlags(const ToolInvocation & original) const override;
-   ToolInvocation FilterFlags(const ToolInvocation & original) const override;
+    std::string GetPreprocessedPath(const std::string& sourcePath, const std::string& objectPath) const override;
 
-   std::string GetPreprocessedPath(const std::string & sourcePath, const std::string & objectPath) const override;
-
-   ToolInvocation PrepareRemote(const ToolInvocation & original) const override;
-
+    ToolInvocation PrepareRemote(const ToolInvocation& original) const override;
 
 private:
-	struct ToolInfo
-	{
-		ICommandLineParser::Ptr m_parser;
-		ToolInvocation::Id m_id;
-		Config::Tool m_tool;
-		std::string m_remoteId;
-		bool m_valid = false;
-	};
-	ToolInfo CompileInfoById(const ToolInvocation::Id & id) const;
-	ToolInfo CompileInfoByExecutable(const std::string & executable) const;
-	ToolInfo CompileInfoByToolId(const std::string & toolId) const;
-	ToolInfo CompileInfoByUnit(const Config::Tool & unit) const;
+    struct ToolInfo {
+        ICommandLineParser::Ptr m_parser;
+        ToolInvocation::Id      m_id;
+        Config::Tool            m_tool;
+        std::string             m_remoteId;
+        bool                    m_valid = false;
+    };
+    ToolInfo CompileInfoById(const ToolInvocation::Id& id) const;
+    ToolInfo CompileInfoByExecutable(const std::string& executable) const;
+    ToolInfo CompileInfoByToolId(const std::string& toolId) const;
+    ToolInfo CompileInfoByUnit(const Config::Tool& unit) const;
 
-	Config m_config;
+    Config m_config;
 };
 
 }

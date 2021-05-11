@@ -15,19 +15,17 @@
 
 #include "AbstractCommandLineParser.h"
 
-namespace Wuild
-{
-class GccCommandLineParser: public AbstractCommandLineParser
-{
-	int m_invokeTypeIndex = -1;
+namespace Wuild {
+class GccCommandLineParser : public AbstractCommandLineParser {
+    int m_invokeTypeIndex = -1;
 
 public:
-	void UpdateInfo() override;
+    void UpdateInfo() override;
 
-	void SetInvokeType(ToolInvocation::InvokeType type) override;
+    void SetInvokeType(ToolInvocation::InvokeType type) override;
 
-	void RemoveLocalFlags() override;
-	void RemoveDependencyFiles() override;
-	void RemovePrepocessorFlags() override;
+    void RemoveLocalFlags() override;
+    void RemoveDependencyFiles() override;
+    void RemovePrepocessorFlags() override;
 };
 }

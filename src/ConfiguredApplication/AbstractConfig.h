@@ -20,33 +20,33 @@ namespace Wuild {
 
 /// Class for reading settings from ini file.
 /// Format is very simple: key=value. Sections is not supported.
-class AbstractConfig
-{
+class AbstractConfig {
 public:
-	/// Set list in form ['key=value', 'key2=value2']
-	void ReadCommandLine(const StringVector & args);
-	bool ReadIniFile(const std::string & filename);
+    /// Set list in form ['key=value', 'key2=value2']
+    void ReadCommandLine(const StringVector& args);
+    bool ReadIniFile(const std::string& filename);
 
-	/// No keys are present in config.
-	bool empty() const;
+    /// No keys are present in config.
+    bool empty() const;
 
-	/// Value key is present in config.
-	bool Exists(const std::string & group, const std::string & key) const;
+    /// Value key is present in config.
+    bool Exists(const std::string& group, const std::string& key) const;
 
-	/// Get different value types. If value no present in group, it will be searched in default ("") group.
-	int GetInt(const std::string & group, const std::string & key, int defValue = 0) const;
-	double GetDouble(const std::string & group, const std::string & key, double defValue = 0) const;
-	std::string GetString(const std::string & group, const std::string & key, const std::string & defValue = "") const;
-	StringVector GetStringList(const std::string & group, const std::string & key, const StringVector & defValue = StringVector()) const;
-	bool GetBool(const std::string & group, const std::string & key, bool defValue = false) const;
+    /// Get different value types. If value no present in group, it will be searched in default ("") group.
+    int          GetInt(const std::string& group, const std::string& key, int defValue = 0) const;
+    double       GetDouble(const std::string& group, const std::string& key, double defValue = 0) const;
+    std::string  GetString(const std::string& group, const std::string& key, const std::string& defValue = "") const;
+    StringVector GetStringList(const std::string& group, const std::string& key, const StringVector& defValue = StringVector()) const;
+    bool         GetBool(const std::string& group, const std::string& key, bool defValue = false) const;
 
-	std::string DumpAllValues() const;
+    std::string DumpAllValues() const;
+
 private:
-	void SetArg(const std::string & group, const std::string & arg);
-	const std::string * Find(const std::string & group, const std::string & key) const;
+    void               SetArg(const std::string& group, const std::string& arg);
+    const std::string* Find(const std::string& group, const std::string& key) const;
 
-	using ValueGroup = std::map<std::string, std::string>;
-	std::map<std::string, ValueGroup> m_data;
+    using ValueGroup = std::map<std::string, std::string>;
+    std::map<std::string, ValueGroup> m_data;
 };
 
 }

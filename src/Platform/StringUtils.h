@@ -18,15 +18,15 @@
 namespace Wuild { namespace StringUtils {
 
 /// Joint string vector by char separator
-std::string JoinString(const StringVector & list, char glue);
+std::string JoinString(const StringVector& list, char glue);
 
 /// Remove whitespace from both ends
-std::string Trim(const std::string & s);
+std::string Trim(const std::string& s);
 
 /// Split string to std::vector using char delimiter. If trimEach is true, Trim() function applied to each element.
-void SplitString(const std::string & str, StringVector & outList, char delim, bool trimEach = false, bool skipEmpty = false);
+void SplitString(const std::string& str, StringVector& outList, char delim, bool trimEach = false, bool skipEmpty = false);
 
 /// Copy argv values to StringVector. If skipFirstArg is true, [0] element is skipped.
-StringVector StringVectorFromArgv(int argc, char ** argv, bool skipFirstArg = true);
+StringVector StringVectorFromArgv(int argc, char** argv, bool skipFirstArg = true);
 
-} }
+}}

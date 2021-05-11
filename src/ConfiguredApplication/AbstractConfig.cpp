@@ -26,198 +26,185 @@
 #include <sstream>
 #include <regex>
 
-namespace
-{
-	const char g_listSeparator = ',';
-	const char g_equal = '=';
-	const char g_comment = ';';
-	const char g_iniGroupStart = '[';
-	const char g_groupCommandLineSeparator = '-';
-	const std::string g_assign = ":=";
+namespace {
+const char        g_listSeparator             = ',';
+const char        g_equal                     = '=';
+const char        g_comment                   = ';';
+const char        g_iniGroupStart             = '[';
+const char        g_groupCommandLineSeparator = '-';
+const std::string g_assign                    = ":=";
 }
 
-namespace Wuild
-{
+namespace Wuild {
 
-void AbstractConfig::ReadCommandLine(const StringVector & args)
+void AbstractConfig::ReadCommandLine(const StringVector& args)
 {
-	for (const auto & arg : args)
-	{
-		const auto groupPos = arg.find(g_groupCommandLineSeparator);
-		if (groupPos == std::string::npos)
-			SetArg("", arg);
-		else
-			SetArg(arg.substr(0, groupPos), arg.substr(groupPos + 1));
-	}
+    for (const auto& arg : args) {
+        const auto groupPos = arg.find(g_groupCommandLineSeparator);
+        if (groupPos == std::string::npos)
+            SetArg("", arg);
+        else
+            SetArg(arg.substr(0, groupPos), arg.substr(groupPos + 1));
+    }
 }
 
-bool AbstractConfig::ReadIniFile(const std::string &filename)
+bool AbstractConfig::ReadIniFile(const std::string& filename)
 {
-	if (filename.empty())
-		return false;
+    if (filename.empty())
+        return false;
 
-	std::string currentGroup;
+    std::string currentGroup;
 
-	std::map<std::string, std::string> variables;
+    std::map<std::string, std::string> variables;
 
-	std::ifstream fin;
-	fin.open(filename);
-	if (!fin)
-		return false;
-	std::string line;
-	const std::regex varregex { R"regex(\$\w+)regex" };
-	while(fin){
-		 std::getline(fin, line);
-		 line = StringUtils::Trim(line);
-		 line = line.substr(0, line.find(g_comment)); // remove comments;
-		 if (!line.empty())
-		 {
-			if (line[0] == g_iniGroupStart)
-			{
-				currentGroup = line.substr(1, line.size()-2); // hope we have closing ].
-				continue;
-			}
+    std::ifstream fin;
+    fin.open(filename);
+    if (!fin)
+        return false;
+    std::string      line;
+    const std::regex varregex{ R"regex(\$\w+)regex" };
+    while (fin) {
+        std::getline(fin, line);
+        line = StringUtils::Trim(line);
+        line = line.substr(0, line.find(g_comment)); // remove comments;
+        if (!line.empty()) {
+            if (line[0] == g_iniGroupStart) {
+                currentGroup = line.substr(1, line.size() - 2); // hope we have closing ].
+                continue;
+            }
 
-			// Replace all $VarName in line. First, trying our variable map; second, try environment variable.
-			size_t offset = 0;
-			std::smatch match;
-			while (std::regex_search(line.cbegin() + offset, line.cend(), match, varregex))
-			{
-				auto wholeMatchPosition = match.position(0);
-				const std::string varName = match[0].str().substr(1);
-				std::string replacement = "???";
-				const auto varIt = variables.find(varName);
-				if (varIt != variables.cend())
-				{
-					replacement = varIt->second;
-				}
-				else
-				{
-					auto envValue = getenv(varName.c_str());
-					if (envValue)
-						replacement = envValue;
-					else
-						Syslogger(Syslogger::Err) << "Invalid variable '" << varName << "' found in config.";
-				}
+            // Replace all $VarName in line. First, trying our variable map; second, try environment variable.
+            size_t      offset = 0;
+            std::smatch match;
+            while (std::regex_search(line.cbegin() + offset, line.cend(), match, varregex)) {
+                auto              wholeMatchPosition = match.position(0);
+                const std::string varName            = match[0].str().substr(1);
+                std::string       replacement        = "???";
+                const auto        varIt              = variables.find(varName);
+                if (varIt != variables.cend()) {
+                    replacement = varIt->second;
+                } else {
+                    auto envValue = getenv(varName.c_str());
+                    if (envValue)
+                        replacement = envValue;
+                    else
+                        Syslogger(Syslogger::Err) << "Invalid variable '" << varName << "' found in config.";
+                }
 
-				const auto start = line.begin() + offset + wholeMatchPosition;
-				line.replace(start, start + match[0].length(), replacement);
+                const auto start = line.begin() + offset + wholeMatchPosition;
+                line.replace(start, start + match[0].length(), replacement);
 
-				offset += wholeMatchPosition + replacement.length();
-			}
+                offset += wholeMatchPosition + replacement.length();
+            }
 
-			size_t assignPos = line.find(g_assign);
-			if (assignPos != std::string::npos)
-			{
-				const auto varname = StringUtils::Trim(line.substr(0, assignPos));
-				const auto value = StringUtils::Trim(line.substr(assignPos + g_assign.size()));
-				variables[varname] = value;
-				continue;
-			}
-			SetArg(currentGroup, line);
-		 }
-	}
-	fin.close();
-	return true;
+            size_t assignPos = line.find(g_assign);
+            if (assignPos != std::string::npos) {
+                const auto varname = StringUtils::Trim(line.substr(0, assignPos));
+                const auto value   = StringUtils::Trim(line.substr(assignPos + g_assign.size()));
+                variables[varname] = value;
+                continue;
+            }
+            SetArg(currentGroup, line);
+        }
+    }
+    fin.close();
+    return true;
 }
 
 bool AbstractConfig::empty() const
 {
-	return m_data.empty();
+    return m_data.empty();
 }
 
-bool AbstractConfig::Exists(const std::string & group, const std::string &key) const
+bool AbstractConfig::Exists(const std::string& group, const std::string& key) const
 {
-	return Find(group, key) != nullptr;
+    return Find(group, key) != nullptr;
 }
 
-int AbstractConfig::GetInt(const std::string & group, const std::string &key, int defValue) const
+int AbstractConfig::GetInt(const std::string& group, const std::string& key, int defValue) const
 {
-	const auto * val = Find(group, key);
-	if (!val)
-		return defValue;
+    const auto* val = Find(group, key);
+    if (!val)
+        return defValue;
 
-	return std::atoi(val->c_str());
+    return std::atoi(val->c_str());
 }
 
-double AbstractConfig::GetDouble(const std::string & group, const std::string & key, double defValue) const
+double AbstractConfig::GetDouble(const std::string& group, const std::string& key, double defValue) const
 {
-	const auto * val = Find(group, key);
-	if (!val)
-		return defValue;
+    const auto* val = Find(group, key);
+    if (!val)
+        return defValue;
 
-	return std::stod(*val);
+    return std::stod(*val);
 }
 
-std::string AbstractConfig::GetString(const std::string & group, const std::string &key, const std::string &defValue) const
+std::string AbstractConfig::GetString(const std::string& group, const std::string& key, const std::string& defValue) const
 {
-	const auto * val = Find(group, key);
-	if (!val)
-		return defValue;
+    const auto* val = Find(group, key);
+    if (!val)
+        return defValue;
 
-	return *val;
+    return *val;
 }
 
-StringVector AbstractConfig::GetStringList(const std::string & group, const std::string &key, const StringVector &defValue) const
+StringVector AbstractConfig::GetStringList(const std::string& group, const std::string& key, const StringVector& defValue) const
 {
-	const auto * val = Find(group, key);
-	if (!val)
-		return defValue;
+    const auto* val = Find(group, key);
+    if (!val)
+        return defValue;
 
-	StringVector res;
-	StringUtils::SplitString(*val, res, g_listSeparator, true, true);
-	return res;
+    StringVector res;
+    StringUtils::SplitString(*val, res, g_listSeparator, true, true);
+    return res;
 }
 
-bool AbstractConfig::GetBool(const std::string & group, const std::string &key, bool defValue) const
+bool AbstractConfig::GetBool(const std::string& group, const std::string& key, bool defValue) const
 {
-	const std::string val = GetString(group, key);
-	if (val == "true" || val == "TRUE" || val == "ON" || val == "on")
-		return true;
+    const std::string val = GetString(group, key);
+    if (val == "true" || val == "TRUE" || val == "ON" || val == "on")
+        return true;
 
-	return GetInt(group, key, defValue) > 0;
+    return GetInt(group, key, defValue) > 0;
 }
 
 std::string AbstractConfig::DumpAllValues() const
 {
-	std::ostringstream os;
-	for (const auto& group : m_data)
-	{
-		if (!group.first.empty())
-		{
-			os << "\n\n[" << group.first << "]";
-		}
-		for (const auto & keyValue : group.second)
-		{
-			os << "\n" << keyValue.first << " = " << keyValue.second;
-		}
-	}
-	return os.str();
+    std::ostringstream os;
+    for (const auto& group : m_data) {
+        if (!group.first.empty()) {
+            os << "\n\n[" << group.first << "]";
+        }
+        for (const auto& keyValue : group.second) {
+            os << "\n"
+               << keyValue.first << " = " << keyValue.second;
+        }
+    }
+    return os.str();
 }
 
-void AbstractConfig::SetArg(const std::string & group, const std::string &arg)
+void AbstractConfig::SetArg(const std::string& group, const std::string& arg)
 {
-	const auto equalPos = arg.find(g_equal);
-	if (equalPos == std::string::npos)
-		return;
+    const auto equalPos = arg.find(g_equal);
+    if (equalPos == std::string::npos)
+        return;
 
-	const auto key = StringUtils::Trim(arg.substr(0, equalPos));
-	const auto value = StringUtils::Trim(arg.substr(equalPos + 1));
-	m_data[group][key] = value;
+    const auto key     = StringUtils::Trim(arg.substr(0, equalPos));
+    const auto value   = StringUtils::Trim(arg.substr(equalPos + 1));
+    m_data[group][key] = value;
 }
 
-const std::string *AbstractConfig::Find(const std::string &group, const std::string &key) const
+const std::string* AbstractConfig::Find(const std::string& group, const std::string& key) const
 {
-	auto groupIt = m_data.find(group);
-	if (groupIt == m_data.end())
-		return group.empty() ? nullptr : Find("", key);
+    auto groupIt = m_data.find(group);
+    if (groupIt == m_data.end())
+        return group.empty() ? nullptr : Find("", key);
 
-	auto valueIt =  groupIt->second.find(key);
-	if (valueIt == groupIt->second.end())
-		return group.empty() ? nullptr : Find("", key);
+    auto valueIt = groupIt->second.find(key);
+    if (valueIt == groupIt->second.end())
+        return group.empty() ? nullptr : Find("", key);
 
-	return &(valueIt->second);
+    return &(valueIt->second);
 }
-
 
 }

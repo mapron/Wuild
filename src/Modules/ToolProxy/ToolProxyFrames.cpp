@@ -17,56 +17,54 @@
 
 #include <utility>
 
-namespace Wuild
-{
+namespace Wuild {
 
-void ToolProxyRequest::LogTo(std::ostream &os) const
+void ToolProxyRequest::LogTo(std::ostream& os) const
 {
-	SocketFrame::LogTo(os);
-	os << " " << m_invocation.m_id.m_toolId << " args:" << m_invocation.GetArgsString(false) << " cwd:" << m_cwd;
+    SocketFrame::LogTo(os);
+    os << " " << m_invocation.m_id.m_toolId << " args:" << m_invocation.GetArgsString(false) << " cwd:" << m_cwd;
 }
 
-SocketFrame::State ToolProxyRequest::ReadInternal(ByteOrderDataStreamReader &stream)
+SocketFrame::State ToolProxyRequest::ReadInternal(ByteOrderDataStreamReader& stream)
 {
-	stream >> m_invocation.m_args;
-	stream >> m_invocation.m_id.m_toolId;
-	stream >> m_cwd;
-	return stOk;
+    stream >> m_invocation.m_args;
+    stream >> m_invocation.m_id.m_toolId;
+    stream >> m_cwd;
+    return stOk;
 }
 
-SocketFrame::State ToolProxyRequest::WriteInternal(ByteOrderDataStreamWriter &stream) const
+SocketFrame::State ToolProxyRequest::WriteInternal(ByteOrderDataStreamWriter& stream) const
 {
-	stream << m_invocation.m_args;
-	stream << m_invocation.m_id.m_toolId;
-	stream << m_cwd;
-	return stOk;
+    stream << m_invocation.m_args;
+    stream << m_invocation.m_id.m_toolId;
+    stream << m_cwd;
+    return stOk;
 }
 
 ToolProxyResponse::ToolProxyResponse(std::string stdOut, bool result)
-	: m_result(result)
-	, m_stdOut(std::move(stdOut))
+    : m_result(result)
+    , m_stdOut(std::move(stdOut))
 {
-
 }
 
-void ToolProxyResponse::LogTo(std::ostream &os) const
+void ToolProxyResponse::LogTo(std::ostream& os) const
 {
-	SocketFrame::LogTo(os);
-	os << " -> " << (m_result ? "OK" : "FAIL") << " [" << m_stdOut.size() << m_stdOut << "]";
+    SocketFrame::LogTo(os);
+    os << " -> " << (m_result ? "OK" : "FAIL") << " [" << m_stdOut.size() << m_stdOut << "]";
 }
 
-SocketFrame::State ToolProxyResponse::ReadInternal(ByteOrderDataStreamReader &stream)
+SocketFrame::State ToolProxyResponse::ReadInternal(ByteOrderDataStreamReader& stream)
 {
-	stream >> m_result;
-	stream >> m_stdOut;
-	return stOk;
+    stream >> m_result;
+    stream >> m_stdOut;
+    return stOk;
 }
 
-SocketFrame::State ToolProxyResponse::WriteInternal(ByteOrderDataStreamWriter &stream) const
+SocketFrame::State ToolProxyResponse::WriteInternal(ByteOrderDataStreamWriter& stream) const
 {
-	stream << m_result;
-	stream << m_stdOut;
-	return stOk;
+    stream << m_result;
+    stream << m_stdOut;
+    return stOk;
 }
 
 }

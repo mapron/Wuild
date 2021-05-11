@@ -14,13 +14,14 @@
 #pragma once
 #include "IConfig.h"
 
-namespace Wuild
-{
-class CoordinatorServerConfig : public IConfig
-{
+namespace Wuild {
+
+class CoordinatorServerConfig : public IConfig {
 public:
-	int m_listenPort = 0;
-	int m_lastestSessionsSize = 20;
-	bool Validate(std::ostream * errStream = nullptr) const override;
+    int m_listenPort          = 0;
+    int m_lastestSessionsSize = 20;
+
+    bool Validate(std::ostream* errStream = nullptr) const override;
 };
+
 }

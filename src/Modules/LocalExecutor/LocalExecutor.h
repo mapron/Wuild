@@ -26,47 +26,48 @@
 struct Subprocess;
 struct SubprocessSet;
 
-namespace Wuild
-{
+namespace Wuild {
 /// Executes command on local host and notifies caller when task finished.
 ///
 /// Uses ninja's SubprocessSet.
-class LocalExecutor : public ILocalExecutor
-{
-	LocalExecutor(IInvocationRewriter::Ptr invocationRewriter, std::string tempPath, const std::shared_ptr<SubprocessSet> & subprocessSet);
-public:
-	static Ptr Create(IInvocationRewriter::Ptr invocationRewriter, std::string tempPath, const std::shared_ptr<SubprocessSet> & subprocessSet = nullptr)
-	{ return Ptr(new LocalExecutor(invocationRewriter, std::move(tempPath), subprocessSet)); }
+class LocalExecutor : public ILocalExecutor {
+    LocalExecutor(IInvocationRewriter::Ptr invocationRewriter, std::string tempPath, const std::shared_ptr<SubprocessSet>& subprocessSet);
 
 public:
-	void AddTask(LocalExecutorTask::Ptr task) override;
-	void SyncExecTask(LocalExecutorTask::Ptr task) override;
-	TaskPair SplitTask(LocalExecutorTask::Ptr task, std::string & err) override;
-	StringVector GetToolIds() const override;
-	void SetThreadCount(int threads) override;
-	size_t GetQueueSize() const override;
+    static Ptr Create(IInvocationRewriter::Ptr invocationRewriter, std::string tempPath, const std::shared_ptr<SubprocessSet>& subprocessSet = nullptr)
+    {
+        return Ptr(new LocalExecutor(invocationRewriter, std::move(tempPath), subprocessSet));
+    }
 
-	~LocalExecutor();
+public:
+    void         AddTask(LocalExecutorTask::Ptr task) override;
+    void         SyncExecTask(LocalExecutorTask::Ptr task) override;
+    TaskPair     SplitTask(LocalExecutorTask::Ptr task, std::string& err) override;
+    StringVector GetToolIds() const override;
+    void         SetThreadCount(int threads) override;
+    size_t       GetQueueSize() const override;
+
+    ~LocalExecutor();
 
 private:
-	void Start();
-	void CheckSubprocs();
-	LocalExecutorTask::Ptr GetNextTask();
-	void Quant();
-	const StringVector & GetToolIdEnvironment(const std::string & toolId);
+    void                   Start();
+    void                   CheckSubprocs();
+    LocalExecutorTask::Ptr GetNextTask();
+    void                   Quant();
+    const StringVector&    GetToolIdEnvironment(const std::string& toolId);
 
-	size_t m_maxSubProcesses = 1;
-	size_t m_taskId = 0;
-	mutable std::mutex m_queueMutex;
-	using Guard = std::lock_guard<std::mutex>;
-	std::queue<LocalExecutorTask::Ptr> m_taskQueue;
+    size_t             m_maxSubProcesses = 1;
+    size_t             m_taskId          = 0;
+    mutable std::mutex m_queueMutex;
+    using Guard = std::lock_guard<std::mutex>;
+    std::queue<LocalExecutorTask::Ptr> m_taskQueue;
 
-	std::shared_ptr<IInvocationRewriter> m_invocationRewriter;
-	std::map<std::string, StringVector> m_toolIdEnvironment;
-	std::string m_tempPath;
-	std::shared_ptr<SubprocessSet> m_subprocs;
-	std::map<Subprocess*, LocalExecutorTask::Ptr> m_subprocToTask;
-	ThreadLoop m_thread;
+    std::shared_ptr<IInvocationRewriter>          m_invocationRewriter;
+    std::map<std::string, StringVector>           m_toolIdEnvironment;
+    std::string                                   m_tempPath;
+    std::shared_ptr<SubprocessSet>                m_subprocs;
+    std::map<Subprocess*, LocalExecutorTask::Ptr> m_subprocToTask;
+    ThreadLoop                                    m_thread;
 };
 
 }

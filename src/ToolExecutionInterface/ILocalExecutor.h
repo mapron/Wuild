@@ -15,33 +15,31 @@
 
 #include "LocalExecutorTask.h"
 
-namespace Wuild
-{
+namespace Wuild {
 /// Interface for execution tasks on local host.
-class ILocalExecutor
-{
+class ILocalExecutor {
 public:
-	using Ptr = std::shared_ptr<ILocalExecutor>;
-	using TaskPair = std::pair<LocalExecutorTask::Ptr, LocalExecutorTask::Ptr>;
+    using Ptr      = std::shared_ptr<ILocalExecutor>;
+    using TaskPair = std::pair<LocalExecutorTask::Ptr, LocalExecutorTask::Ptr>;
 
-	virtual ~ILocalExecutor() = default;
+    virtual ~ILocalExecutor() = default;
 
-	/// Schedule task for execution. task contains callback to call when finished. 
-	virtual void AddTask(LocalExecutorTask::Ptr task) = 0;
-	
-	/// Caller thread will blocked until task finished. Precondition: queue must be empty.
-	virtual void SyncExecTask(LocalExecutorTask::Ptr task) = 0;
+    /// Schedule task for execution. task contains callback to call when finished.
+    virtual void AddTask(LocalExecutorTask::Ptr task) = 0;
 
-	/// Try to split task to preprocessing and compilation tasks. Returns empty TaskPair on fail.
-	virtual TaskPair SplitTask(LocalExecutorTask::Ptr task, std::string & err) = 0;
+    /// Caller thread will blocked until task finished. Precondition: queue must be empty.
+    virtual void SyncExecTask(LocalExecutorTask::Ptr task) = 0;
 
-	/// Returns tools ids available for execution.
-	virtual StringVector GetToolIds() const = 0;
+    /// Try to split task to preprocessing and compilation tasks. Returns empty TaskPair on fail.
+    virtual TaskPair SplitTask(LocalExecutorTask::Ptr task, std::string& err) = 0;
 
-	/// Sets maximal process count.
-	virtual void SetThreadCount(int threads) = 0;
+    /// Returns tools ids available for execution.
+    virtual StringVector GetToolIds() const = 0;
 
-	/// Queued tasks count.
-	virtual size_t GetQueueSize() const = 0;
+    /// Sets maximal process count.
+    virtual void SetThreadCount(int threads) = 0;
+
+    /// Queued tasks count.
+    virtual size_t GetQueueSize() const = 0;
 };
 }

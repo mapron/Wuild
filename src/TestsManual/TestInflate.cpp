@@ -16,68 +16,66 @@
 #include <FileUtils.h>
 #include <Application.h>
 
-void FillRandomBuffer(std::vector<uint8_t> & data, size_t size)
+void FillRandomBuffer(std::vector<uint8_t>& data, size_t size)
 {
-	data.resize(size);
-	for (size_t i =0; i< size; ++i)
-		data[i] = static_cast<uint8_t>((rand() %2)  );
+    data.resize(size);
+    for (size_t i = 0; i < size; ++i)
+        data[i] = static_cast<uint8_t>((rand() % 2));
 }
 
 /*
  * Autotest for compression.
  */
-int main(int argc, char ** argv)
+int main(int argc, char** argv)
 {
-	using namespace Wuild;
-	ConfiguredApplication app(argc, argv, "TestInflate");
-	auto tmp = Application::Instance().GetTempDir();
-	Syslogger(Syslogger::Notice) << "tmp=" << tmp;
+    using namespace Wuild;
+    ConfiguredApplication app(argc, argv, "TestInflate");
+    auto                  tmp = Application::Instance().GetTempDir();
+    Syslogger(Syslogger::Notice) << "tmp=" << tmp;
 
-	for (auto compressionType : {CompressionType::LZ4, CompressionType::Gzip, CompressionType::ZStd})
-	{
-		CompressionInfo info;
-		info.m_type = compressionType;
-		info.m_level = compressionType == CompressionType::Gzip ? 6 : 9;
-		TimePoint start(true);
-		for (size_t dataSize : {1, 1000, 100000, 10000000})
-		{
-			ByteArrayHolder uncompressed, uncompressed2;
-			FillRandomBuffer(uncompressed.ref(), dataSize);
+    for (auto compressionType : { CompressionType::LZ4, CompressionType::Gzip, CompressionType::ZStd }) {
+        CompressionInfo info;
+        info.m_type  = compressionType;
+        info.m_level = compressionType == CompressionType::Gzip ? 6 : 9;
+        TimePoint start(true);
+        for (size_t dataSize : { 1, 1000, 100000, 10000000 }) {
+            ByteArrayHolder uncompressed, uncompressed2;
+            FillRandomBuffer(uncompressed.ref(), dataSize);
 
-			TemporaryFile f1(tmp + "/test1");
-			TemporaryFile f2(tmp + "/test2");
-			TemporaryFile f3(tmp + "/test3");
+            TemporaryFile f1(tmp + "/test1");
+            TemporaryFile f2(tmp + "/test2");
+            TemporaryFile f3(tmp + "/test3");
 
-			f1.WriteFile(uncompressed);  //f1 contains uncompressed data
-			f1.ReadFile(uncompressed2);
+            f1.WriteFile(uncompressed); //f1 contains uncompressed data
+            f1.ReadFile(uncompressed2);
 
-			TEST_ASSERT(uncompressed.ref() == uncompressed2.ref());
+            TEST_ASSERT(uncompressed.ref() == uncompressed2.ref());
 
-			ByteArrayHolder compressed;
-			f1.ReadCompressed(compressed, info);
-			f2.WriteFile(compressed);          //f2 contains compressed data
+            ByteArrayHolder compressed;
+            f1.ReadCompressed(compressed, info);
+            f2.WriteFile(compressed); //f2 contains compressed data
 
-			ByteArrayHolder compressed2;
-			f2.ReadFile(compressed2);
+            ByteArrayHolder compressed2;
+            f2.ReadFile(compressed2);
 
-			TEST_ASSERT(compressed.ref() == compressed2.ref());
-			bool res = f3.WriteCompressed(compressed2, info);
+            TEST_ASSERT(compressed.ref() == compressed2.ref());
+            bool res = f3.WriteCompressed(compressed2, info);
 
-			TEST_ASSERT(res);
-			auto f1size = f1.GetFileSize();
-			auto f3size = f3.GetFileSize();
-			TEST_ASSERT(f1size == f3size);
+            TEST_ASSERT(res);
+            auto f1size = f1.GetFileSize();
+            auto f3size = f3.GetFileSize();
+            TEST_ASSERT(f1size == f3size);
 
-			ByteArrayHolder uncompressed3;
-			f3.ReadFile(uncompressed3);        // f3 contains original data
+            ByteArrayHolder uncompressed3;
+            f3.ReadFile(uncompressed3); // f3 contains original data
 
-			//for (size_t i =0; i< uncompressed.size() && i < uncompressed3.size(); ++i)
-			//	TEST_ASSERT(uncompressed.data()[i] == uncompressed3.data()[i])
+            //for (size_t i =0; i< uncompressed.size() && i < uncompressed3.size(); ++i)
+            //	TEST_ASSERT(uncompressed.data()[i] == uncompressed3.data()[i])
 
-			TEST_ASSERT(uncompressed.ref() == uncompressed3.ref());
-		}
-		std::cout << "Compression " << int(compressionType) << " elapsed:" << start.GetElapsedTime().ToString() << "\n";
-	}
-	std::cout << "OK\n";
-	return 0;
+            TEST_ASSERT(uncompressed.ref() == uncompressed3.ref());
+        }
+        std::cout << "Compression " << int(compressionType) << " elapsed:" << start.GetElapsedTime().ToString() << "\n";
+    }
+    std::cout << "OK\n";
+    return 0;
 }

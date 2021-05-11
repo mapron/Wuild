@@ -15,10 +15,10 @@
 
 int main(int argc, char** argv)
 {
-	using namespace Wuild;
-	ConfiguredApplication app(argc, argv, "BenchmarkNetworking");
+    using namespace Wuild;
+    ConfiguredApplication app(argc, argv, "BenchmarkNetworking");
 
-	TestService service;
-	service.startServer();
-	return ExecAppLoop();
+    TestService service;
+    service.startServer();
+    return ExecAppLoop();
 }

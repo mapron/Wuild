@@ -19,33 +19,28 @@
 
 #include <mutex>
 
-namespace Wuild
-{
+namespace Wuild {
 class SocketFrameService;
 class CoordinatorListResponse;
 
 /// Listens port and sends tool server information to all clients.
-class CoordinatorServer
-{
+class CoordinatorServer {
 public:
-	using Config = CoordinatorServerConfig;
+    using Config = CoordinatorServerConfig;
 
 public:
-	CoordinatorServer();
-	~CoordinatorServer();
+    CoordinatorServer();
+    ~CoordinatorServer();
 
-	bool SetConfig(const Config & config);
-	void Start();
+    bool SetConfig(const Config& config);
+    void Start();
 
 protected:
-
-	std::shared_ptr<CoordinatorListResponse> GetResponse();
-	Config m_config;
-	std::unique_ptr<SocketFrameService> m_server;
-	CoordinatorInfo m_info;
-	std::mutex m_infoMutex;
-	//ToolServerSessionInfo::List m_latestSessions;
-	//std::mutex m_latestSessionsMutex;
+    std::shared_ptr<CoordinatorListResponse> GetResponse();
+    Config                                   m_config;
+    std::unique_ptr<SocketFrameService>      m_server;
+    CoordinatorInfo                          m_info;
+    std::mutex                               m_infoMutex;
 };
 
 }

@@ -14,31 +14,34 @@
 #pragma once
 #include "IConfig.h"
 
-namespace Wuild
-{
-class InvocationRewriterConfig : public IConfig
-{
+namespace Wuild {
+class InvocationRewriterConfig : public IConfig {
 public:
-	static const std::string VERSION_NO_CHECK;
-	
+    static const std::string VERSION_NO_CHECK;
+
 public:
-	enum class ToolchainType { GCC, MSVC, UpdateFile };
-	struct Tool
-	{
-		std::string m_id;
-		std::string m_removeRemote;
-		std::string m_appendRemote;
-		std::string m_remoteAlias;
-		std::string m_version;
-		std::string m_envCommand;
-		ToolchainType m_type = ToolchainType::GCC;
-		std::vector<std::string> m_names;
-	};
-	std::vector<Tool> m_tools;
-	StringVector m_toolIds;
-	std::string GetFirstToolId() const;
-	std::string GetFirstToolName() const;
-	bool Validate(std::ostream * errStream = nullptr) const override;
-	std::string Dump() const;
+    enum class ToolchainType
+    {
+        GCC,
+        MSVC,
+        UpdateFile
+    };
+    struct Tool {
+        std::string              m_id;
+        std::string              m_removeRemote;
+        std::string              m_appendRemote;
+        std::string              m_remoteAlias;
+        std::string              m_version;
+        std::string              m_envCommand;
+        ToolchainType            m_type = ToolchainType::GCC;
+        std::vector<std::string> m_names;
+    };
+    std::vector<Tool> m_tools;
+    StringVector      m_toolIds;
+
+    std::string GetFirstToolId() const;
+    std::string GetFirstToolName() const;
+    bool        Validate(std::ostream* errStream = nullptr) const override;
+    std::string Dump() const;
 };
 }

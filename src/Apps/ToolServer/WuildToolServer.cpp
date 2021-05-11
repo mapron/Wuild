@@ -19,27 +19,27 @@
 
 int main(int argc, char** argv)
 {
-	using namespace Wuild;
-	ConfiguredApplication app(argc, argv, "WuildToolServer", "toolServer");
+    using namespace Wuild;
+    ConfiguredApplication app(argc, argv, "WuildToolServer", "toolServer");
 
-	RemoteToolServer::Config toolServerConfig;
-	if (!app.GetRemoteToolServerConfig(toolServerConfig))
-		return 1;
+    RemoteToolServer::Config toolServerConfig;
+    if (!app.GetRemoteToolServerConfig(toolServerConfig))
+        return 1;
 
-	auto invocationRewriter = CheckedCreateInvocationRewriter(app);
-	if (!invocationRewriter)
-		return 1;
+    auto invocationRewriter = CheckedCreateInvocationRewriter(app);
+    if (!invocationRewriter)
+        return 1;
 
-	auto localExecutor = LocalExecutor::Create(invocationRewriter, app.m_tempDir);
-	
-	auto versionChecker = VersionChecker::Create(localExecutor, invocationRewriter);
-	const auto toolsVersions = versionChecker->DetermineToolVersions({});
+    auto localExecutor = LocalExecutor::Create(invocationRewriter, app.m_tempDir);
 
-	RemoteToolServer rcService(localExecutor, toolsVersions);
-	if (!rcService.SetConfig(toolServerConfig))
-		return 1;
-	
-	rcService.Start();
+    auto       versionChecker = VersionChecker::Create(localExecutor, invocationRewriter);
+    const auto toolsVersions  = versionChecker->DetermineToolVersions({});
 
-	return ExecAppLoop();
+    RemoteToolServer rcService(localExecutor, toolsVersions);
+    if (!rcService.SetConfig(toolServerConfig))
+        return 1;
+
+    rcService.Start();
+
+    return ExecAppLoop();
 }

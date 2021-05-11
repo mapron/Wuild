@@ -23,80 +23,81 @@ namespace Wuild {
 
 class FileInfoPrivate;
 /// Holds information about file on a disk.
-class FileInfo
-{
-	std::unique_ptr<FileInfoPrivate> m_impl;
-public:
-	static std::string LocatePath(const std::string & path);
-	static std::string ToPlatformPath(std::string path);
+class FileInfo {
+    std::unique_ptr<FileInfoPrivate> m_impl;
 
 public:
-	FileInfo(const FileInfo& rh);
-	FileInfo & operator = (const FileInfo & rh);
-	FileInfo(const std::string & filename = std::string());
-	~FileInfo();
+    static std::string LocatePath(const std::string& path);
+    static std::string ToPlatformPath(std::string path);
 
-	/// Set full file path in utf-8 encoding.
-	void SetPath(const std::string & path);
+public:
+    FileInfo(const FileInfo& rh);
+    FileInfo& operator=(const FileInfo& rh);
+    FileInfo(const std::string& filename = std::string());
+    ~FileInfo();
 
-	/// Get full file path in utf-8 encoding.
-	std::string GetPath() const;
+    /// Set full file path in utf-8 encoding.
+    void SetPath(const std::string& path);
 
-	/// Get file enclosing directory path.
-	std::string GetDir(bool ensureEndSlash = false) const;
+    /// Get full file path in utf-8 encoding.
+    std::string GetPath() const;
 
-	/// Get fullname without directory. All extension included.
-	std::string GetFullname() const;
+    /// Get file enclosing directory path.
+    std::string GetDir(bool ensureEndSlash = false) const;
 
-	/// File name to first dot (excluding dot itself)
-	std::string GetNameWE() const;
+    /// Get fullname without directory. All extension included.
+    std::string GetFullname() const;
 
-	/// All extensions as string, including first dot (if present)
-	std::string GetFullExtension() const;
+    /// File name to first dot (excluding dot itself)
+    std::string GetNameWE() const;
 
-	/// Return short path on Win, full Path on other platfroms.
-	std::string GetPlatformShortName() const;
+    /// All extensions as string, including first dot (if present)
+    std::string GetFullExtension() const;
 
-	/// Read file from disk and compress its contents in memory.
-	bool ReadCompressed(ByteArrayHolder & data, CompressionInfo compressionInfo);
+    /// Return short path on Win, full Path on other platfroms.
+    std::string GetPlatformShortName() const;
 
-	/// Write deflated memory data to file on disk uncompressed.
-	bool WriteCompressed( const ByteArrayHolder & data, CompressionInfo compressionInfo, bool createTmpCopy = true);
+    /// Read file from disk and compress its contents in memory.
+    bool ReadCompressed(ByteArrayHolder& data, CompressionInfo compressionInfo);
 
-	/// Read whole file into buffer
-	bool ReadFile(ByteArrayHolder & data);
+    /// Write deflated memory data to file on disk uncompressed.
+    bool WriteCompressed(const ByteArrayHolder& data, CompressionInfo compressionInfo, bool createTmpCopy = true);
 
-	/// Write buffer to file
-	bool WriteFile(const ByteArrayHolder & data, bool createTmpCopy = true);
+    /// Read whole file into buffer
+    bool ReadFile(ByteArrayHolder& data);
 
-	/// Check existence of file on disk.
-	bool Exists();
+    /// Write buffer to file
+    bool WriteFile(const ByteArrayHolder& data, bool createTmpCopy = true);
 
-	/// Returns file size in bytes for existent file, or 0 otherwise.
-	size_t GetFileSize();
+    /// Check existence of file on disk.
+    bool Exists();
 
-	/// Removes file. No error produced on failure.
-	void Remove();
+    /// Returns file size in bytes for existent file, or 0 otherwise.
+    size_t GetFileSize();
 
-	/// Creates directories recursive
-	void Mkdirs();
+    /// Removes file. No error produced on failure.
+    void Remove();
 
-	/// Returns files list in directory, without parent path.
-	StringVector GetDirFiles(bool sortByName = true);
+    /// Creates directories recursive
+    void Mkdirs();
+
+    /// Returns files list in directory, without parent path.
+    StringVector GetDirFiles(bool sortByName = true);
 };
 
 /// Wrapper for filename string, which explicitly removes file in destructor.
-class TemporaryFile : public FileInfo
-{
-	TemporaryFile(const TemporaryFile& ) = delete;
-	TemporaryFile& operator = (const TemporaryFile& ) = delete;
+class TemporaryFile : public FileInfo {
+    TemporaryFile(const TemporaryFile&) = delete;
+    TemporaryFile& operator=(const TemporaryFile&) = delete;
 
 public:
-	TemporaryFile(const std::string & filename = std::string()) : FileInfo(filename) {  }
-	~TemporaryFile();
+    TemporaryFile(const std::string& filename = std::string())
+        : FileInfo(filename)
+    {}
+    ~TemporaryFile();
 };
 
 std::string GetCWD();
-void SetCWD(const std::string & cwd);
+void        SetCWD(const std::string& cwd);
 
 }

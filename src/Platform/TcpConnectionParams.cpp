@@ -17,114 +17,107 @@
 
 #include <sstream>
 
-namespace Wuild
-{
+namespace Wuild {
 
 TcpEndPoint::TcpEndPoint()
-	: m_impl(new TcpEndPointPrivate())
+    : m_impl(new TcpEndPointPrivate())
 {
-	SocketEngineCheck();
+    SocketEngineCheck();
 }
 
-TcpEndPoint::TcpEndPoint(int port, const std::string & host)
-	: TcpEndPoint()
+TcpEndPoint::TcpEndPoint(int port, const std::string& host)
+    : TcpEndPoint()
 {
-	SetPoint(port, host);
+    SetPoint(port, host);
 }
 
-void TcpEndPoint::SetPoint(int port, const std::string & host)
+void TcpEndPoint::SetPoint(int port, const std::string& host)
 {
-	m_errorShown = false;
-	m_resolved = false;
-	m_host = host;
-	m_port = port;
+    m_errorShown = false;
+    m_resolved   = false;
+    m_host       = host;
+    m_port       = port;
 }
 
 bool TcpEndPoint::Resolve()
 {
-	if (m_resolved)
-		return true;
+    if (m_resolved)
+        return true;
 
-	auto host = m_host;
-	bool any = false;
-	if (host == "*")
-	{
+    auto host = m_host;
+    bool any  = false;
+    if (host == "*") {
 #ifndef __linux__
-		host = "";
+        host = "";
 #endif
-		any = true;
-	}
+        any = true;
+    }
 
-	const std::string portStr = std::to_string(m_port);
+    const std::string portStr = std::to_string(m_port);
 
-	struct addrinfo hint = {};
-	hint.ai_family = AF_INET;
-	hint.ai_protocol = PF_UNSPEC;// PF_INET;
-	hint.ai_socktype = SOCK_STREAM;
+    struct addrinfo hint = {};
+    hint.ai_family       = AF_INET;
+    hint.ai_protocol     = PF_UNSPEC; // PF_INET;
+    hint.ai_socktype     = SOCK_STREAM;
 
-	m_impl->FreeAddr();
+    m_impl->FreeAddr();
 
-	int ret = getaddrinfo(host.c_str(), portStr.c_str(), &hint, &(m_impl->ai));
-	if (ret)
-	{
-		if (!m_errorShown)
-		{
-			m_errorShown = true;
-			Syslogger(Syslogger::Err) << "Failed to detect socket information for :" << GetShortInfo() << ", ret=" << ret;
-		}
-		return false;
-	}
-	m_impl->ai->ai_protocol = PF_UNSPEC; // workaround for getaddrinfo wrong detection.
+    int ret = getaddrinfo(host.c_str(), portStr.c_str(), &hint, &(m_impl->ai));
+    if (ret) {
+        if (!m_errorShown) {
+            m_errorShown = true;
+            Syslogger(Syslogger::Err) << "Failed to detect socket information for :" << GetShortInfo() << ", ret=" << ret;
+        }
+        return false;
+    }
+    m_impl->ai->ai_protocol = PF_UNSPEC; // workaround for getaddrinfo wrong detection.
 
-	if (any)
-	{
-		auto * sin = (sockaddr_in *)m_impl->ai->ai_addr;
+    if (any) {
+        auto* sin = (sockaddr_in*) m_impl->ai->ai_addr;
 #ifdef _WIN32
-		sin->sin_addr.S_un.S_addr = htonl(INADDR_ANY);
+        sin->sin_addr.S_un.S_addr = htonl(INADDR_ANY);
 #else
-		sin->sin_addr.s_addr = htonl(INADDR_ANY);
+        sin->sin_addr.s_addr = htonl(INADDR_ANY);
 #endif
-	}
-	m_ip = m_impl->ToString();
-	m_resolved = true;
-	return true;
+    }
+    m_ip       = m_impl->ToString();
+    m_resolved = true;
+    return true;
 }
 
 std::string TcpEndPoint::GetShortInfo() const
 {
-	std::ostringstream os;
-	os << m_host << ":" << m_port;
-	return os.str();
+    std::ostringstream os;
+    os << m_host << ":" << m_port;
+    return os.str();
 }
 
 bool TcpListenerParams::Resolve()
 {
-	for (auto & point : m_whiteList)
-	{
-		if (!point.Resolve())
-			return false;
-	}
-	return true;
+    for (auto& point : m_whiteList) {
+        if (!point.Resolve())
+            return false;
+    }
+    return true;
 }
 
-void TcpListenerParams::AddWhiteListPoint(int port, const std::string & host)
+void TcpListenerParams::AddWhiteListPoint(int port, const std::string& host)
 {
-	m_whiteList.emplace_back(port, host);
+    m_whiteList.emplace_back(port, host);
 }
 
-bool TcpListenerParams::IsAccepted(const std::string & host, std::string & allowed)
+bool TcpListenerParams::IsAccepted(const std::string& host, std::string& allowed)
 {
-	if (m_whiteList.empty())
-		return true;
+    if (m_whiteList.empty())
+        return true;
 
-	allowed.clear();
-	for (const auto & point : m_whiteList)
-	{
-		allowed += point.GetIpString() + ", ";
-		if (host == point.GetIpString())
-			return true;
-	}
-	return false;
+    allowed.clear();
+    for (const auto& point : m_whiteList) {
+        allowed += point.GetIpString() + ", ";
+        if (host == point.GetIpString())
+            return true;
+    }
+    return false;
 }
 
 }

@@ -20,127 +20,110 @@
 
 #include <memory>
 
-namespace Wuild
-{
+namespace Wuild {
 
 CoordinatorServer::CoordinatorServer() = default;
 
 CoordinatorServer::~CoordinatorServer()
 {
-	m_server.reset();
+    m_server.reset();
 }
 
-bool CoordinatorServer::SetConfig(const CoordinatorServer::Config &config)
+bool CoordinatorServer::SetConfig(const CoordinatorServer::Config& config)
 {
-	std::ostringstream os;
-	if (!config.Validate(&os))
-	{
-		Syslogger(Syslogger::Err) << os.str();
-		return false;
-	}
-	m_config = config;
-	return true;
+    std::ostringstream os;
+    if (!config.Validate(&os)) {
+        Syslogger(Syslogger::Err) << os.str();
+        return false;
+    }
+    m_config = config;
+    return true;
 }
 
 void CoordinatorServer::Start()
 {
-	SocketFrameHandlerSettings settings;
-	settings.m_channelProtocolVersion   = CoordinatorListRequest::s_version
-										+ CoordinatorListResponse::s_version
-										+ CoordinatorToolServerStatus::s_version
-										+ CoordinatorToolServerSession::s_version
-										;
-	m_server = std::make_unique<SocketFrameService>( settings,  m_config.m_listenPort );
+    SocketFrameHandlerSettings settings;
+    settings.m_channelProtocolVersion = CoordinatorListRequest::s_version
+                                        + CoordinatorListResponse::s_version
+                                        + CoordinatorToolServerStatus::s_version
+                                        + CoordinatorToolServerSession::s_version;
+    m_server = std::make_unique<SocketFrameService>(settings, m_config.m_listenPort);
 
-	m_server->RegisterFrameReader(SocketFrameReaderTemplate<CoordinatorListRequest>::Create([this](const CoordinatorListRequest& inputMessage, SocketFrameHandler::OutputCallback outputCallback){
-		(void)inputMessage;
-		outputCallback(GetResponse());
-	}));
+    m_server->RegisterFrameReader(SocketFrameReaderTemplate<CoordinatorListRequest>::Create([this](const CoordinatorListRequest& inputMessage, SocketFrameHandler::OutputCallback outputCallback) {
+        (void) inputMessage;
+        outputCallback(GetResponse());
+    }));
 
-	m_server->SetHandlerInitCallback([this](SocketFrameHandler * handler){
+    m_server->SetHandlerInitCallback([this](SocketFrameHandler* handler) {
+        handler->RegisterFrameReader(SocketFrameReaderTemplate<CoordinatorToolServerSession>::Create([this](const CoordinatorToolServerSession& inputMessage, SocketFrameHandler::OutputCallback) {
+            std::lock_guard<std::mutex> lock(m_infoMutex);
+            if (inputMessage.m_isFinished) {
+                m_info.m_latestSessions.push_back(inputMessage.m_session);
+                if ((int) m_info.m_latestSessions.size() > m_config.m_lastestSessionsSize)
+                    m_info.m_latestSessions.pop_front();
 
-		handler->RegisterFrameReader(SocketFrameReaderTemplate<CoordinatorToolServerSession>::Create([this](const CoordinatorToolServerSession& inputMessage, SocketFrameHandler::OutputCallback){
-			std::lock_guard<std::mutex> lock(m_infoMutex);
-			if (inputMessage.m_isFinished)
-			{
-				m_info.m_latestSessions.push_back(inputMessage.m_session);
-				if ((int)m_info.m_latestSessions.size() > m_config.m_lastestSessionsSize)
-					m_info.m_latestSessions.pop_front();
+                auto activeSessionIt = m_info.m_activeSessions.begin();
+                for (; activeSessionIt != m_info.m_activeSessions.end(); ++activeSessionIt) {
+                    if (activeSessionIt->m_sessionId == inputMessage.m_session.m_sessionId) {
+                        m_info.m_activeSessions.erase(activeSessionIt);
+                        return;
+                    }
+                }
+            } else {
+                for (ToolServerSessionInfo& session : m_info.m_activeSessions) {
+                    if (session.m_sessionId == inputMessage.m_session.m_sessionId) {
+                        session = inputMessage.m_session;
+                        return;
+                    }
+                }
+                m_info.m_activeSessions.push_back(inputMessage.m_session);
+            }
+        }));
 
-				auto activeSessionIt =  m_info.m_activeSessions.begin();
-				for (;activeSessionIt != m_info.m_activeSessions.end(); ++activeSessionIt )
-				{
-				   if ( activeSessionIt->m_sessionId == inputMessage.m_session.m_sessionId)
-				   {
-					   m_info.m_activeSessions.erase(activeSessionIt);
-					   return;
-				   }
-				}
-			}
-			else
-			{
-				for (ToolServerSessionInfo & session : m_info.m_activeSessions)
-				{
-					if (session.m_sessionId == inputMessage.m_session.m_sessionId)
-					{
-						session = inputMessage.m_session;
-						return;
-					}
-				}
-				m_info.m_activeSessions.push_back(inputMessage.m_session);
-			}
-		}));
+        handler->RegisterFrameReader(SocketFrameReaderTemplate<CoordinatorToolServerStatus>::Create([this, handler](const CoordinatorToolServerStatus& inputMessage, SocketFrameHandler::OutputCallback) {
+            std::vector<ToolServerInfo*> modified;
+            {
+                std::lock_guard<std::mutex> lock(m_infoMutex);
+                modified = m_info.Update(inputMessage.m_info);
+            }
+            if (!modified.empty()) {
+                modified[0]->m_opaqueFrameHandler = handler;
+                m_server->QueueFrameToAll(handler, GetResponse());
+            }
+        }));
 
-		handler->RegisterFrameReader(SocketFrameReaderTemplate<CoordinatorToolServerStatus>::Create([this, handler](const CoordinatorToolServerStatus& inputMessage, SocketFrameHandler::OutputCallback ){
+        handler->QueueFrame(GetResponse());
+    });
 
-			std::vector<ToolServerInfo*> modified;
-			{
-				std::lock_guard<std::mutex> lock(m_infoMutex);
-				modified = m_info.Update(inputMessage.m_info);
-			}
-			if (!modified.empty())
-			{
-				modified[0]->m_opaqueFrameHandler = handler;
-				m_server->QueueFrameToAll(handler, GetResponse());
-			}
-		}));
-
-		handler->QueueFrame(GetResponse());
-	});
-
-	m_server->SetHandlerDestroyCallback([this](SocketFrameHandler * handler){
-		std::lock_guard<std::mutex> lock(m_infoMutex);
-		auto toolServerIt =  m_info.m_toolServers.begin();
-		for (;toolServerIt != m_info.m_toolServers.end(); ++toolServerIt )
-		{
-		   if ( toolServerIt->m_opaqueFrameHandler == handler)
-		   {
-			   m_info.m_toolServers.erase(toolServerIt);
-			   break;
-		   }
-		}
-		auto activeSessionIt =  m_info.m_activeSessions.begin();
-		for (;activeSessionIt != m_info.m_activeSessions.end(); ++activeSessionIt )
-		{
-		   if ( activeSessionIt->m_opaqueFrameHandler == handler)
-		   {
-			   m_info.m_activeSessions.erase(activeSessionIt);
-			   break;
-		   }
-		}
-		// do not send info update immediately, no need.
-	});
-	m_server->Start();
+    m_server->SetHandlerDestroyCallback([this](SocketFrameHandler* handler) {
+        std::lock_guard<std::mutex> lock(m_infoMutex);
+        auto                        toolServerIt = m_info.m_toolServers.begin();
+        for (; toolServerIt != m_info.m_toolServers.end(); ++toolServerIt) {
+            if (toolServerIt->m_opaqueFrameHandler == handler) {
+                m_info.m_toolServers.erase(toolServerIt);
+                break;
+            }
+        }
+        auto activeSessionIt = m_info.m_activeSessions.begin();
+        for (; activeSessionIt != m_info.m_activeSessions.end(); ++activeSessionIt) {
+            if (activeSessionIt->m_opaqueFrameHandler == handler) {
+                m_info.m_activeSessions.erase(activeSessionIt);
+                break;
+            }
+        }
+        // do not send info update immediately, no need.
+    });
+    m_server->Start();
 }
 
 std::shared_ptr<CoordinatorListResponse> CoordinatorServer::GetResponse()
 {
-	CoordinatorListResponse::Ptr infoList(new CoordinatorListResponse());
-	{
-		std::lock_guard<std::mutex> lock(m_infoMutex);
-		infoList->m_info = m_info;
-	}
-	return infoList;
+    CoordinatorListResponse::Ptr infoList(new CoordinatorListResponse());
+    {
+        std::lock_guard<std::mutex> lock(m_infoMutex);
+        infoList->m_info = m_info;
+    }
+    return infoList;
 }
 
 }

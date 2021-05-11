@@ -22,8 +22,7 @@
 #include <mutex>
 #include <condition_variable>
 
-namespace Wuild
-{
+namespace Wuild {
 class SocketFrameHandler;
 /**
  * @brief Local compiler emulator
@@ -31,29 +30,27 @@ class SocketFrameHandler;
  * Translates local invocation to network request to tool rpoxy server.
  * When request is done, outputs result of tool invocation to stderr.
  */
-class ToolProxyClient
-{
+class ToolProxyClient {
 public:
-	using Config = ToolProxyServerConfig;
+    using Config = ToolProxyServerConfig;
 
 public:
-	ToolProxyClient();
-	~ToolProxyClient();
+    ToolProxyClient();
+    ~ToolProxyClient();
 
-	bool SetConfig(const Config & config);
+    bool SetConfig(const Config& config);
 
-	bool Start();
+    bool Start();
 
-	/// Invoke local compile task. It's not splitted.
-	void RunTask(const StringVector & args);
+    /// Invoke local compile task. It's not splitted.
+    void RunTask(const StringVector& args);
 
 protected:
-	std::unique_ptr<SocketFrameHandler> m_client;
-	Config m_config;
-	std::atomic_bool m_connectionState {false};
-	std::condition_variable m_connectionStateCond;
-	std::mutex m_connectionStateMutex;
-
+    std::unique_ptr<SocketFrameHandler> m_client;
+    Config                              m_config;
+    std::atomic_bool                    m_connectionState{ false };
+    std::condition_variable             m_connectionStateCond;
+    std::mutex                          m_connectionStateMutex;
 };
 
 }

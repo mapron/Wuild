@@ -22,61 +22,64 @@
 #include <iostream>
 #include <assert.h>
 
-#define TEST_ASSERT(cond) if (!(cond)) { assert(cond); std::cout << "assertion failed: " << #cond << "\n"; return 1;}
+#define TEST_ASSERT(cond) \
+    if (!(cond)) { \
+        assert(cond); \
+        std::cout << "assertion failed: " << #cond << "\n"; \
+        return 1; \
+    }
 
-namespace Wuild
-{
-class InvocationRewriterStub : public IInvocationRewriter
-{
-	Config m_config;
+namespace Wuild {
+class InvocationRewriterStub : public IInvocationRewriter {
+    Config m_config;
+
 public:
-	InvocationRewriterStub(const Config& config) : m_config(config) {}
+    InvocationRewriterStub(const Config& config)
+        : m_config(config)
+    {}
 
-	void SetConfig(const Config& config) override { m_config = config; }
-	const Config& GetConfig() const override { return m_config; }
+    void          SetConfig(const Config& config) override { m_config = config; }
+    const Config& GetConfig() const override { return m_config; }
 
-	bool IsCompilerInvocation(const ToolInvocation &) const override { return false;}
+    bool IsCompilerInvocation(const ToolInvocation&) const override { return false; }
 
-	bool SplitInvocation(const ToolInvocation & ,
-				 ToolInvocation &,
-				 ToolInvocation &,
-				  std::string *) const override { return false;}
+    bool SplitInvocation(const ToolInvocation&,
+                         ToolInvocation&,
+                         ToolInvocation&,
+                         std::string*) const override { return false; }
 
-	ToolInvocation CompleteInvocation(const ToolInvocation & original) const override { return original; }
-	ToolInvocation PrepareRemote(const ToolInvocation & original) const override { return original; }
-	ToolInvocation::Id CompleteToolId(const ToolInvocation::Id & original) const override { return original; }
-	bool CheckRemotePossibleForFlags(const ToolInvocation & original) const override { return true; }
-	ToolInvocation FilterFlags(const ToolInvocation & original) const override { return original; }
+    ToolInvocation     CompleteInvocation(const ToolInvocation& original) const override { return original; }
+    ToolInvocation     PrepareRemote(const ToolInvocation& original) const override { return original; }
+    ToolInvocation::Id CompleteToolId(const ToolInvocation::Id& original) const override { return original; }
+    bool               CheckRemotePossibleForFlags(const ToolInvocation& original) const override { return true; }
+    ToolInvocation     FilterFlags(const ToolInvocation& original) const override { return original; }
 
-	std::string GetPreprocessedPath(const std::string &, const std::string & objectPath) const override { return objectPath + ".pp";}
-
+    std::string GetPreprocessedPath(const std::string&, const std::string& objectPath) const override { return objectPath + ".pp"; }
 };
 
-class TestConfiguration
-{
-	TestConfiguration() = delete;
-	~TestConfiguration() = delete;
+class TestConfiguration {
+    TestConfiguration()  = delete;
+    ~TestConfiguration() = delete;
 
 public:
+    static bool GetTestToolConfig(IInvocationRewriter::Config& settings)
+    {
+        settings.m_toolIds.push_back("testTool");
+        settings.m_tools.resize(1);
+        settings.m_tools[0].m_id    = "testTool";
+        settings.m_tools[0].m_names = StringVector(1, "test");
+        return true;
+    }
+    static const std::string g_testProgram;
 
-	static bool GetTestToolConfig(IInvocationRewriter::Config & settings)
-	{
-		settings.m_toolIds.push_back("testTool");
-		settings.m_tools.resize(1);
-		settings.m_tools[0].m_id = "testTool";
-		settings.m_tools[0].m_names = StringVector(1, "test");
-		return true;
-	}
-	static const std::string g_testProgram;
+    static IInvocationRewriter::Ptr s_invocationRewriter;
 
-	static IInvocationRewriter::Ptr s_invocationRewriter;
-
-	static void ExitHandler (int code){ std::cout << (code == 0 ? "OK" : "FAIL") << std::endl; }
+    static void ExitHandler(int code) { std::cout << (code == 0 ? "OK" : "FAIL") << std::endl; }
 };
 
 StringVector CreateTestProgramInvocation();
 
-bool CreateInvocationRewriter(ConfiguredApplication & app, bool stub = false);
+bool CreateInvocationRewriter(ConfiguredApplication& app, bool stub = false);
 
 int HandleTestResult();
 

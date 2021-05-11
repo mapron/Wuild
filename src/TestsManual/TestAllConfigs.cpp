@@ -26,70 +26,68 @@
  */
 int main(int argc, char** argv)
 {
-	using namespace Wuild;
-	ArgStorage argStorage(argc, argv);
-	ConfiguredApplication app(argStorage.GetConfigValues(), "TestAllConfigs");
-	if (!CreateInvocationRewriter(app))
-	   return 1;
+    using namespace Wuild;
+    ArgStorage            argStorage(argc, argv);
+    ConfiguredApplication app(argStorage.GetConfigValues(), "TestAllConfigs");
+    if (!CreateInvocationRewriter(app))
+        return 1;
 
-	Syslogger() << "Configuration: " << app.DumpAllConfigValues();
+    Syslogger() << "Configuration: " << app.DumpAllConfigValues();
 
-	//app.m_loggerConfig.m_maxLogLevel = Syslogger::Debug;
-	app.InitLogging(app.m_loggerConfig);
+    //app.m_loggerConfig.m_maxLogLevel = Syslogger::Debug;
+    app.InitLogging(app.m_loggerConfig);
 
-	const auto args = argStorage.GetArgs();
+    const auto args = argStorage.GetArgs();
 
-	auto localExecutor = LocalExecutor::Create(TestConfiguration::s_invocationRewriter, app.m_tempDir);
+    auto localExecutor = LocalExecutor::Create(TestConfiguration::s_invocationRewriter, app.m_tempDir);
 
-	auto versionChecker = VersionChecker::Create(localExecutor, TestConfiguration::s_invocationRewriter);
-	const auto & toolsConfig = TestConfiguration::s_invocationRewriter->GetConfig();
-	const auto toolsVersions = versionChecker->DetermineToolVersions({});
-	for (const auto & toolId : toolsConfig.m_toolIds)
-		Syslogger(Syslogger::Notice) << "tool[" << toolId << "] version=" << toolsVersions.at(toolId);
+    auto        versionChecker = VersionChecker::Create(localExecutor, TestConfiguration::s_invocationRewriter);
+    const auto& toolsConfig    = TestConfiguration::s_invocationRewriter->GetConfig();
+    const auto  toolsVersions  = versionChecker->DetermineToolVersions({});
+    for (const auto& toolId : toolsConfig.m_toolIds)
+        Syslogger(Syslogger::Notice) << "tool[" << toolId << "] version=" << toolsVersions.at(toolId);
 
-	std::string err;
-	LocalExecutorTask::Ptr original(new LocalExecutorTask());
-	original->m_readOutput = original->m_writeInput = false;
-	original->m_invocation = ToolInvocation( args ).SetExecutable(toolsConfig.GetFirstToolName());
-	auto tasks = localExecutor->SplitTask(original, err);
-	if (!tasks.first)
-	{
-		Syslogger(Syslogger::Err) << err;
-		return 1;
-	}
-	LocalExecutorTask::Ptr taskPP = tasks.first;
-	LocalExecutorTask::Ptr taskCC = tasks.second;
+    std::string            err;
+    LocalExecutorTask::Ptr original(new LocalExecutorTask());
+    original->m_readOutput = original->m_writeInput = false;
+    original->m_invocation                          = ToolInvocation(args).SetExecutable(toolsConfig.GetFirstToolName());
+    auto tasks                                      = localExecutor->SplitTask(original, err);
+    if (!tasks.first) {
+        Syslogger(Syslogger::Err) << err;
+        return 1;
+    }
+    LocalExecutorTask::Ptr taskPP = tasks.first;
+    LocalExecutorTask::Ptr taskCC = tasks.second;
 
-	RemoteToolClient::Config config;
-	if (!app.GetRemoteToolClientConfig(config))
-		return 1;
+    RemoteToolClient::Config config;
+    if (!app.GetRemoteToolClientConfig(config))
+        return 1;
 
-	RemoteToolClient rcClient(TestConfiguration::s_invocationRewriter, toolsVersions);
-	config.m_queueTimeout = TimePoint(3.0);
+    RemoteToolClient rcClient(TestConfiguration::s_invocationRewriter, toolsVersions);
+    config.m_queueTimeout = TimePoint(3.0);
 
-	if (!rcClient.SetConfig(config))
-		return 1;
+    if (!rcClient.SetConfig(config))
+        return 1;
 
-	rcClient.Start();
+    rcClient.Start();
 
-	taskPP->m_callback = [&rcClient, taskCC] ( LocalExecutorResult::Ptr localResult ) {
+    taskPP->m_callback = [&rcClient, taskCC](LocalExecutorResult::Ptr localResult) {
+        if (!localResult->m_result) {
+            Syslogger(Syslogger::Err) << "Preprocess failed";
+            Application::Interrupt(1);
+            return;
+        }
 
-		if (!localResult->m_result)
-		{
-			Syslogger(Syslogger::Err) << "Preprocess failed";
-			Application::Interrupt(1);
-			return;
-		}
+        auto callback = [](const Wuild::RemoteToolClient::TaskExecutionInfo& info) {
+            if (!info.m_stdOutput.empty())
+                std::cout << info.m_stdOutput << std::endl
+                          << std::flush;
+            std::cout << info.GetProfilingStr() << " \n";
+            Application::Interrupt(1 - info.m_result);
+        };
+        rcClient.InvokeTool(taskCC->m_invocation, callback);
+    };
+    localExecutor->AddTask(taskPP);
 
-		auto callback = []( const Wuild::RemoteToolClient::TaskExecutionInfo& info){
-			if (!info.m_stdOutput.empty())
-				std::cout << info.m_stdOutput << std::endl << std::flush;
-			std::cout << info.GetProfilingStr() << " \n";
-			Application::Interrupt(1 - info.m_result);
-		};
-		rcClient.InvokeTool(taskCC->m_invocation, callback);
-	};
-	localExecutor->AddTask(taskPP);
-
-	return ExecAppLoop(TestConfiguration::ExitHandler);
+    return ExecAppLoop(TestConfiguration::ExitHandler);
 }

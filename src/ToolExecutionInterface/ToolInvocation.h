@@ -15,43 +15,46 @@
 
 #include <CommonTypes.h>
 
-namespace Wuild
-{
+namespace Wuild {
 /// Represents tool invocation line (executable with argumnents). Allows changing input/output filenames in arguments.
-class ToolInvocation
-{
+class ToolInvocation {
 public:
-	/// Type of invocation.
-	enum class InvokeType { Unknown, Preprocess, Compile };
-	struct Id
-	{
-		std::string m_toolId;           //!< abstract toolchain id (configurable)
-		std::string m_toolExecutable;   //!< full tool executable path
-	};
-public:
-	ToolInvocation(StringVector  args = StringVector(), InvokeType type = InvokeType::Unknown);
-	ToolInvocation(const std::string & args, InvokeType type);
-
-	void ParseArgsAsCommanline();
-
-	void SetArgsString(const std::string & args);
-	std::string GetArgsString(bool prependExecutable = true) const;
-
-	bool SetInput(const std::string & filename);
-	std::string GetInput() const;
-
-	bool SetOutput(const std::string & filename);
-	std::string GetOutput() const;
-
-	ToolInvocation & SetId(const std::string & toolId);
-	ToolInvocation & SetExecutable(const std::string & toolExecutable);
+    /// Type of invocation.
+    enum class InvokeType
+    {
+        Unknown,
+        Preprocess,
+        Compile
+    };
+    struct Id {
+        std::string m_toolId;         //!< abstract toolchain id (configurable)
+        std::string m_toolExecutable; //!< full tool executable path
+    };
 
 public:
-	Id           m_id;
-	InvokeType   m_type = InvokeType::Unknown;
-	StringVector m_args;
-	StringVector m_ignoredArgs;
-	int          m_inputNameIndex  = -1;
-	int          m_outputNameIndex = -1;
+    ToolInvocation(StringVector args = StringVector(), InvokeType type = InvokeType::Unknown);
+    ToolInvocation(const std::string& args, InvokeType type);
+
+    void ParseArgsAsCommanline();
+
+    void        SetArgsString(const std::string& args);
+    std::string GetArgsString(bool prependExecutable = true) const;
+
+    bool        SetInput(const std::string& filename);
+    std::string GetInput() const;
+
+    bool        SetOutput(const std::string& filename);
+    std::string GetOutput() const;
+
+    ToolInvocation& SetId(const std::string& toolId);
+    ToolInvocation& SetExecutable(const std::string& toolExecutable);
+
+public:
+    Id           m_id;
+    InvokeType   m_type = InvokeType::Unknown;
+    StringVector m_args;
+    StringVector m_ignoredArgs;
+    int          m_inputNameIndex  = -1;
+    int          m_outputNameIndex = -1;
 };
 }

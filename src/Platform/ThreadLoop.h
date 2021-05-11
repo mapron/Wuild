@@ -17,32 +17,31 @@
 
 #include <functional>
 
-namespace Wuild
-{
+namespace Wuild {
 class ThreadLoopImpl;
 /// std::thread warpper, which will execute callback (quant) function repeatedly until stopped.
-class ThreadLoop
-{
-	std::unique_ptr<ThreadLoopImpl> m_impl;
-public:
-	using QuantFunction = std::function<void(void)>;
+class ThreadLoop {
+    std::unique_ptr<ThreadLoopImpl> m_impl;
 
 public:
-	ThreadLoop();
-	ThreadLoop(ThreadLoop&& rh) noexcept;
-	~ThreadLoop();
+    using QuantFunction = std::function<void(void)>;
 
-	/// thread is performing action (and was not stopped)
-	bool IsRunning() const;
+public:
+    ThreadLoop();
+    ThreadLoop(ThreadLoop&& rh) noexcept;
+    ~ThreadLoop();
 
-	/// start thread execution; thread will repeat calling quant() until stopping.
-	void Exec(const QuantFunction& quant, int64_t sleepUS = 1000);
+    /// thread is performing action (and was not stopped)
+    bool IsRunning() const;
 
-	/// Stop() interrupts thread synchronously.
-	void Stop();
+    /// start thread execution; thread will repeat calling quant() until stopping.
+    void Exec(const QuantFunction& quant, int64_t sleepUS = 1000);
 
-	/// Stop calling action callback.
-	void Cancel();
+    /// Stop() interrupts thread synchronously.
+    void Stop();
+
+    /// Stop calling action callback.
+    void Cancel();
 };
 
 }

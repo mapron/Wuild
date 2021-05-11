@@ -22,8 +22,7 @@
 
 #include <mutex>
 
-namespace Wuild
-{
+namespace Wuild {
 class SocketFrameService;
 /**
  * @brief Proxy for remote command execution
@@ -34,30 +33,30 @@ class SocketFrameService;
  * -send requests to remote servers;
  * -when request is done, result is sent to local proxy client.
  */
-class ToolProxyServer
-{
+class ToolProxyServer {
 public:
-	using Config = ToolProxyServerConfig;
+    using Config = ToolProxyServerConfig;
 
 public:
-	ToolProxyServer(ILocalExecutor::Ptr executor, RemoteToolClient & rcClient);
-	~ToolProxyServer();
+    ToolProxyServer(ILocalExecutor::Ptr executor, RemoteToolClient& rcClient);
+    ~ToolProxyServer();
 
-	bool SetConfig(const Config & config);
-	void Start(std::function<void()> interruptCallback);
+    bool SetConfig(const Config& config);
+    void Start(std::function<void()> interruptCallback);
+
 private:
-	void UpdateRunningJobs(int delta);
-	
+    void UpdateRunningJobs(int delta);
+
 private:
-	ILocalExecutor::Ptr m_executor;
-	RemoteToolClient & m_rcClient;
-	Config m_config;
-	std::string m_cwd;
-	std::unique_ptr<SocketFrameService> m_server;
-	ThreadLoop m_inactiveChecker;
-	int m_runningJobs = 0;
-	TimePoint m_runningJobsUpdate;
-	std::mutex m_runningMutex;
+    ILocalExecutor::Ptr                 m_executor;
+    RemoteToolClient&                   m_rcClient;
+    Config                              m_config;
+    std::string                         m_cwd;
+    std::unique_ptr<SocketFrameService> m_server;
+    ThreadLoop                          m_inactiveChecker;
+    int                                 m_runningJobs = 0;
+    TimePoint                           m_runningJobsUpdate;
+    std::mutex                          m_runningMutex;
 };
 
 }

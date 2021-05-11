@@ -21,32 +21,30 @@
 #include <functional>
 #include <atomic>
 
-namespace Wuild
-{
+namespace Wuild {
 class RemoteToolServerImpl;
 /// Listening port for incoming tool execution tasks and transforms it to LocalExecutor.
-class RemoteToolServer
-{
+class RemoteToolServer {
 public:
-	using Config = RemoteToolServerConfig;
+    using Config = RemoteToolServerConfig;
 
 public:
-	RemoteToolServer(ILocalExecutor::Ptr executor, const IVersionChecker::VersionMap & versionMap);
-	~RemoteToolServer();
+    RemoteToolServer(ILocalExecutor::Ptr executor, const IVersionChecker::VersionMap& versionMap);
+    ~RemoteToolServer();
 
-	bool SetConfig(const Config & config);
+    bool SetConfig(const Config& config);
 
-	void Start();
+    void Start();
 
 protected:
-	void StartTask(const std::string & clientId, int64_t sessionId);
-	void FinishTask(int64_t sessionId, bool remove);
-	void UpdateInfo();
+    void StartTask(const std::string& clientId, int64_t sessionId);
+    void FinishTask(int64_t sessionId, bool remove);
+    void UpdateInfo();
 
-	std::unique_ptr<RemoteToolServerImpl> m_impl;
-	std::atomic<uint16_t>       m_runningTasks {0};
-	Config                      m_config;
-	IVersionChecker::VersionMap m_toolVersionMap;
+    std::unique_ptr<RemoteToolServerImpl> m_impl;
+    std::atomic<uint16_t>                 m_runningTasks{ 0 };
+    Config                                m_config;
+    IVersionChecker::VersionMap           m_toolVersionMap;
 };
 
 }

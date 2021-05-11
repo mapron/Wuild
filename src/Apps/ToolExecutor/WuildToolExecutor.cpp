@@ -27,52 +27,51 @@
  */
 int main(int argc, char** argv)
 {
-	using namespace Wuild;
-	ArgStorage argStorage(argc, argv);
-	ConfiguredApplication app(argStorage.GetConfigValues(), "ToolExecutor");
+    using namespace Wuild;
+    ArgStorage            argStorage(argc, argv);
+    ConfiguredApplication app(argStorage.GetConfigValues(), "ToolExecutor");
 
-	IInvocationRewriter::Config iconfig;
-	if (!app.GetInvocationRewriterConfig( iconfig ))
-		return 1;
+    IInvocationRewriter::Config iconfig;
+    if (!app.GetInvocationRewriterConfig(iconfig))
+        return 1;
 
-	auto invocationRewriter = InvocationRewriter::Create(iconfig);
+    auto invocationRewriter = InvocationRewriter::Create(iconfig);
 
-	//Syslogger() << "Configuration: " << app.DumpAllConfigValues();
+    //Syslogger() << "Configuration: " << app.DumpAllConfigValues();
 
-	app.m_loggerConfig.m_maxLogLevel = Syslogger::Warning;
-	app.InitLogging(app.m_loggerConfig);
+    app.m_loggerConfig.m_maxLogLevel = Syslogger::Warning;
+    app.InitLogging(app.m_loggerConfig);
 
-	StringVector args = argStorage.GetArgs();
-	if (args.empty())
-	{
-		Syslogger(Syslogger::Err) << "usage: ToolExecutor <tool_id> [arguments]";
-		return 1;
-	}
-	const auto toolId = args[0];
-	args.erase(args.begin());
-	ToolInvocation invocation = invocationRewriter->CompleteInvocation(ToolInvocation(args).SetId(toolId));
+    StringVector args = argStorage.GetArgs();
+    if (args.empty()) {
+        Syslogger(Syslogger::Err) << "usage: ToolExecutor <tool_id> [arguments]";
+        return 1;
+    }
+    const auto toolId = args[0];
+    args.erase(args.begin());
+    ToolInvocation invocation = invocationRewriter->CompleteInvocation(ToolInvocation(args).SetId(toolId));
 
-	RemoteToolClient::Config config;
-	if (!app.GetRemoteToolClientConfig(config))
-		return 1;
+    RemoteToolClient::Config config;
+    if (!app.GetRemoteToolClientConfig(config))
+        return 1;
 
-	auto localExecutor = LocalExecutor::Create(invocationRewriter, app.m_tempDir);
-	const auto toolsVersions = VersionChecker::Create(localExecutor, invocationRewriter)->DetermineToolVersions({toolId});
+    auto       localExecutor = LocalExecutor::Create(invocationRewriter, app.m_tempDir);
+    const auto toolsVersions = VersionChecker::Create(localExecutor, invocationRewriter)->DetermineToolVersions({ toolId });
 
-	RemoteToolClient rcClient(invocationRewriter, toolsVersions);
-	config.m_queueTimeout = TimePoint(5.0);
+    RemoteToolClient rcClient(invocationRewriter, toolsVersions);
+    config.m_queueTimeout = TimePoint(5.0);
 
-	if (!rcClient.SetConfig(config))
-		return 1;
+    if (!rcClient.SetConfig(config))
+        return 1;
 
-	rcClient.Start();
+    rcClient.Start();
 
-	auto callback = []( const Wuild::RemoteToolClient::TaskExecutionInfo& info){
-		if (!info.m_stdOutput.empty())
-			std::cout << info.m_stdOutput << std::flush;
-		Application::Interrupt(1 - info.m_result);
-	};
-	rcClient.InvokeTool(invocation, callback);
+    auto callback = [](const Wuild::RemoteToolClient::TaskExecutionInfo& info) {
+        if (!info.m_stdOutput.empty())
+            std::cout << info.m_stdOutput << std::flush;
+        Application::Interrupt(1 - info.m_result);
+    };
+    rcClient.InvokeTool(invocation, callback);
 
-	return ExecAppLoop();
+    return ExecAppLoop();
 }

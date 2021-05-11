@@ -15,7 +15,8 @@
 
 using namespace Wuild;
 
-RemoteExecutor::RemoteExecutor(ConfiguredApplication &app) : m_app(app)
+RemoteExecutor::RemoteExecutor(ConfiguredApplication& app)
+    : m_app(app)
 {
     bool silent = !Syslogger::IsLogLevelEnabled(Syslogger::Debug);
 
@@ -30,15 +31,14 @@ RemoteExecutor::RemoteExecutor(ConfiguredApplication &app) : m_app(app)
 
     m_invocationRewriter = InvocationRewriter::Create(compilerConfig);
 
-
-#ifdef  TEST_CLIENT
+#ifdef TEST_CLIENT
     m_remoteService.reset(new RemoteToolClient(m_invocationRewriter));
     if (!m_remoteService->SetConfig(m_remoteToolConfig))
         return;
-    m_localExecutor = LocalExecutor::Create(m_invocationRewriter, m_app.m_tempDir);
-    m_app.m_remoteToolServerConfig.m_threadCount = 2;
-    m_app.m_remoteToolServerConfig.m_listenHost = "localhost";
-    m_app.m_remoteToolServerConfig.m_listenPort = 12345;
+    m_localExecutor                                        = LocalExecutor::Create(m_invocationRewriter, m_app.m_tempDir);
+    m_app.m_remoteToolServerConfig.m_threadCount           = 2;
+    m_app.m_remoteToolServerConfig.m_listenHost            = "localhost";
+    m_app.m_remoteToolServerConfig.m_listenPort            = 12345;
     m_app.m_remoteToolServerConfig.m_coordinator.m_enabled = false;
 
     m_toolServer.reset(new RemoteToolServer(m_localExecutor));
@@ -48,8 +48,8 @@ RemoteExecutor::RemoteExecutor(ConfiguredApplication &app) : m_app(app)
     ToolServerInfo toolServerInfo;
     toolServerInfo.m_connectionHost = "localhost";
     toolServerInfo.m_connectionPort = 12345;
-    toolServerInfo.m_toolIds = m_compiler->GetConfig().m_toolIds;
-    toolServerInfo.m_totalThreads = 2;
+    toolServerInfo.m_toolIds        = m_compiler->GetConfig().m_toolIds;
+    toolServerInfo.m_totalThreads   = 2;
     m_remoteService->AddClient(toolServerInfo);
 
     remoteToolConfig.m_coordinator.m_enabled = false;
@@ -74,22 +74,21 @@ double RemoteExecutor::GetMaxLoadAverage() const
     return m_app.m_remoteToolClientConfig.m_maxLoadAverage;
 }
 
-IRemoteExecutor::PreprocessResult RemoteExecutor::PreprocessCode(const std::vector<std::string> &originalRule, const std::vector<std::string> &ignoredArgs, std::string &toolId, std::vector<std::string> &preprocessRule, std::vector<std::string> &compileRule) const
+IRemoteExecutor::PreprocessResult RemoteExecutor::PreprocessCode(const std::vector<std::string>& originalRule, const std::vector<std::string>& ignoredArgs, std::string& toolId, std::vector<std::string>& preprocessRule, std::vector<std::string>& compileRule) const
 {
     if (!m_remoteEnabled || originalRule.size() < 3)
         return PreprocessResult::Skipped;
 
     std::vector<std::string> args = originalRule;
 
-
     ToolInvocation original, pp, cc;
-    original.m_args = {originalRule};
+    original.m_args        = { originalRule };
     original.m_ignoredArgs = ignoredArgs;
     original.ParseArgsAsCommanline();
-    const auto & srcExecutable = original.m_id.m_toolExecutable;
+    const auto& srcExecutable = original.m_id.m_toolExecutable;
     if (!m_invocationRewriter->SplitInvocation(original, pp, cc, &toolId)) {
         if (!m_invocationRewriter->IsCompilerInvocation(original))
-             return PreprocessResult::Skipped;
+            return PreprocessResult::Skipped;
 
         return PreprocessResult::UnknownCompiler;
     }
@@ -103,7 +102,7 @@ IRemoteExecutor::PreprocessResult RemoteExecutor::PreprocessCode(const std::vect
     return PreprocessResult::Success;
 }
 
-bool RemoteExecutor::CheckRemotePossibleForFlags(const std::string & toolId, const std::string & flags) const
+bool RemoteExecutor::CheckRemotePossibleForFlags(const std::string& toolId, const std::string& flags) const
 {
     if (!m_remoteEnabled)
         return false;
@@ -111,7 +110,7 @@ bool RemoteExecutor::CheckRemotePossibleForFlags(const std::string & toolId, con
     return m_invocationRewriter->CheckRemotePossibleForFlags(ToolInvocation(flags, ToolInvocation::InvokeType::Preprocess).SetId(toolId));
 }
 
-std::string RemoteExecutor::GetPreprocessedPath(const std::string &sourcePath, const std::string &objectPath) const
+std::string RemoteExecutor::GetPreprocessedPath(const std::string& sourcePath, const std::string& objectPath) const
 {
     if (!m_remoteEnabled)
         return "";
@@ -119,7 +118,7 @@ std::string RemoteExecutor::GetPreprocessedPath(const std::string &sourcePath, c
     return m_invocationRewriter->GetPreprocessedPath(sourcePath, objectPath);
 }
 
-std::string RemoteExecutor::FilterPreprocessorFlags(const std::string &toolId, const std::string &flags) const
+std::string RemoteExecutor::FilterPreprocessorFlags(const std::string& toolId, const std::string& flags) const
 {
     if (!m_remoteEnabled)
         return flags;
@@ -127,7 +126,7 @@ std::string RemoteExecutor::FilterPreprocessorFlags(const std::string &toolId, c
     return m_invocationRewriter->FilterFlags(ToolInvocation(flags, ToolInvocation::InvokeType::Preprocess).SetId(toolId)).GetArgsString(false);
 }
 
-std::string RemoteExecutor::FilterCompilerFlags(const std::string &toolId, const std::string &flags) const
+std::string RemoteExecutor::FilterCompilerFlags(const std::string& toolId, const std::string& flags) const
 {
     if (!m_remoteEnabled)
         return flags;
@@ -135,14 +134,13 @@ std::string RemoteExecutor::FilterCompilerFlags(const std::string &toolId, const
     return m_invocationRewriter->FilterFlags(ToolInvocation(flags, ToolInvocation::InvokeType::Compile).SetId(toolId)).GetArgsString(false);
 }
 
-void RemoteExecutor::RunIfNeeded(const std::vector<std::string> &toolIds, const std::shared_ptr<SubprocessSet> & subprocessSet)
+void RemoteExecutor::RunIfNeeded(const std::vector<std::string>& toolIds, const std::shared_ptr<SubprocessSet>& subprocessSet)
 {
     if (!m_remoteEnabled || m_hasStart)
         return;
 
     m_hasStart = true;
-    if (!m_remoteService)
-    {
+    if (!m_remoteService) {
         auto localExecutor = LocalExecutor::Create(m_invocationRewriter, m_app.m_tempDir, subprocessSet);
         auto toolsVersions = VersionChecker::Create(localExecutor, m_invocationRewriter)->DetermineToolVersions(toolIds);
         m_remoteService.reset(new RemoteToolClient(m_invocationRewriter, toolsVersions));
@@ -150,7 +148,7 @@ void RemoteExecutor::RunIfNeeded(const std::vector<std::string> &toolIds, const 
             return;
     }
     m_remoteService->Start(toolIds);
-#ifdef  TEST_CLIENT
+#ifdef TEST_CLIENT
     m_toolServer->Start();
 #endif
 }
@@ -176,24 +174,22 @@ bool RemoteExecutor::CanRunMore()
     return m_remoteService->GetFreeRemoteThreads() > 0;
 }
 
-bool RemoteExecutor::StartCommand(Edge *userData, const std::string &command)
+bool RemoteExecutor::StartCommand(Edge* userData, const std::string& command)
 {
     if (!m_remoteEnabled || !m_hasStart)
         return false;
 
-    ToolInvocation invocation({command});
+    ToolInvocation invocation({ command });
     invocation.ParseArgsAsCommanline();
     invocation = m_invocationRewriter->CompleteInvocation(invocation);
 
     auto outputFilename = invocation.GetOutput();
-    auto callback = [this, userData, outputFilename]( const RemoteToolClient::TaskExecutionInfo & info)
-    {
+    auto callback       = [this, userData, outputFilename](const RemoteToolClient::TaskExecutionInfo& info) {
         bool result = info.m_result;
-        Syslogger() << outputFilename<< " -> " << result << ", " <<  info.GetProfilingStr() ;
+        Syslogger() << outputFilename << " -> " << result << ", " << info.GetProfilingStr();
         std::lock_guard<std::mutex> lock(m_resultsMutex);
         m_results.emplace_back(userData, result, info.m_stdOutput);
-        if (m_hasStart)
-        {
+        if (m_hasStart) {
             auto it = m_activeEdges.find(userData);
             if (it != m_activeEdges.end())
                 m_activeEdges.erase(it);
@@ -208,14 +204,13 @@ bool RemoteExecutor::StartCommand(Edge *userData, const std::string &command)
     return true;
 }
 
-bool RemoteExecutor::WaitForCommand(IRemoteExecutor::Result *result)
+bool RemoteExecutor::WaitForCommand(IRemoteExecutor::Result* result)
 {
     if (!m_remoteEnabled)
         return false;
 
     std::lock_guard<std::mutex> lock(m_resultsMutex);
-    if (!m_results.empty())
-    {
+    if (!m_results.empty()) {
         *result = std::move(m_results[0]);
         m_results.pop_front();
         return true;
@@ -225,16 +220,15 @@ bool RemoteExecutor::WaitForCommand(IRemoteExecutor::Result *result)
 
 void RemoteExecutor::Abort()
 {
-    if (m_hasStart && m_remoteService)
-    {
+    if (m_hasStart && m_remoteService) {
         m_remoteService->FinishSession();
-        Syslogger(Syslogger::Notice) <<  m_remoteService->GetSessionInformation();
+        Syslogger(Syslogger::Notice) << m_remoteService->GetSessionInformation();
     }
     m_hasStart = false;
     m_remoteService.reset();
 }
 
-std::set<Edge *> RemoteExecutor::GetActiveEdges()
+std::set<Edge*> RemoteExecutor::GetActiveEdges()
 {
     return m_activeEdges;
 }
@@ -242,8 +236,7 @@ std::set<Edge *> RemoteExecutor::GetActiveEdges()
 std::vector<std::string> RemoteExecutor::GetKnownToolNames() const
 {
     std::vector<std::string> result;
-    for (const auto & tool : m_app.m_invocationRewriterConfig.m_tools)
-    {
+    for (const auto& tool : m_app.m_invocationRewriterConfig.m_tools) {
         result.insert(result.end(), tool.m_names.cbegin(), tool.m_names.cend());
     }
     return result;

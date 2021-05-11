@@ -18,117 +18,115 @@
 #include <utility>
 #include <cassert>
 
-namespace Wuild
-{
+namespace Wuild {
 ToolInvocation::ToolInvocation(StringVector args, InvokeType type)
-	: m_type(type)
-	, m_args(std::move(args))
+    : m_type(type)
+    , m_args(std::move(args))
 {
-
 }
 
-ToolInvocation::ToolInvocation(const std::string &args, ToolInvocation::InvokeType type)
-	: m_type(type)
+ToolInvocation::ToolInvocation(const std::string& args, ToolInvocation::InvokeType type)
+    : m_type(type)
 {
-	SetArgsString(args);
+    SetArgsString(args);
 }
 
 void ToolInvocation::ParseArgsAsCommanline()
 {
-	assert(m_id.m_toolExecutable.empty());
-	assert(!m_args.empty());
-	StringVector args;
-	std::string current;
-	bool startedQuote = false;
-	auto consume = [&current, &args](bool force) {
-		if (force || !current.empty())
-			args.push_back(current);
-		current.clear();
-	};
-	for (const auto & arg : m_args) {
-		for (char c : arg) {
-			if (startedQuote){
-				if (c == '"') {
-					startedQuote = false;
-					consume(true);
-				} else {
-					current += c;
-				}
-			}else{
-				if (c == '"')
-					startedQuote = true;
-				else if (c == ' ' || c == '\t' || c == '\r' || c == '\n') 
-					consume(false);
-				else
-					current += c;
-			}
-		}
-	}
-	consume(false);
-	assert(!args.empty());
-	SetExecutable(args[0]);
-	args.erase(args.begin());
-	m_args = args;
+    assert(m_id.m_toolExecutable.empty());
+    assert(!m_args.empty());
+    StringVector args;
+    std::string  current;
+    bool         startedQuote = false;
+    auto         consume      = [&current, &args](bool force) {
+        if (force || !current.empty())
+            args.push_back(current);
+        current.clear();
+    };
+    for (const auto& arg : m_args) {
+        for (char c : arg) {
+            if (startedQuote) {
+                if (c == '"') {
+                    startedQuote = false;
+                    consume(true);
+                } else {
+                    current += c;
+                }
+            } else {
+                if (c == '"')
+                    startedQuote = true;
+                else if (c == ' ' || c == '\t' || c == '\r' || c == '\n')
+                    consume(false);
+                else
+                    current += c;
+            }
+        }
+    }
+    consume(false);
+    assert(!args.empty());
+    SetExecutable(args[0]);
+    args.erase(args.begin());
+    m_args = args;
 }
 
-void ToolInvocation::SetArgsString(const std::string &args)
+void ToolInvocation::SetArgsString(const std::string& args)
 {
-	m_args.resize(1);
-	m_args[0] = args;
+    m_args.resize(1);
+    m_args[0] = args;
 }
 
 std::string ToolInvocation::GetArgsString(bool prependExecutable) const
 {
-	std::string ret;
-	if (prependExecutable)
-		ret += m_id.m_toolExecutable + " ";
-	return ret + StringUtils::JoinString( m_args, ' ');
+    std::string ret;
+    if (prependExecutable)
+        ret += m_id.m_toolExecutable + " ";
+    return ret + StringUtils::JoinString(m_args, ' ');
 }
 
-bool ToolInvocation::SetInput(const std::string &filename)
+bool ToolInvocation::SetInput(const std::string& filename)
 {
-	if (m_inputNameIndex < 0)
-		return false;
+    if (m_inputNameIndex < 0)
+        return false;
 
-	m_args[m_inputNameIndex] = filename;
-	return true;
+    m_args[m_inputNameIndex] = filename;
+    return true;
 }
 
 std::string ToolInvocation::GetInput() const
 {
-	if (m_inputNameIndex < 0)
-		return std::string();
+    if (m_inputNameIndex < 0)
+        return std::string();
 
-	return m_args[m_inputNameIndex];
+    return m_args[m_inputNameIndex];
 }
 
-bool ToolInvocation::SetOutput(const std::string &filename)
+bool ToolInvocation::SetOutput(const std::string& filename)
 {
-	if (m_outputNameIndex < 0)
-		return false;
+    if (m_outputNameIndex < 0)
+        return false;
 
-	m_args[m_outputNameIndex] = filename;
-	return true;
+    m_args[m_outputNameIndex] = filename;
+    return true;
 }
 
 std::string ToolInvocation::GetOutput() const
 {
-	if (m_outputNameIndex < 0)
-		return std::string();
+    if (m_outputNameIndex < 0)
+        return std::string();
 
-	return m_args[m_outputNameIndex];
+    return m_args[m_outputNameIndex];
 }
 
-ToolInvocation &ToolInvocation::SetId(const std::string &toolId)
+ToolInvocation& ToolInvocation::SetId(const std::string& toolId)
 {
-	m_id.m_toolId = toolId;
-	return *this;
+    m_id.m_toolId = toolId;
+    return *this;
 }
 
-ToolInvocation &ToolInvocation::SetExecutable(const std::string &toolExecutable)
+ToolInvocation& ToolInvocation::SetExecutable(const std::string& toolExecutable)
 {
-	m_id.m_toolExecutable = toolExecutable;
-	return *this;
+    m_id.m_toolExecutable = toolExecutable;
+    return *this;
 }
 
 }

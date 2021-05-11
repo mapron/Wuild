@@ -17,30 +17,28 @@
 
 #include <FileUtils.h>
 
-namespace Wuild
-{
-class RemoteToolClientConfig : public IConfig
-{
+namespace Wuild {
+class RemoteToolClientConfig : public IConfig {
 public:
-	struct ToolServers
-	{
-		StringVector m_hosts;
-		int m_port = 0;
-		StringVector m_toolIds;
+    struct ToolServers {
+        StringVector m_hosts;
+        int          m_port = 0;
+        StringVector m_toolIds;
 
-		bool IsEmpty() const { return m_hosts.empty() || !m_port; }
-	};
+        bool IsEmpty() const { return m_hosts.empty() || !m_port; }
+    };
 
 public:
-	TimePoint m_queueTimeout = 10.0;
-	TimePoint m_requestTimeout = 240.0;
-	int m_invocationAttempts = 2;
-	int m_minimalRemoteTasks = 10;
-	double m_maxLoadAverage = 0.0;
-	std::string m_clientId;
-	CoordinatorClientConfig m_coordinator;
-	ToolServers m_initialToolServers;
-	CompressionInfo m_compression;
-	bool Validate(std::ostream * errStream = nullptr) const override;
+    TimePoint               m_queueTimeout       = 10.0;
+    TimePoint               m_requestTimeout     = 240.0;
+    int                     m_invocationAttempts = 2;
+    int                     m_minimalRemoteTasks = 10;
+    double                  m_maxLoadAverage     = 0.0;
+    std::string             m_clientId;
+    CoordinatorClientConfig m_coordinator;
+    ToolServers             m_initialToolServers;
+    CompressionInfo         m_compression;
+
+    bool Validate(std::ostream* errStream = nullptr) const override;
 };
 }
