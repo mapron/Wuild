@@ -13,7 +13,6 @@
 
 #pragma once
 
-#include "state.h"
-#include "remote_executor.h"
-
+struct State;
+class IRemoteExecutor;
 void RewriteStateRules(State * state, IRemoteExecutor * const remoteExecutor);

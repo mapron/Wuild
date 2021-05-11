@@ -46,8 +46,8 @@
 #include "util.h"
 #include "version.h"
 
-#include "remote_executor_impl.h"
-#include "state_rewrite.h"
+#include "RemoteExecutor.h"
+#include "StateRewrite.h"
 #include <ArgStorage.h>
 
 using namespace std;

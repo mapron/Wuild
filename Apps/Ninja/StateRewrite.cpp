@@ -11,8 +11,11 @@
  * limitations under the License.h
  */
 
-#include "state_rewrite.h"
-#include "graph.h"
+#include "StateRewrite.h"
+#include "IRemoteExecutor.h"
+
+#include <graph.h>
+#include <state.h>
 
 #include <Syslogger.h>
 

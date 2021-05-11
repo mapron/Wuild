@@ -41,7 +41,7 @@
 #include "subprocess.h"
 #include "util.h"
 
-#include "remote_executor.h"
+#include "IRemoteExecutor.h"
 
 using namespace std;
 

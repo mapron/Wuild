@@ -13,8 +13,7 @@
 
 #pragma once
 
-#include "remote_executor.h"
-
+#include "IRemoteExecutor.h"
 
 #include <ConfiguredApplication.h>
 #include <RemoteToolClient.h>

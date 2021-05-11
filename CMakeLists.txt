@@ -77,9 +77,9 @@ endif()
 function(AddTarget)
 	set(options APP)
 	set(oneValueArgs NAME ROOT SUBDIR)
-	set(multiValueArgs CSRC INCLUDES DEPS EXCLUDE OPTIONS DEFINES)
+	set(multiValueArgs CSRC INCLUDES DEPS EXCLUDE OPTIONS DEFINES SOURCES)
 	cmake_parse_arguments(AddTarget "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )
-	set(_sources)
+	set(_sources ${AddTarget_SOURCES})
 	if (NOT AddTarget_ROOT)
 		set(AddTarget_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/${AddTarget_SUBDIR}${AddTarget_NAME})
 	endif()
@@ -138,8 +138,7 @@ endif()
 
 # Source code targets.
 set(ninja_lib_src
-  #  browse.cc
-	build.cc
+	## build.cc
 	build_log.cc
 	clean.cc
 	clparser.cc
@@ -158,8 +157,8 @@ set(ninja_lib_src
 	line_printer.cc
 	manifest_parser.cc
 	metrics.cc
+	## ninja.cc
 	state.cc
-  #  subprocess-posix.cc
 	util.cc
 	version.cc
 	string_piece_util.cc
@@ -219,7 +218,7 @@ AddTarget(NAME VersionChecker SUBDIR Modules/ CSRC *.cpp *.h
 	DEPS Configs Platform ToolExecutionInterface
 	)
 AddTarget(NAME LocalExecutor SUBDIR Modules/  CSRC *.cpp *.h
-	DEPS ninja_subprocess Configs Platform InvocationRewriter ToolExecutionInterface
+	DEPS ninja_subprocess ninja_lib Configs Platform InvocationRewriter ToolExecutionInterface
 	)
 
 AddTarget(NAME ConfiguredApplication CSRC *.cpp *.h
@@ -227,7 +226,7 @@ AddTarget(NAME ConfiguredApplication CSRC *.cpp *.h
 	)
 
 set(main_deps
-	ConfiguredApplication Configs VersionChecker LocalExecutor InvocationRewriter ToolExecutionInterface ToolProxy RemoteTool Coordinator Platform ninja_subprocess ninja_lib
+	ConfiguredApplication Configs VersionChecker LocalExecutor InvocationRewriter ToolExecutionInterface ToolProxy RemoteTool Coordinator Platform
 	)
 
 foreach (testname AllConfigs Balancer Compiler Coordinator Inflate Networking ToolServer )
@@ -252,8 +251,10 @@ foreach (appname Coordinator CoordinatorStatus Proxy ProxyClient ToolExecutor To
 	install(TARGETS Wuild${appname})
 endforeach()
 
-AddTarget(APP NAME WuildNinja ROOT ${NINJA_ROOT}/
-	CSRC ninja.cc remote_executor_impl.* state_rewrite.*
-	DEPS ${main_deps} ninja_subprocess ${sys_deps}
+AddTarget(APP NAME WuildNinja ROOT ${CMAKE_CURRENT_SOURCE_DIR}/Apps/Ninja/
+	SOURCES ${NINJA_ROOT}/ninja.cc ${NINJA_ROOT}/build.cc
+	CSRC *.cpp *.h
+	DEPS ${main_deps} ${sys_deps}
+	INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/Apps/Ninja/ ${NINJA_ROOT}/
 	)
 install(TARGETS WuildNinja)
