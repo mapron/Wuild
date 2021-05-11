@@ -84,7 +84,7 @@ public:
 
     void ProcessToolsVersions(const std::string& host, const VersionMap& versionByToolId)
     {
-        std::unique_lock lock(m_writerMutex);
+        std::unique_lock<std::mutex> lock(m_writerMutex);
         m_writer.FormatToolsVersions(host, versionByToolId);
         for (const auto& tool : versionByToolId)
             m_allVersionsByToolId[tool.first][host] = tool.second;
