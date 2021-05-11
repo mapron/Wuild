@@ -229,10 +229,15 @@ set(main_deps
 	ConfiguredApplication Configs VersionChecker LocalExecutor InvocationRewriter ToolExecutionInterface ToolProxy RemoteTool Coordinator Platform
 	)
 
-foreach (testname AllConfigs Balancer Compiler Coordinator Inflate Networking ToolServer )
+AddTarget(NAME TestUtil ROOT ${CMAKE_CURRENT_SOURCE_DIR}/src/TestUtil/
+	CSRC *.cpp *.h
+	DEPS ${main_deps} ${sys_deps}
+	)
+
+foreach (testname AllConfigs Balancer Compiler Coordinator Inflate Networking ToolServer)
 	AddTarget(APP NAME Test${testname} ROOT ${CMAKE_CURRENT_SOURCE_DIR}/src/TestsManual/
-		CSRC Test${testname}.cpp *.h TestUtils.cpp
-		DEPS ${main_deps} ${sys_deps}
+		CSRC Test${testname}.cpp
+		DEPS ${main_deps} ${sys_deps} TestUtil
 		)
 endforeach()
 foreach (benchname NetworkClient NetworkServer)
