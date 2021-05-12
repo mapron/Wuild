@@ -174,12 +174,8 @@ else()
 	set(ninja_subprocess_src subprocess-posix.cc )
 endif()
 
-AddTarget(NAME ninja_subprocess ROOT ${NINJA_ROOT}/ CSRC ${ninja_subprocess_src}
-	)
-AddTarget(NAME ninja_lib ROOT ${NINJA_ROOT}/ CSRC ${ninja_lib_src} *.h
-	EXCLUDE remote_executor_impl.h
-	DEPS ninja_subprocess
-	)
+
+AddTarget(NAME ninja_lib ROOT ${NINJA_ROOT}/ CSRC ${ninja_lib_src} ${ninja_subprocess_src} *.h)
 if (MSVC)
 	target_compile_options(ninja_lib PRIVATE /wd4091 /wd4800 /wd4996)
 endif()
@@ -218,7 +214,7 @@ AddTarget(NAME VersionChecker SUBDIR Modules/ CSRC *.cpp *.h
 	DEPS Configs Platform ToolExecutionInterface
 	)
 AddTarget(NAME LocalExecutor SUBDIR Modules/  CSRC *.cpp *.h
-	DEPS ninja_subprocess ninja_lib Configs Platform InvocationRewriter ToolExecutionInterface
+	DEPS ninja_lib Configs Platform InvocationRewriter ToolExecutionInterface
 	)
 
 AddTarget(NAME ConfiguredApplication CSRC *.cpp *.h
