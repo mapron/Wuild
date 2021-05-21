@@ -249,7 +249,7 @@ foreach (appname Coordinator CoordinatorStatus Proxy ProxyClient ToolExecutor To
 		DEPS ${main_deps} ${sys_deps}
 		INCLUDES ${JSON_ROOT}
 		)
-	install(TARGETS Wuild${appname})
+	install(TARGETS Wuild${appname} RUNTIME DESTINATION bin)
 endforeach()
 
 AddTarget(APP NAME WuildNinja ROOT ${CMAKE_CURRENT_SOURCE_DIR}/src/Apps/Ninja/
@@ -258,4 +258,4 @@ AddTarget(APP NAME WuildNinja ROOT ${CMAKE_CURRENT_SOURCE_DIR}/src/Apps/Ninja/
 	DEPS ${main_deps} ${sys_deps}
 	INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/src/Apps/Ninja/ ${NINJA_ROOT}/
 	)
-install(TARGETS WuildNinja)
+install(TARGETS WuildNinja RUNTIME DESTINATION bin)
