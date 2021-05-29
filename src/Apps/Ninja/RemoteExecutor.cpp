@@ -85,13 +85,15 @@ IRemoteExecutor::PreprocessResult RemoteExecutor::PreprocessCode(const std::vect
     original.m_args        = { originalRule };
     original.m_ignoredArgs = ignoredArgs;
     original.ParseArgsAsCommanline();
-    const auto& srcExecutable = original.m_id.m_toolExecutable;
     if (!m_invocationRewriter->SplitInvocation(original, pp, cc, &toolId)) {
         if (!m_invocationRewriter->IsCompilerInvocation(original))
             return PreprocessResult::Skipped;
 
         return PreprocessResult::UnknownCompiler;
     }
+    auto srcExecutable = original.m_id.m_toolExecutable;
+    if (srcExecutable.find(" ") != std::string::npos)
+        srcExecutable = "\"" + srcExecutable + "\"";
 
     preprocessRule.push_back(srcExecutable + "  ");
     preprocessRule.insert(preprocessRule.end(), pp.m_args.begin(), pp.m_args.end());
