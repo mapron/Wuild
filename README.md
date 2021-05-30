@@ -4,7 +4,7 @@ Wuild (derived from "wild build") is a distributed compilation system, inspired 
 - Simplicity;
 - Fast integration and usability.
 
-Wuild is written in C++, using Ninja (<https://github.com/ninja-build>) as one of frontends. 
+Wuild is written in C++, using Ninja (<https://github.com/ninja-build>) as main frontend. WuildNinja aims to be drop-in replacement for ninja, without need to change your project.  
 
 # Code structure and terminology
 Platform directory contains platform core primitives to base on: sockets, threads, file utilities.  
@@ -21,97 +21,190 @@ Main application logic contained in Modules directory:
 - CompilerProxyClient acts as usual tool frontend; it sends invocation to ProxyServer, then outputs response to std out.
 Main application binaries holded in root directory.
 
-# Installation
+# Building from source
 ### Requirements 
-- Cmake (tested 3.6)
-- C++ compiler with C+\+14 and C+\+1z filesystem support (tested Gcc, Mingw 6.2 and Msvc 2015)
-- Or, as an alternative, Boost filesystem library and C++14 compiler.
-- System zlib is optional.
+- CMake 3.5+ (3.12 and 3.20 are tested, earlier version should be fine, file a bug if not)
+- C++ compiler with either C+\+17 support or C+\+14 (with USE_GHC_STL CMake option). MSVC 2019, GCC 10 and Clang 11 are tested; previous versions also should work( GCC 6, MSVC 2015)
+- System zlib is recommeded, but you can pass USE_SYSTEM_ZLIB=false to build it from source. For MSVC this is a default.
 
 ### Building
-Just use cmake. If you wish, you could disable using system zlib using USE_SYSTEM_ZLIB=false cmake option.  
-If you need, you could set BOOST_INCLUDEDIR and BOOST_LIBRARYDIR variables to use Boost instead of std::filesystem.
-Installation is not ready yet, so you just get "Wuild*" binaries in cmake bin directory. Packaging is also unsupported.
+Just use usual cmake build/install steps, example for platform with Ninja generator:  
+```
+mkdir build && cd build
+cmake -G "Ninja" -DCMAKE_INSTALL_PREFIX=install ..
+cmake --build . --target install
+```
+Now all binaries are located in your build/install/bin folder.  
+You could also just use any IDE with CMake support to build binaries.  
+Packaging systems integration is not supported yet.  
 
-### Configuring
-Quick start on Linux:  
-- Copy [a wuild configuration file](ExampleConfigurations/Wuild-quick-start.ini) to ~/.Wuild/Wuild.ini
-- See "Running Wuild build" section.
+# Quick start
+There are four short steps, and after each, you have a state you can check properly.  
+We will assume for now we have two Linux machines with g++ on them, 192.168.0.1 will be a client (where we want to speedup the build) and 192.168.0.2 will be a server (it will provide some CPU time).  
+For clang or modern MSVC 2019 there is not much of a difference in setup steps if you using equal environment for both hosts.  
 
-Now we create one client and one server (coordinator+tool server) configuration:
-Suppose you have machine 192.168.0.1 (or "client") running Linux and Gcc toolchaing, and machine 192.168.0.2 (or "server") just the same configuration (but more CPU resources). 
-Create "~/.Wuild/Wuild.ini" on each machine with these contents:
-- Client:
+### Replacing ninja with WuildNinja
+Modify your CMake configure command to pass CMAKE_MAKE_PROGRAM parameter, like this:  
+```
+cmake -G "Ninja" -DCMAKE_MAKE_PROGRAM=/path/to/WuildNinja <..>
+```  
+Or you can edit CMAKE_MAKE_PROGRAM cache variable in IDE as well.  
+After this step nothing should break at all - if you already using recent Ninja version. Otherwise, you can get some manifest errors, like duplicate output rules (which was the warning before).  
+
+### Configuring tools for the client host
+Now we will provide info for client so it can split compilation phase into preprocessing and compilation.  
+We need to create ~/.Wuild/Wuild.ini file:
 ```
 [tools]
-toolIds=gcc_cpp       ; comma-separated logical compiler names
-gcc_cpp=/usr/bin/g++  ; comma-separated possible binaries names, first must be absolute
+toolIds=gcc_cpp       ; comma-separated logical compiler names - they are used as an interaction key for client-server communication.
+gcc_cpp=/usr/bin/g++  ; comma-separated possible binaries names, first must be absolute. You should start with the same absolute path you have in your CMAKE_CXX_COMPILER variable.
 
 [toolClient]
-coordinatorHost=192.168.56.2   ; ip or hostname
-coordinatorPort=7767 
+coordinatorHost=localhost    ;  for now it does nothing but tells we have not-empty setup so we can preprocess things.
+coordinatorPort=7767         ;  any reasonable port here, at this point that does not matter
 ```
-- Server
+
+After this setup, run again build over you project with WuildNinja. Now you should see in a build log output with "Preprocessing" prefix, like that:  
+```
+[1/300] Preprocessing CMakeFiles/buildTest.dir/pp_main.cpp
+[2/300] Building CXX object CMakeFiles/buildTest.dir/main.cpp.o
+```
+Also, number of steps in square brackets should be now almost doubled (for the case your build is mostly a compilation).  
+If not, check the warining output in the top of build log, you can probably find a message like that:  
+```
+Wuild is configured for these compiler paths:
+/usr/bin/g++
+but none of them used when trying to match Ninja config for the rules:
+/usr/local/bin/g++
+```
+Then check again what compiler path you configuring CMake and adjust the path in config.  
+If again, you could not see a "Preprocessing" stage, you probably need to file a bug, because Wuild fails to parse your compiler command line and detect any valid invocation. If it works for compilation of Wuild sources itself, then it definitely a bug.  
+Another memorable issue on this stage - you now can get a compilation error, which was not happen before. That is possible for rare occasion when compiler give different result in PP mode, for example, MSVC sometimes fails to preprocess some raw literals if they have a "comment" inside.  
+```
+auto foo = R"raw(something//like_that)raw";  // works in compilation, but in preprocess everything after inner // is removed.
+``` 
+The only known workaround is to fix raw string literals, for example, splitting them into two.
+
+### Configuring toolserver and coordinator on client machine
+Now we will extend client config, so we can run three required tools for client-server setup: WuildNinja, WuildToolserver (it provides a remote compilation), WuildCoordinator (shows info about remote tools to clients).  
+It looks that it is excess to have a coordinator when you have only one remote host, but if you want a distributed build, you probably want more than one (otherwise it's not worth enough).  
+It is a bit tedious for "quick start" setup, but after that - you basically have everything you want.  
+Modify your ~/.Wuild/Wuild.ini file:  
 ```
 [tools]
-toolIds=gcc_cpp          ; compiler names must be identical on client and server
-gcc_cpp=/usr/bin/g++ 
+toolIds=gcc_cpp
+gcc_cpp=/usr/bin/g++
+
+[toolClient]
+coordinatorHost=localhost
+coordinatorPort=7767         ; any port your firewall is happy with
+minimalRemoteTasks=0         ; that's not required, it's default 10, if you testing with a fair small project, Wuild just won't trigger a remote build at all. you need to remove this later if you need a fast incremented builds. 
+
+[toolServer]
+listenPort=7765              ; any port diferent from coordinator's
+listenHost=localhost
+coordinatorHost=localhost
+coordinatorPort=7767         ; exact same as in [toolClient]
+threadCount=2                ; for now it's not important, you should not to high for localhost tests, as it can slowdown the compilation if you get above you logical cores.
 
 [coordinator]
-listenPort=7767           ; this will be used to coordinate clients and tool server. 
-                          ; for now, just use the same machine for tool server and coordinator.
-[toolServer]
-threadCount=8            ; set host CPU's used for compilation
-listenHost=192.168.0.2    ; network ip or host name for incoming connections
-listenPort=7765           ; should be different for coordinator's
-coordinatorHost=localhost 
-coordinatorPort=7767 
+listenPort=7767              ; exact same as [toolClient] and [toolServer] coordinatorPort
+```
+Before you run build you project again, you need 2 separate terminal windows. Change dir to your Wuild install, there should be 2 binaries called WuildCoordinator and WuildToolServer, execute both:
+```
+./WuildCoordinator
+```
+and (second terminal)
+```
+./WuildToolServer
 ```
 
-Then setup autorunning of WuildToolServer and WuildCoordinator at Server. For testing, just start them in console. 
+Now run again build of your project (don't forget to clean previous build), you should see now ```[REMOTE]``` marked steps in the build output (and 2 more lines of output ine the begin and the end):  
 
-You could see more example configurations in "ExampleConfigurations/" directory.
+```
+Recieved info from coordinator: total remote threads=2, free=2
+[1/3] Preprocessing CMakeFiles/buildTest.dir/pp_main.cpp
+[2/3] [REMOTE] Building CXX object CMakeFiles/buildTest.dir/main.cpp.o
+[3/3] Linking CXX executable buildTest
+sid:1622371618148204(err:0), maxThreads:0 Total remote tasks:1, done in 00:00 total compilationTime: 293174 us.,  total networkTime: 568258 us.,  total overhead: 93% sent KiB: 173,  recieved KiB: 4,  compression time: 38826 us., 
+```
+Also, you should notice some output in WuildToolServer's console:  
+```
+gcc_cpp: <someflags> -c <sometmppath>/0_pp_main.cpp -> <sometmppath>/0_main.cpp.o [12859 / 4343]
+```
+If that is not happening, try to run WuildCoordinatorStatus and WuildToolServerStatus tools while WuildCoordinator and WuildToolServer are active. You should see some output with tool ids and versions, if ini is configured correctly.  
+Next step, you can add debug logging, adding ```logLevel=6``` or even ```logLevel=7``` line to Wuild.ini or passing it as argument ```--wuild-logLevel=6``` to all of the tools.  
+If this still not helping at all, and you do not see ```[REMOTE]``` in build output, please, file a bug with all logs and ini attached.  
 
-### Running Wuild build
-Let's start with Ninja integration (WuildNinja).
-Generate ```CMake -G 'Ninja' -DCMAKE_MAKE_PROGRAM=/path/to/WuildNinja``` for some project, and run WuildNinja just as ninja (or cmake --build). 
-If all done correctly, build will be distributed between tool servers.  
-If not, see "Thoubleshooting".
+### Splitting execution between two hosts
+This is the final and probably the easiest part (if you don't have complicated firewall rules in your network).  
+Now prepare all Wuild binaries on the second host, we will use "192.168.0.2" for it, but you can use a hostname as well, if it is resolvable.  
+Start with modifying you client's ini:  
+```
+[tools]
+toolIds=gcc_cpp
+gcc_cpp=/usr/bin/g++
 
-### Running WuildProxy
-Not all IDE supports Ninja. So we can integrate with make this way:
-- Setup [proxy] section in Wuild.ini;
-- Run WuildProxy; 
-- Setup WuildProxyClient as cxx compiler, for exmaple, passing ```-DCMAKE_CXX_COMPILER=/path/to/WuildProxyClient``` to CMake;
-- Run make with higher number of threads, "-j 20", or even more.
+[toolClient]
+coordinatorHost=192.168.0.2
+coordinatorPort=7767         ; any port your firewall is happy with
+```
+And create ~/.Wuild/Wuild.ini on the server:
+```
+[tools]
+toolIds=gcc_cpp        ; server need tools to execute a compilation step. However, it does not require any includes, or libraries, as it only does compilation steps of fully preprocessed TU.
+gcc_cpp=/usr/bin/g++   ; it can have a different path, that does not matter, just id should match.
 
-Xcode integration is preliminary; it is supported only through ProxyClient. Create symlink to WuildProxyClient instead of clang++ in Xcode toolchains, or use dispatcher script which will pass all parameters to WuildProxyClient depending on some option.
+; don't need a [toolClient] section
 
-# Troubleshooting
-- Try to enable more verbose logs in Wuild config, adding "logLevel=6" in top of ini-file. logLevel=7 may be too verbose.
-- Try to call Ninja wuild frontend with -v -n arguments (verbose dry run). You should see preprocess and compile invocations separately.
-- Try to run different tests, e.g ```TestAllConfigs -c test.cpp -o test.o ``` - it emulates gcc commandline interface, but distributes build.
+[toolServer]
+listenPort=7765              ; any port diferent from coordinator's
+listenHost=192.168.0.2       ; IMPORTANT! we can't just write 'localhost' here, as this exact host name will be send to slient. If you use a string hostname, make sure it's resolvable on client side.
+coordinatorHost=localhost
+coordinatorPort=7767         ; exact same as in [toolClient]
+threadCount=64               ; for the start - use logical cores available. You can tune it down later for better load.
+
+[coordinator]
+listenPort=7767              ; exact same as [toolServer] coordinatorPort. make sure to by sync with 192.168.0.1 client config.
+```
+Now you can stop WuildCoordinator and WuildToolServer on the client, and run both on the server (192.168.0.2) machine. Now you will have build distributed between two hosts.
+
+
+# Advanced usage
+After Quick Start, next step is to add more ToolServers and maybe Coordinators (so you can safely shutown one server without disabling all builds on CI).  
+You don't need to have Coordinator on the same host as ToolServer (and you can host Coordinators on lightweight VMs as they do not require much of resource).  
+Also, you need to create autolaunch routing for ToolServers and Coordinators  (you may be interested in NSSM tool for Windows).  
+Next what you probably iterested in - you can use Clang as crosscompiler, for example, MacOS clients and Windows toolservers, you can [read about setup here](docs/CrossCompilation.md).  
+Another case is integrate with builds, where ninja is not available, for example, Make or xcodebuild systems, you can read more [here about WuildProxy](docs/WuildProxy.md).  
+For troubleshooting and debugging you builds, you can read [Troubleshooting doc page](docs/Troubleshooting.md).  
+For "how to run in Visual Studio", you can read about [VS integration](docs/VisualStudio.md).  
+If you want optimize you compilation speed to limits and do becnhmarking, some advice can be found in [Performance article](docs/Performance.md).  
+And finally, we have ini config [option reference](docs/ExampleConfigurations/Wuild-full-options.ini).  
 
 # Known issues
-- Precompiled headers unsupported;
-- /Zi for MSVC is unsupported, but workarounded switching to Z7 (it may be unexpected for someone);
+- Precompiled headers are unsupported;
+- /Zi (PDB) for MSVC is unsupported, but workarounded switching to Z7 (it may be unexpected for someone); it also can break some builds if too large static libraries linking (use dlls).
 - serialize-diagnostics option is ignored;
 - ProxyServer tool server connection kept forever. 
 
 # Road map
-- Ability to run without coordinator;
-- MSVC IDE integration;
 - Installer and packaging support;
-- Automatic detached start.
+- Wildcard or another approach to support servers with dozens of tools;
+- C++ modules support (when they are stable in CMake/ninja/clang/msvc at least).
+
+# Used thirdparty products
+- (Apache 2) "Ninja build system" (https://github.com/ninja-build) is used for a fast frontentd;
+- (Zlib) Zlib, (BSD) LZ4 and (BSD) ZStd libraries are used for compression algorithms;
+- (MIT) Hlohmann Json library (https://github.com/nlohmann/json) is used for json output in debug tools;
+- (MIT) GHC filesystem library (https://github.com/gulrak/filesystem) for a C++17-compatible Filesystem implementation.
 
 # Credits
-- Thanks to "Ninja build system" project for fast frontentd;
-- Zlib and LZ4 libraries used for compression algorithms;
 - Special thanks to Peter Zhigalov (https://github.com/AlienCowEatCake) for the thorough alpha- and beta-testing;
-- Thanks to Movavi team for testing environment.
+- Thanks for Sergio Torres Soldado for constructive feedback;
+- Thanks to Movavi (https://www.movavi.com) team for the testing environment.
 
 # Licensing 
-  Copyright (C) 2017 Smirnov Vladimir mapron1@gmail.com  
+  Copyright (C) 2017-2021 Smirnov Vladimir mapron1@gmail.com  
   Source code licensed under the Apache License, Version 2.0 (the "License");  
   You may not use this file except in compliance with the License.  
   You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 or in [file](COPYING-APACHE-2.0.txt)  
