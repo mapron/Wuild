@@ -6,6 +6,25 @@ Wuild (derived from "wild build") is a distributed compilation system, inspired 
 
 Wuild is written in C++, using Ninja (<https://github.com/ninja-build>) as main frontend. WuildNinja aims to be drop-in replacement for ninja, without need to change your project.  
 
+# Wuild features
+What's Wuild good for?  
+- It provides drop-in support for ninja tool - for the best case it's just one line in your build scripts with CMake parameter;
+- It supports fast incremental build same way ninja does - you don't need to switch to WuildNinja when you need to build whole project and back to ninja when you need to compile 2 files;
+- It supports distributed builds and crosscompilation for clang, msvc and gcc (gcc is not highly tested though);
+- Crosscompilation support means you can use same server for msvc and clang, for example;
+- Support for macOS, Windows and Linux hosts;
+- It does not require installation on clients - you can place WuilNinja and Wuild.ini in conan package and automatically provide setup for clients;
+- Main approach is to replace build system, not the compiler binary - so you don't need to provide -j 100 to your build system and then die in linker phase.  
+  
+So, as you can see why you can use it as distcc replacement; it more like Incredibuild approach overall.  
+It has drawbacks too:  
+- It does not have any auto installer or auto configuration - you need to setup your servers by hand and configure each compiler in ini file;  
+- It does not have fancy IDE integration - you almost need to have ninja support in first place. Wuild provides two workarounds you can use for MSVC/XCode, you can read about them in "Advanced usage";
+- Meson support is possible and may be working, but is not tested now - main focus is on CMake ninja generator;  
+- No gui tools for configuring or diagnostics - however it has plenty of commandline tools;  
+- You need to manually ensure you have equal version of tools at server and client (though Wuild provides error message for diverge and ability to supress it);
+If you ok with drawbacks (I am trying to reveal everything here), then project will fit you well.
+
 # Code structure and terminology
 Platform directory contains platform core primitives to base on: sockets, threads, file utilities.  
 CompilerInterface declares CompilerInvocation and LocalExecutorTask.  
@@ -182,6 +201,7 @@ Let's now talk about ini config file location. It tries to load these locations 
 - ```~/.Wuild/Wuild.ini``` (for Windows ~ is %USERPROFILE%);
 - (Windows only) ```~/Wuild.ini```;
 - Final attempt, it will try to load ```Wuild.ini``` in the same directory with main executable (e.g. WuildNinja).  
+  
 If first two was not set and search is ended, then Wuild is set to "unconfigured mode". For WuildNinja it means it will fallback to plain ninja.
 
 # Advanced usage
