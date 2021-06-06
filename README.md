@@ -169,6 +169,20 @@ listenPort=7767              ; exact same as [toolServer] coordinatorPort. make 
 ```
 Now you can stop WuildCoordinator and WuildToolServer on the client, and run both on the server (192.168.0.2) machine. Now you will have build distributed between two hosts.
 
+# Configuration: commandline and config file
+For every option in ini file, you can also provide its value form the commandline; you need to add ```--wuild-``` prefix to it, for example:  
+```
+WuildNinja --wuild-logLevel=7 --wuild-coordinatorHost=testhost
+```  
+Any commandline option has higher priority that ini option. However, keep in mind, that all commandline variable placed in 'global' scope, so you can't provide different 'listenPort' for different scopes.  
+  
+Let's now talk about ini config file location. It tries to load these locations in order:  
+- ```--wuild-config=/path/file.ini``` command line parameter (and stops with error if path provided but invalid);
+- ```WUILD_CONFIG=/path/file.ini``` environment variable (and stops with error if path provided but invalid);
+- ```~/.Wuild/Wuild.ini``` (for Windows ~ is %USERPROFILE%);
+- (Windows only) ```~/Wuild.ini```;
+- Final attempt, it will try to load ```Wuild.ini``` in the same directory with main executable (e.g. WuildNinja).  
+If first two was not set and search is ended, then Wuild is set to "unconfigured mode". For WuildNinja it means it will fallback to plain ninja.
 
 # Advanced usage
 After Quick Start, next step is to add more ToolServers and maybe Coordinators (so you can safely shutown one server without disabling all builds on CI).  

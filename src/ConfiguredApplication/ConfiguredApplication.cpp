@@ -27,15 +27,9 @@
 #include <memory>
 
 namespace {
-const std::string g_defaultConfigSubfolder =
-#ifndef _WIN32
-    ".Wuild/"
-#else
-    ""
-#endif
-    ;
-const std::string g_defaultConfig = "Wuild.ini";
-const std::string g_envConfig     = "WUILD_CONFIG";
+const std::string g_defaultConfigSubfolder = ".Wuild/";
+const std::string g_defaultConfig          = "Wuild.ini";
+const std::string g_envConfig              = "WUILD_CONFIG";
 }
 
 namespace Wuild {
@@ -62,6 +56,9 @@ ConfiguredApplication::ConfiguredApplication(const StringVector& argConfig, cons
         unexistendConfigIsError = false;
         const std::vector<std::string> configPaths{
             Application::Instance().GetHomeDir() + "/" + g_defaultConfigSubfolder + g_defaultConfig,
+#ifdef _WIN32
+            Application::Instance().GetHomeDir() + "/" + g_defaultConfig,
+#endif
             Application::Instance().GetExecutablePath() + g_defaultConfig,
         };
         for (const auto& path : configPaths)
@@ -70,6 +67,7 @@ ConfiguredApplication::ConfiguredApplication(const StringVector& argConfig, cons
                 break;
             }
     }
+
     if (!config.ReadIniFile(configPath) && unexistendConfigIsError) {
         Syslogger(Syslogger::Err) << "Failed to load:" << configPath;
     }
@@ -84,6 +82,8 @@ ConfiguredApplication::ConfiguredApplication(const StringVector& argConfig, cons
     ReadToolProxyServerConfig();
 
     InitLogging(m_loggerConfig);
+
+    Syslogger() << "Using Wuild config = " << configPath;
 
     m_tempDir = m_config->GetString(m_defaultGroupName, "tempDir", Application::Instance().GetTempDir());
 }
