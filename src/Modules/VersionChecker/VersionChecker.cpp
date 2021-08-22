@@ -84,6 +84,7 @@ IVersionChecker::Version VersionChecker::GetToolVersion(const ToolInvocation::Id
     auto versionCheckTask          = std::make_shared<LocalExecutorTask>();
     versionCheckTask->m_readOutput = versionCheckTask->m_writeInput = false;
     versionCheckTask->m_invocation.m_id                             = toolId;
+    versionCheckTask->m_readStderr                                  = false;
 
     IVersionChecker::Version result;
 

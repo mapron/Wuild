@@ -74,7 +74,7 @@ HANDLE Subprocess::SetupPipe(HANDLE ioport) {
   return output_write_child;
 }
 
-bool Subprocess::Start(SubprocessSet* set, const string& command, const vector<string> & environment) {
+bool Subprocess::Start(SubprocessSet* set, const string& command, const vector<string> & environment, bool useStderr) {
   HANDLE child_pipe = SetupPipe(set->ioport_);
 
   SECURITY_ATTRIBUTES security_attributes;
@@ -96,7 +96,7 @@ bool Subprocess::Start(SubprocessSet* set, const string& command, const vector<s
     startup_info.dwFlags = STARTF_USESTDHANDLES;
     startup_info.hStdInput = nul;
     startup_info.hStdOutput = child_pipe;
-    startup_info.hStdError = child_pipe;
+    startup_info.hStdError = useStderr ? child_pipe : nul;
   }
   // In the console case, child_pipe is still inherited by the child and closed
   // when the subprocess finishes, which then notifies ninja.
@@ -252,9 +252,9 @@ BOOL WINAPI SubprocessSet::NotifyInterrupted(DWORD dwCtrlType) {
   return FALSE;
 }
 
-Subprocess *SubprocessSet::Add(const string& command, bool use_console, const vector<string> & environment) {
+Subprocess *SubprocessSet::Add(const string& command, bool use_console, const vector<string> & environment, bool useStderr) {
   Subprocess *subprocess = new Subprocess(use_console);
-  if (!subprocess->Start(this, command, environment)) {
+  if (!subprocess->Start(this, command, environment, useStderr)) {
     delete subprocess;
     return 0;
   }

@@ -53,6 +53,7 @@ struct LocalExecutorTask {
     bool          m_writeInput = true;
     bool          m_readOutput = true;
     bool          m_setEnv     = true;
+    bool          m_readStderr = true;
     TemporaryFile m_inputFile;  //!< Temporary file used for tool input
     TemporaryFile m_outputFile; //!< Temporary file used for tool output
 

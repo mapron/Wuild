@@ -168,7 +168,7 @@ void LocalExecutor::Quant()
                 }
                 task->m_invocation     = inv;
                 task->m_executionStart = TimePoint(true);
-                Subprocess* addsubproc = m_subprocs->Add(cmd, false, env);
+                Subprocess* addsubproc = m_subprocs->Add(cmd, false, env, task->m_readStderr);
                 if (!addsubproc) {
                     task->ErrorResult("Failed to execute: " + cmd);
                     break;

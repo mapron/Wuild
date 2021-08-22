@@ -48,7 +48,7 @@ Subprocess::~Subprocess() {
     Finish();
 }
 
-bool Subprocess::Start(SubprocessSet* set, const string& command, const vector<string> &) {
+bool Subprocess::Start(SubprocessSet* set, const string& command, const vector<string> &, bool useStderr) {
   int output_pipe[2];
   if (pipe(output_pipe) < 0)
     Fatal("pipe: %s", strerror(errno));
@@ -100,7 +100,9 @@ bool Subprocess::Start(SubprocessSet* set, const string& command, const vector<s
     err = posix_spawn_file_actions_adddup2(&action, output_pipe[1], 1);
     if (err != 0)
       Fatal("posix_spawn_file_actions_adddup2: %s", strerror(err));
-    err = posix_spawn_file_actions_adddup2(&action, output_pipe[1], 2);
+
+    if (useStderr)
+      err = posix_spawn_file_actions_adddup2(&action, output_pipe[1], 2);
     if (err != 0)
       Fatal("posix_spawn_file_actions_adddup2: %s", strerror(err));
     err = posix_spawn_file_actions_addclose(&action, output_pipe[1]);
@@ -244,9 +246,9 @@ SubprocessSet::~SubprocessSet() {
     Fatal("sigprocmask: %s", strerror(errno));
 }
 
-Subprocess *SubprocessSet::Add(const string& command, bool use_console, const vector<string> & environment) {
+Subprocess *SubprocessSet::Add(const string& command, bool use_console, const vector<string> & environment, bool useStderr) {
   Subprocess *subprocess = new Subprocess(use_console);
-  if (!subprocess->Start(this, command, environment)) {
+  if (!subprocess->Start(this, command, environment, useStderr)) {
     delete subprocess;
     return 0;
   }
