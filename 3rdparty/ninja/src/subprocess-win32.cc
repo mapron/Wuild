@@ -96,7 +96,7 @@ bool Subprocess::Start(SubprocessSet* set, const string& command, const vector<s
     startup_info.dwFlags = STARTF_USESTDHANDLES;
     startup_info.hStdInput = nul;
     startup_info.hStdOutput = child_pipe;
-    startup_info.hStdError = useStderr ? child_pipe : nul;
+    startup_info.hStdError = child_pipe; // TODO: utilize useStderr.
   }
   // In the console case, child_pipe is still inherited by the child and closed
   // when the subprocess finishes, which then notifies ninja.
