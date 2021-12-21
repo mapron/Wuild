@@ -207,11 +207,13 @@ bool FileInfo::ReadCompressed(ByteArrayHolder& data, CompressionInfo compression
     return true;
 }
 
-bool FileInfo::WriteCompressed(const ByteArrayHolder& data, CompressionInfo compressionInfo, bool createTmpCopy)
+bool FileInfo::WriteCompressed(const ByteArrayHolder& data, CompressionInfo compressionInfo, bool createTmpCopy, PostProcessor pp)
 {
     ByteArrayHolder uncompData;
     try {
         UncompressDataBuffer(data, uncompData, compressionInfo);
+        if (pp)
+            pp(uncompData.ref());
     }
     catch (std::exception& e) {
         Syslogger(Syslogger::Err) << "Error on uncompress:" << e.what() << " for " << GetPath();

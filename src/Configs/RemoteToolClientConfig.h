@@ -27,6 +27,15 @@ public:
 
         bool IsEmpty() const { return m_hosts.empty() || !m_port; }
     };
+    struct PostProcess {
+        struct Item {
+            ByteArray m_needle;
+            ByteArray m_replacement;
+        };
+        std::vector<Item> m_items;
+
+        void Apply(ByteArray& data) const;
+    };
 
 public:
     TimePoint               m_queueTimeout       = 10.0;
@@ -38,6 +47,7 @@ public:
     CoordinatorClientConfig m_coordinator;
     ToolServers             m_initialToolServers;
     CompressionInfo         m_compression;
+    PostProcess             m_postProcess;
 
     bool Validate(std::ostream* errStream = nullptr) const override;
 };

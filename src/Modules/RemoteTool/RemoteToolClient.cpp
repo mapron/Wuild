@@ -127,8 +127,10 @@ public:
 
                 if (info.m_result && !outputFilename.empty()) {
                     this->m_parent->m_recievedBytes += result->m_fileData.size();
+
+                    auto      pp = [this](ByteArray& data) { this->m_parent->m_config.m_postProcess.Apply(data); };
                     TimePoint start(true);
-                    info.m_result = FileInfo(outputFilename).WriteCompressed(result->m_fileData, result->m_compression);
+                    info.m_result = FileInfo(outputFilename).WriteCompressed(result->m_fileData, result->m_compression, true, pp);
                     this->m_parent->m_totalCompressionTime += start.GetElapsedTime();
                 }
             }

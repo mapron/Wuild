@@ -30,6 +30,38 @@ namespace {
 const std::string g_defaultConfigSubfolder = ".Wuild/";
 const std::string g_defaultConfig          = "Wuild.ini";
 const std::string g_envConfig              = "WUILD_CONFIG";
+
+Wuild::RemoteToolClientConfig::PostProcess ParsePostProcess(const std::string& str)
+{
+    using namespace Wuild;
+    if (str.empty())
+        return {};
+
+    StringVector parts;
+    StringUtils::SplitString(str, parts, ',', true, true);
+    if (parts.empty())
+        return {};
+    const size_t itemCount = parts.size();
+    if (itemCount % 2 != 0) {
+        Syslogger(Syslogger::Err) << "postProcess parts count must be even";
+        return {};
+    }
+    RemoteToolClientConfig::PostProcess result;
+    for (size_t i = 0; i < itemCount; i += 2) {
+        const auto& needle      = parts[i];
+        const auto& replacement = parts[i + 1];
+        const auto  size        = needle.size();
+        if (size != replacement.size()) {
+            Syslogger(Syslogger::Err) << "postProcess pairs must be equal";
+            return {};
+        }
+        ByteArray needleBa(size), replacementBa(size);
+        std::transform(needle.cbegin(), needle.cend(), needleBa.begin(), [](char c) { return static_cast<uint8_t>(c); });
+        std::transform(replacement.cbegin(), replacement.cend(), replacementBa.begin(), [](char c) { return static_cast<uint8_t>(c); });
+        result.m_items.push_back({ std::move(needleBa), std::move(replacementBa) });
+    }
+    return result;
+}
 }
 
 namespace Wuild {
@@ -284,6 +316,7 @@ void ConfiguredApplication::ReadRemoteToolClientConfig()
     m_remoteToolClientConfig.m_invocationAttempts = m_config->GetInt(defaultGroup, "invocationAttempts", m_remoteToolClientConfig.m_invocationAttempts);
     m_remoteToolClientConfig.m_minimalRemoteTasks = m_config->GetInt(defaultGroup, "minimalRemoteTasks", m_remoteToolClientConfig.m_minimalRemoteTasks);
     m_remoteToolClientConfig.m_maxLoadAverage     = m_config->GetDouble(defaultGroup, "maxLoadAverage", m_remoteToolClientConfig.m_maxLoadAverage);
+    m_remoteToolClientConfig.m_postProcess        = ParsePostProcess(m_config->GetString(defaultGroup, "postProcess"));
 
     int queueTimeoutMS = m_config->GetInt(defaultGroup, "queueTimeoutMS");
     if (queueTimeoutMS)

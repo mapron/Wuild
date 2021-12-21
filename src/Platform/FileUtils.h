@@ -18,6 +18,7 @@
 #include <stdint.h>
 #include <vector>
 #include <string>
+#include <functional>
 
 namespace Wuild {
 
@@ -29,6 +30,8 @@ class FileInfo {
 public:
     static std::string LocatePath(const std::string& path);
     static std::string ToPlatformPath(std::string path);
+
+    using PostProcessor = std::function<void(ByteArray&)>;
 
 public:
     FileInfo(const FileInfo& rh);
@@ -61,7 +64,7 @@ public:
     bool ReadCompressed(ByteArrayHolder& data, CompressionInfo compressionInfo);
 
     /// Write deflated memory data to file on disk uncompressed.
-    bool WriteCompressed(const ByteArrayHolder& data, CompressionInfo compressionInfo, bool createTmpCopy = true);
+    bool WriteCompressed(const ByteArrayHolder& data, CompressionInfo compressionInfo, bool createTmpCopy = true, PostProcessor pp = {});
 
     /// Read whole file into buffer
     bool ReadFile(ByteArrayHolder& data);

@@ -14,6 +14,7 @@
 #include "RemoteToolClientConfig.h"
 
 #include <iostream>
+#include <algorithm>
 
 namespace Wuild {
 
@@ -30,6 +31,23 @@ bool RemoteToolClientConfig::Validate(std::ostream* errStream) const
         return false;
     }
     return m_coordinator.Validate(errStream);
+}
+
+void RemoteToolClientConfig::PostProcess::Apply(ByteArray& data) const
+{
+    auto replaceOnce = [&data](const ByteArray& needle, const ByteArray& replacement) -> bool {
+        auto it = std::search(data.begin(), data.end(), needle.begin(), needle.end());
+        if (it == data.end())
+            return false;
+        std::copy(replacement.cbegin(), replacement.cend(), it);
+        return true;
+    };
+    for (auto&& item : m_items) {
+        const auto& needle      = item.m_needle;
+        const auto& replacement = item.m_replacement;
+        while (replaceOnce(needle, replacement)) {
+        }
+    }
 }
 
 }
