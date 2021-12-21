@@ -21,7 +21,8 @@
 namespace Wuild {
 inline void usleep(int64_t useconds)
 {
-    std::this_thread::sleep_for(std::chrono::microseconds(useconds));
+    if (useconds > 0)
+        std::this_thread::sleep_for(std::chrono::microseconds(useconds));
 }
 
 /// mutex-locked std::queue wrapper.
