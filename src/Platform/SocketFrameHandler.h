@@ -48,7 +48,7 @@ struct SocketFrameHandlerSettings {
     size_t  m_acknowledgeMinimalReadSize = 100; //!< minimal bytes read without ack; must be greater than 5.
     uint8_t m_byteOrder;                        //!< network channel byte order. Default is big-endian.
 
-    TimePoint m_clientThreadSleep = TimePoint(); //!< thread usleep value.
+    TimePoint m_clientThreadSleep = TimePoint(0.001); //!< thread usleep value.
     TimePoint m_mainThreadSleep   = TimePoint(0.001); //!< thread usleep value for FrameHandlerService.
 
     TimePoint m_channelActivityTimeout    = TimePoint(10.0); //!< After this time, channel with no read event will be dead.
