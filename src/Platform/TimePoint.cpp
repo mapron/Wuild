@@ -236,7 +236,7 @@ std::string TimePoint::ToString(bool printMS, bool printDate) const
 
     os << std::setw(2) << timeinfo.tm_min << ':' << std::setw(2) << timeinfo.tm_sec;
     if (printMS) {
-        int64_t ms = GetFractionalUS() / 1000;
+        int64_t ms = GetFractionalUS() / ONE_MS;
         os << '.' << std::setw(3) << ms;
     }
     return os.str();
@@ -244,7 +244,44 @@ std::string TimePoint::ToString(bool printMS, bool printDate) const
 
 std::string TimePoint::ToProfilingTime() const
 {
-    return m_us > 2 * ONE_SECOND ? this->ToString(false) : std::to_string(m_us) + " us.";
+    if (m_us > 10 * ONE_SECOND)
+        return this->ToString(false);
+    if (m_us > 100 * ONE_MS)
+        return std::to_string(m_us / ONE_MS) + " ms.";
+    return std::to_string(m_us) + " us.";
+}
+
+std::pair<TimePoint, TimePoint> TimePoint::GetProcessCPUTimes()
+{
+#ifdef _WIN32
+
+    FILETIME createTime;
+    FILETIME exitTime;
+    FILETIME kernelTime;
+    FILETIME userTime;
+
+    auto sysTimeToPoint = [](const SYSTEMTIME& sys) {
+        TimePoint t;
+        t.SetUS(0 + (int64_t) sys.wHour * ONE_SECOND * 3600
+                + (int64_t) sys.wMinute * ONE_SECOND * 60
+                + (int64_t) sys.wSecond * ONE_SECOND
+                + (int64_t) sys.wMilliseconds * ONE_MS);
+        return t;
+    };
+
+    if (GetProcessTimes(GetCurrentProcess(),
+                        &createTime,
+                        &exitTime,
+                        &kernelTime,
+                        &userTime)
+        != -1) {
+        SYSTEMTIME userSystemTime, kernSystemTime;
+        if (FileTimeToSystemTime(&userTime, &userSystemTime) != -1 && FileTimeToSystemTime(&kernelTime, &kernSystemTime) != -1)
+            return { sysTimeToPoint(userSystemTime), sysTimeToPoint(kernSystemTime) };
+    }
+
+#endif
+    return {};
 }
 
 int TimePoint::LocalOffsetSeconds()

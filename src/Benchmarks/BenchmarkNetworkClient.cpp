@@ -29,10 +29,14 @@ int main(int argc, char** argv)
     TestService service;
     service.startClient(args[0]);
     TimePoint start(true);
+    auto      processStart = TimePoint::GetProcessCPUTimes();
     for (int i = 0; i < 50; i++)
-        service.sendFile(1000000);
+        service.sendFile(10000000);
     service.waitForReplies();
-    Syslogger(Syslogger::Notice) << "Taken time:" << start.GetElapsedTime().ToProfilingTime();
+    auto processEnd = TimePoint::GetProcessCPUTimes();
+    Syslogger(Syslogger::Notice) << "Taken wall clock     time: " << start.GetElapsedTime().ToProfilingTime();
+    Syslogger(Syslogger::Notice) << "Taken user process   time: " << (processEnd.first - processStart.first).ToProfilingTime();
+    Syslogger(Syslogger::Notice) << "Taken kernel process time: " << (processEnd.second - processStart.second).ToProfilingTime();
 
     return 0;
 }

@@ -188,7 +188,7 @@ void Application::WaitForTermination(int terminateAfterMS, int usleepTimeout)
 {
     TimePoint start(true);
     while (!s_applicationInterruption) {
-        if (terminateAfterMS != -1 && start.GetElapsedTime().GetUS() > terminateAfterMS * 1000)
+        if (terminateAfterMS != -1 && start.GetElapsedTime().GetUS() > terminateAfterMS * TimePoint::ONE_MS)
             s_applicationInterruption = true;
 
         usleep(usleepTimeout);

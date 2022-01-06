@@ -54,7 +54,7 @@ void ProcessServerData(const ByteArrayHolder& input, ByteArrayHolder& output)
 }
 }
 
-void TestService::startServer()
+void TestService::startServer(std::function<void()> onInit)
 {
     Syslogger(Syslogger::Info) << "Listening on:" << testServicePort;
 
@@ -72,6 +72,13 @@ void TestService::startServer()
         response->m_processTime = processStart.GetElapsedTime();
         outputCallback(response);
     }));
+    m_server->SetHandlerDestroyCallback([](SocketFrameHandler*) {
+        Syslogger(Syslogger::Notice) << "Interrupt!";
+        Application::Interrupt();
+    });
+    m_server->SetHandlerInitCallback([onInit](SocketFrameHandler*) {
+        onInit();
+    });
     m_server->Start();
 }
 

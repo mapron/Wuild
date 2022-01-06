@@ -55,7 +55,7 @@ class TestService {
     std::mutex              taskStateMutex;
 
 public:
-    void startServer();
+    void startServer(std::function<void()> onInit);
     void startClient(const std::string& host);
     void sendFile(size_t size);
     void waitForReplies();

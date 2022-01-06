@@ -23,6 +23,7 @@ class TimePoint {
 
 public:
     static const int64_t ONE_SECOND = 1000000LL;
+    static const int64_t ONE_MS     = 1000LL;
     /// if now == true, then current timepoint is created.
     TimePoint(bool now = false);
 
@@ -133,6 +134,8 @@ public:
     std::string ToString(bool printMS = true, bool printDate = false) const;
     /// Outputs microseconds, if interval less than two seconds.
     std::string ToProfilingTime() const;
+
+    static std::pair<TimePoint, TimePoint> GetProcessCPUTimes();
 
 private:
     static int LocalOffsetSeconds();
