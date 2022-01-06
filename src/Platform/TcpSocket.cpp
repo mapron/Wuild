@@ -186,22 +186,32 @@ IDataSocket::ReadState TcpSocket::Read(ByteArrayHolder& buffer)
     if (!IsSocketReadReady())
         return ReadState::TryAgain;
 
-    if (!SelectRead(m_params.m_readTimeout)) //Нет данных в порту
+    if (!SelectRead())
         return ReadState::TryAgain;
 
     size_t bufferInitialSize = buffer.size();
     (void) bufferInitialSize;
     char tmpbuffer[0x4000]; // 16k buffer. stack is rather cheap...
     int  recieved, totalRecieved = 0;
+    int  iteration = 0;
     do {
+        iteration++;
         recieved =
 #ifdef TCP_SOCKET_WIN
             recv(m_impl->m_socket, tmpbuffer, sizeof(tmpbuffer), 0);
 #else
             read(m_impl->m_socket, tmpbuffer, sizeof(tmpbuffer));
 #endif
-        if (recieved == 0)
+        if (recieved == 0) {
+#ifdef TCP_SOCKET_WIN
+            if (iteration == 1) {
+                Syslogger(m_logContext, Syslogger::Info) << "Connection closed.";
+                Disconnect();
+                return ReadState::Fail;
+            }
+#endif
             break;
+        }
 
         if (recieved < 0) {
             const auto err = SocketGetLastError();
@@ -283,7 +293,7 @@ bool TcpSocket::IsSocketReadReady()
     return (selected != 0 && FD_ISSET(m_impl->m_socket, &set));
 }
 
-bool TcpSocket::SelectRead(const TimePoint& timeout)
+bool TcpSocket::SelectRead()
 {
     if (m_impl->m_socket == INVALID_SOCKET)
         return false;
@@ -292,8 +302,9 @@ bool TcpSocket::SelectRead(const TimePoint& timeout)
     fd_set selected;
     FD_ZERO(&selected);
     FD_SET(m_impl->m_socket, &selected);
-    struct timeval timeoutTV {};
-    SET_TIMEVAL_US(timeoutTV, timeout);
+
+    struct timeval timeoutTV = { 0, 0 };
+
     res = select(static_cast<int>(m_impl->m_socket + 1), &selected, nullptr, nullptr, &timeoutTV) > 0 && FD_ISSET(m_impl->m_socket, &selected);
     return res;
 }

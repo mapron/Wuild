@@ -65,7 +65,7 @@ protected:
     void SetListener(TcpListener* pendingListener);
     void Fail(); //!< Ошибка при установлении соединения.
     bool IsSocketReadReady();
-    bool SelectRead(const TimePoint& timeout);
+    bool SelectRead();
     void SetBufferSize();
 
     TcpListener*        m_pendingListener    = nullptr;
