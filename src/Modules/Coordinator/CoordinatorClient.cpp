@@ -113,10 +113,10 @@ void CoordinatorClient::CoordWorker::SetToolServerInfo(const ToolServerInfo& inf
     m_toolServerInfo = info;
 }
 
-void CoordinatorClient::CoordWorker::Quant()
+bool CoordinatorClient::CoordWorker::Quant()
 {
     if (!m_clientState)
-        return;
+        return true;
 
     if (m_coordClient->m_config.m_sendInfoInterval && m_needSendToolServerInfo) {
         if (!m_lastSend || m_lastSend.GetElapsedTime() > m_coordClient->m_config.m_sendInfoInterval) {
@@ -137,6 +137,7 @@ void CoordinatorClient::CoordWorker::Quant()
         m_needRequestData = false;
         m_client->QueueFrame(std::make_shared<CoordinatorListRequest>());
     }
+    return true;
 }
 
 void CoordinatorClient::CoordWorker::Stop()

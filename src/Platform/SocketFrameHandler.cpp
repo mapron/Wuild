@@ -62,11 +62,12 @@ void SocketFrameHandler::SetRetryConnectOnFail(bool retry)
 
 void SocketFrameHandler::Start()
 {
-    m_thread.Exec([this] {
+    m_thread.Exec([this]() -> bool {
         if (!this->Quant()) {
             this->DisconnectChannel();
             m_thread.Cancel();
         }
+        return true;
     },
                   m_settings.m_clientThreadSleep.GetUS());
 }

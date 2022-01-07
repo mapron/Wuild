@@ -52,7 +52,7 @@ public:
     /// Stops service
     void Stop();
     /// Main channel logic: connecting new clients and removing disconnected.
-    void Quant();
+    bool Quant();
 
     /// At least one active client connected.
     bool IsConnected();

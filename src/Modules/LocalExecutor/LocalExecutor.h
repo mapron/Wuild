@@ -53,7 +53,7 @@ private:
     void                   Start();
     void                   CheckSubprocs();
     LocalExecutorTask::Ptr GetNextTask();
-    void                   Quant();
+    bool                   Quant();
     const StringVector&    GetToolIdEnvironment(const std::string& toolId);
 
     size_t             m_maxSubProcesses = 1;

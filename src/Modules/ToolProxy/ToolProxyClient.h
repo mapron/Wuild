@@ -14,7 +14,6 @@
 #pragma once
 
 #include <CoordinatorTypes.h>
-#include <ThreadLoop.h>
 #include <ToolProxyServerConfig.h>
 
 #include <functional>

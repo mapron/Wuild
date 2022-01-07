@@ -64,13 +64,13 @@ public:
         m_pendingTasks++;
     }
 
-    void ProcessTasks()
+    bool ProcessTasks()
     {
         RemoteToolRequestWrap task;
         {
             std::lock_guard<std::mutex> lock(m_requestsMutex);
             if (m_requests.empty())
-                return;
+                return true;
             TimePoint now(true);
             for (auto it = m_requests.begin(); it != m_requests.end();) {
                 if (it->m_expirationMoment < now) {
@@ -88,14 +88,14 @@ public:
             }
 
             if (m_requests.empty())
-                return;
+                return true;
 
             task = *m_requests.begin();
         }
 
         size_t clientIndex = m_balancer.FindFreeClient(task.m_invocation.m_id.m_toolId);
         if (clientIndex == std::numeric_limits<size_t>::max())
-            return;
+            return true;
 
         SocketFrameHandler::Ptr handler;
         {
@@ -153,6 +153,7 @@ public:
             std::lock_guard<std::mutex> lock(m_requestsMutex);
             m_requests.pop_front();
         }
+        return false;
     }
 };
 

@@ -127,7 +127,7 @@ LocalExecutorTask::Ptr LocalExecutor::GetNextTask()
     return task;
 }
 
-void LocalExecutor::Quant()
+bool LocalExecutor::Quant()
 {
     CheckSubprocs();
 
@@ -185,7 +185,7 @@ void LocalExecutor::Quant()
         while ((subproc = m_subprocs->NextFinished()) == nullptr) {
             bool interrupted = m_subprocs->DoWork();
             if (interrupted)
-                return;
+                return true;
         }
 
         LocalExecutorResult::Ptr result(new LocalExecutorResult());
@@ -220,6 +220,7 @@ void LocalExecutor::Quant()
         assert(bool(task->m_callback));
         task->m_callback(result);
     }
+    return true;
 }
 
 const StringVector& LocalExecutor::GetToolIdEnvironment(const std::string& toolId)

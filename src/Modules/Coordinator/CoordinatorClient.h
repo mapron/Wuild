@@ -65,7 +65,7 @@ protected:
 
         void SetToolServerInfo(const ToolServerInfo& info);
 
-        void Quant();
+        bool Quant();
         void Start(const std::string& host, int port);
         void Stop();
         ~CoordWorker();

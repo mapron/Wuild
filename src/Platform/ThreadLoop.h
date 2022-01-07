@@ -24,7 +24,7 @@ class ThreadLoop {
     std::unique_ptr<ThreadLoopImpl> m_impl;
 
 public:
-    using QuantFunction = std::function<void(void)>;
+    using QuantFunction = std::function<bool(void)>; /// return true if sleep is needed
 
 public:
     ThreadLoop();

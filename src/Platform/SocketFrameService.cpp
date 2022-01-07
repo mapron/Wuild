@@ -86,7 +86,7 @@ void SocketFrameService::Stop()
     m_mainThread.Stop();
 }
 
-void SocketFrameService::Quant()
+bool SocketFrameService::Quant()
 {
     std::lock_guard<std::mutex> lock(m_workersLock);
 
@@ -114,6 +114,7 @@ void SocketFrameService::Quant()
             AddWorker(client, newId);
         }
     }
+    return true;
 }
 
 void SocketFrameService::AddWorker(IDataSocket::Ptr client, int threadId)

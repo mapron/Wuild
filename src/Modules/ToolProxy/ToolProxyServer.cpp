@@ -101,10 +101,11 @@ void ToolProxyServer::Start(std::function<void()> interruptCallback)
 
     m_server->Start();
 
-    m_inactiveChecker.Exec([this, interruptCallback] {
+    m_inactiveChecker.Exec([this, interruptCallback]() -> bool {
         std::lock_guard<std::mutex> lock(m_runningMutex);
         if (m_runningJobs == 0 && m_runningJobsUpdate.GetElapsedTime() > m_config.m_inactiveTimeout)
             interruptCallback();
+        return true;
     },
                            100000 /*us*/);
 }

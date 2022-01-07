@@ -56,8 +56,8 @@ void ThreadLoop::Exec(const ThreadLoop::QuantFunction& quant, int64_t sleepUS)
     m_impl->m_thread    = std::thread([quant, this, sleepUS] {
         try {
             while (m_impl->m_condition && !Application::IsInterrupted()) {
-                quant();
-                usleep(sleepUS);
+                if (quant())
+                    usleep(sleepUS);
             }
         }
         catch (std::exception& ex) {
