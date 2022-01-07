@@ -16,6 +16,8 @@
 #include "TimePoint.h"
 #include "CommonTypes.h"
 
+#include <functional>
+
 namespace Wuild {
 /// Abstract socket type. Used for sending/recieving over network.
 class IDataSocket {
@@ -63,5 +65,10 @@ public:
 
     /// Some descriptive string for socket
     virtual std::string GetLogContext() const = 0;
+
+    /// Callback is called when new data avilable to read.
+    virtual void SetReadAvailableCallback(const std::function<void()>& cb) = 0;
+
+    virtual void SetWaitForRead() = 0;
 };
 }

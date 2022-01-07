@@ -24,6 +24,7 @@
 #include <functional>
 #include <atomic>
 #include <map>
+#include <condition_variable>
 
 namespace Wuild {
 
@@ -258,6 +259,10 @@ protected:
     size_t                               m_outputAcknowledgesSize = 0;
     ReplyManager                         m_replyManager;
     std::map<uint8_t, IFrameReader::Ptr> m_frameReaders;
+
+    std::mutex              m_readCallbackMutex;
+    std::condition_variable m_readCallbackCV;
+    bool                    m_readCallbackIncoming = false;
 
     uint8_t m_outputLoadPercent     = 0;
     size_t  m_maxUnAcknowledgedSize = 0;

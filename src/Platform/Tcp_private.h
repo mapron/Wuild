@@ -34,6 +34,7 @@ inline void SocketEngineCheck() {}
 #define SocketCheckConnectionPending(err) ((err) == EINPROGRESS)
 #define SocketRWPending(err) ((err) == EAGAIN)
 #else // Pure win: ws2_32
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include <WinSock2.h>
 #include <WS2tcpip.h>
 #include <stdio.h>

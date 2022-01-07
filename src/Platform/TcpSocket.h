@@ -16,15 +16,19 @@
 #include "TimePoint.h"
 #include "IDataSocket.h"
 #include "TcpConnectionParams.h"
+#include "ThreadLoop.h"
 
 #include <map>
 #include <string>
 #include <atomic>
+#include <mutex>
+#include <condition_variable>
 
 namespace Wuild {
 
 class TcpListener;
 class TcpSocketPrivate;
+class HwndWrapper;
 /// Implementation of TCP data socket.
 /// Can be created by own or through TcpListener::GetPendingConnection.
 class TcpSocket : public IDataSocket {
@@ -60,6 +64,8 @@ public:
     uint32_t GetSendBufferSize() const override { return m_sendBufferSize; }
 
     std::string GetLogContext() const override { return m_logContext; }
+    void        SetReadAvailableCallback(const std::function<void()>& cb) override;
+    void        SetWaitForRead() override;
 
 protected:
     void SetListener(TcpListener* pendingListener);
@@ -75,9 +81,16 @@ protected:
     uint32_t            m_recieveBufferSize = 0;
     uint32_t            m_sendBufferSize    = 0;
     std::string         m_logContext;
+    ThreadLoop          m_socketReadPollThread;
+
+    std::mutex              m_awaitingMutex;
+    std::condition_variable m_awaitingCV;
+    std::atomic_bool        m_awaitingRead = true;
+    std::function<void()>   m_readPollCallbackInstall{ [] {} };
 
 private:
     std::unique_ptr<TcpSocketPrivate> m_impl;
+    std::unique_ptr<HwndWrapper>      m_hwnd;
 };
 
 }
