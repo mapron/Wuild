@@ -18,19 +18,21 @@ int main(int argc, char** argv)
     using namespace Wuild;
     ConfiguredApplication app(argc, argv, "BenchmarkNetworking");
 
+    Syslogger(Syslogger::Warning) << "START";
+
     TestService                     service;
     TimePoint                       start;
     std::pair<TimePoint, TimePoint> processStart;
     service.startServer([&start, &processStart] {
         start        = TimePoint(true);
         processStart = TimePoint::GetProcessCPUTimes();
-        Syslogger(Syslogger::Notice) << "Connected!";
+        Syslogger(Syslogger::Warning) << "Connected!";
     });
     auto res = ExecAppLoop();
 
     auto processEnd = TimePoint::GetProcessCPUTimes();
-    Syslogger(Syslogger::Notice) << "Taken wall clock     time: " << start.GetElapsedTime().ToProfilingTime();
-    Syslogger(Syslogger::Notice) << "Taken user process   time: " << (processEnd.first - processStart.first).ToProfilingTime();
-    Syslogger(Syslogger::Notice) << "Taken kernel process time: " << (processEnd.second - processStart.second).ToProfilingTime();
+    Syslogger(Syslogger::Warning) << "Taken wall clock     time: " << start.GetElapsedTime().ToProfilingTime();
+    Syslogger(Syslogger::Warning) << "Taken user process   time: " << (processEnd.first - processStart.first).ToProfilingTime();
+    Syslogger(Syslogger::Warning) << "Taken kernel process time: " << (processEnd.second - processStart.second).ToProfilingTime();
     return res;
 }

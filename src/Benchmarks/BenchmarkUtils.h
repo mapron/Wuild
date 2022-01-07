@@ -45,18 +45,21 @@ public:
 };
 
 class TestService {
-    std::unique_ptr<SocketFrameService> m_server;
-    SocketFrameHandler::Ptr             m_client;
+    std::unique_ptr<SocketFrameService>  m_server;
+    std::vector<SocketFrameHandler::Ptr> m_clients;
 
     TimePoint m_waitForConnectedClientsTimeout = TimePoint(1.0);
 
-    size_t                  taskCount = 0;
-    std::condition_variable taskStateCond;
-    std::mutex              taskStateMutex;
+    size_t                  m_taskCount = 0;
+    std::condition_variable m_taskStateCond;
+    std::mutex              m_taskStateMutex;
+    
+    size_t                  m_aliveCount = 0;
+    std::mutex              m_aliveStateMutex;
 
 public:
     void startServer(std::function<void()> onInit);
-    void startClient(const std::string& host);
+    void startClient(const std::string& host, int count);
     void sendFile(size_t size);
     void waitForReplies();
 };

@@ -72,34 +72,43 @@ void TestService::startServer(std::function<void()> onInit)
         response->m_processTime = processStart.GetElapsedTime();
         outputCallback(response);
     }));
-    m_server->SetHandlerDestroyCallback([](SocketFrameHandler*) {
+    m_server->SetHandlerDestroyCallback([this](SocketFrameHandler*) {
+        std::unique_lock<std::mutex> lock(m_aliveStateMutex);
+        m_aliveCount--;
+        if (m_aliveCount > 0)
+            return;
         Syslogger(Syslogger::Notice) << "Interrupt!";
         Application::Interrupt();
     });
-    m_server->SetHandlerInitCallback([onInit](SocketFrameHandler*) {
-        onInit();
+    m_server->SetHandlerInitCallback([onInit, this](SocketFrameHandler*) {
+        std::unique_lock<std::mutex> lock(m_aliveStateMutex);
+        m_aliveCount++;
+        if (m_aliveCount == 1)
+            onInit();
     });
     m_server->Start();
 }
 
-void TestService::startClient(const std::string& host)
+void TestService::startClient(const std::string& host, int count)
 {
     Syslogger() << "startClient " << host << ":" << testServicePort;
     SocketFrameHandlerSettings settings;
     settings.m_recommendedSendBufferSize    = bufferSize;
     settings.m_recommendedRecieveBufferSize = bufferSize;
     settings.m_segmentSize                  = segmentSize;
-    SocketFrameHandler::Ptr h(new SocketFrameHandler(settings));
-    h->RegisterFrameReader(SocketFrameReaderTemplate<FileFrame>::Create([this](const FileFrame& inputMessage, SocketFrameHandler::OutputCallback) {
-        Syslogger(Syslogger::Info) << "process time:" << inputMessage.m_processTime.ToProfilingTime();
-        std::unique_lock<std::mutex> lock(taskStateMutex);
-        taskCount--;
-        taskStateCond.notify_one();
-    }));
-    h->SetLogContext("client");
-    h->SetTcpChannel(host, testServicePort);
-    m_client = h;
-    m_client->Start();
+    for (int i = 0; i < count; ++i) {
+        SocketFrameHandler::Ptr h(new SocketFrameHandler(settings));
+        h->RegisterFrameReader(SocketFrameReaderTemplate<FileFrame>::Create([this](const FileFrame& inputMessage, SocketFrameHandler::OutputCallback) {
+            Syslogger(Syslogger::Info) << "process time:" << inputMessage.m_processTime.ToProfilingTime();
+            std::unique_lock<std::mutex> lock(m_taskStateMutex);
+            m_taskCount--;
+            m_taskStateCond.notify_one();
+        }));
+        h->SetLogContext("client");
+        h->SetTcpChannel(host, testServicePort);
+        m_clients.push_back(h);
+        h->Start();
+    }
 }
 
 void TestService::sendFile(size_t size)
@@ -109,16 +118,17 @@ void TestService::sendFile(size_t size)
     for (size_t i = 0; i < size; ++i)
         request->m_fileData.data()[i] = uint8_t(i % 256);
 
-    m_client->QueueFrame(request);
-    std::unique_lock<std::mutex> lock(taskStateMutex);
-    taskCount++;
+    for (auto client : m_clients)
+        client->QueueFrame(request);
+    std::unique_lock<std::mutex> lock(m_taskStateMutex);
+    m_taskCount += m_clients.size();
 }
 
 void TestService::waitForReplies()
 {
-    std::unique_lock<std::mutex> lock(taskStateMutex);
-    taskStateCond.wait(lock, [this] {
-        return taskCount == 0;
+    std::unique_lock<std::mutex> lock(m_taskStateMutex);
+    m_taskStateCond.wait(lock, [this] {
+        return m_taskCount == 0;
     });
 }
 
