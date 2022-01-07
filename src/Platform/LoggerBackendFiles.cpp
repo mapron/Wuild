@@ -93,7 +93,7 @@ void LoggerBackendFiles::CloseFile() const
 void LoggerBackendFiles::CleanupDir() const
 {
     StringVector contents = FileInfo(m_dir).GetDirFiles();
-    if (contents.size() > m_maxFilesInDir) {
+    if (contents.size() > static_cast<size_t>(m_maxFilesInDir)) {
         contents.erase(contents.end() - m_maxFilesInDir, contents.end());
         for (const auto& file : contents) {
             FileInfo(m_dir + "/" + file).Remove();

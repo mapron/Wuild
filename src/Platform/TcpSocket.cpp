@@ -255,7 +255,7 @@ TcpSocket::WriteState TcpSocket::Write(const ByteArrayHolder& buffer, size_t max
 #ifdef SOCKET_DEBUG
     Syslogger(m_logContext) << "TcpSocket::Write: " << Syslogger::Binary(buffer.data(), written);
 #endif
-    return maxBytes == written ? WriteState::Success : WriteState::Fail;
+    return maxBytes == static_cast<size_t>(written) ? WriteState::Success : WriteState::Fail;
 }
 
 void TcpSocket::SetListener(TcpListener* pendingListener)
