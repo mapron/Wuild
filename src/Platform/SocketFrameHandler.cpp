@@ -63,10 +63,13 @@ void SocketFrameHandler::SetRetryConnectOnFail(bool retry)
 void SocketFrameHandler::Start()
 {
     m_thread.Exec([this]() -> bool {
-        if (!this->Quant()) {
+        auto quantRes = this->Quant();
+        if (quantRes == QuantResult::Interrupt) {
             this->DisconnectChannel();
             m_thread.Cancel();
+            return false;
         }
+
         return true;
     },
                   m_settings.m_clientThreadSleep.GetUS());
@@ -82,26 +85,29 @@ void SocketFrameHandler::Cancel()
     m_thread.Cancel();
 }
 
-bool SocketFrameHandler::Quant()
+SocketFrameHandler::QuantResult SocketFrameHandler::Quant()
 {
     // Each quant, we check connection, if we ok, then read and write frames data.
     // If false returned, thread will interrupted.
     ConnectionState connectionState = this->CheckAndCreateConnection() ? ConnectionState::Ok : ConnectionState::Failed;
     SetConnectionState(connectionState);
     if (connectionState != ConnectionState::Ok)
-        return m_retryConnectOnFail;
+        return m_retryConnectOnFail ? QuantResult::NeedSleep : QuantResult::Interrupt;
 
     if (m_channel && m_channel->IsPending())
-        return true;
+        return QuantResult::NeedSleep;
 
-    bool taskResult = ReadFrames() && WriteFrames();
-    if (!taskResult) {
-        Syslogger(m_logContext, Syslogger::Info) << "read/write frames return false, " << (m_retryConnectOnFail ? "waiting." : "stopping.");
+    const QuantResult readResult  = ReadFrames();
+    const QuantResult writeResult = readResult == QuantResult::Interrupt ? QuantResult::Interrupt : WriteFrames();
+    const QuantResult totalResult = (readResult == QuantResult::NeedSleep && writeResult == QuantResult::NeedSleep) ? QuantResult::NeedSleep : writeResult;
+
+    if (totalResult == QuantResult::Interrupt) {
+        Syslogger(m_logContext, Syslogger::Info) << "read/write frames finished with error, " << (m_retryConnectOnFail ? "waiting." : "stopping.");
         DisconnectChannel();
         SetConnectionState(ConnectionState::Failed);
         if (m_retryConnectOnFail)
             usleep(m_settings.m_afterDisconnectWait.GetUS());
-        return m_retryConnectOnFail;
+        return m_retryConnectOnFail ? QuantResult::NeedSleep : QuantResult::Interrupt;
     }
     if (m_lastTimeoutCheck.GetElapsedTime() > m_settings.m_replyTimeoutCheckInterval) {
         m_lastTimeoutCheck = TimePoint(true);
@@ -114,7 +120,7 @@ bool SocketFrameHandler::Quant()
            << ", lastSucceessfulWrite:" << m_lastSucceessfulWrite.ToString();
         m_replyManager.CheckTimeouts(os.str());
     }
-    return true;
+    return totalResult;
 }
 
 bool SocketFrameHandler::IsActive() const
@@ -217,17 +223,17 @@ void SocketFrameHandler::SetConnectionState(SocketFrameHandler::ConnectionState 
     UpdateLogContext();
 }
 
-bool SocketFrameHandler::ReadFrames()
+SocketFrameHandler::QuantResult SocketFrameHandler::ReadFrames()
 {
     // first, try to read some data from socket
     const size_t currentSize = m_readBuffer.GetHolder().size();
     const auto   readState   = m_channel->Read(m_readBuffer.GetHolder());
 
     if (readState == IDataSocket::ReadState::Fail)
-        return false;
+        return QuantResult::Interrupt;
 
     if (readState == IDataSocket::ReadState::TryAgain)
-        return true; //nothing to read, it's not a error.
+        return QuantResult::NeedSleep; //nothing to read, it's not a error.
 
     m_lastTestActivity = m_lastSucceessfulRead = TimePoint(true);
 
@@ -245,7 +251,7 @@ bool SocketFrameHandler::ReadFrames()
     do {
         ConsumeState state = ConsumeReadBuffer();
         if (state == ConsumeState::FatalError)
-            return false;
+            return QuantResult::Interrupt;
         if (state == ConsumeState::Broken)
             validInput = false;
 
@@ -265,7 +271,7 @@ bool SocketFrameHandler::ReadFrames()
 
         ConsumeState state = ConsumeFrameBuffer();
         if (state == ConsumeState::FatalError)
-            return false;
+            return QuantResult::Interrupt;
         if (state == ConsumeState::Broken)
             validInput = false;
 
@@ -286,7 +292,7 @@ bool SocketFrameHandler::ReadFrames()
         m_pendingReadType = ServiceMessageType::None;
     }
 
-    return true;
+    return QuantResult::JobDone;
 }
 
 SocketFrameHandler::ConsumeState SocketFrameHandler::ConsumeReadBuffer()
@@ -404,7 +410,7 @@ SocketFrameHandler::ConsumeState SocketFrameHandler::ConsumeFrameBuffer()
     return ConsumeState::Broken;
 }
 
-bool SocketFrameHandler::WriteFrames()
+SocketFrameHandler::QuantResult SocketFrameHandler::WriteFrames()
 {
     // check temeouted ACKs (TODO: move code?)
     if (m_settings.m_hasAcknowledges && m_bytesWaitingAcknowledge >= m_maxUnAcknowledgedSize) {
@@ -414,9 +420,9 @@ bool SocketFrameHandler::WriteFrames()
                                                     << " now:" << TimePoint(true).ToString()
                                                     << " acknowledgeTimeout=" << m_settings.m_acknowledgeTimeout.ToString();
             m_bytesWaitingAcknowledge = 0; // terminate thread - it's configuration error.
-            return false;
+            return QuantResult::Interrupt;
         }
-        return true;
+        return QuantResult::NeedSleep;
     }
     // write ack if needed
     if (m_settings.m_hasAcknowledges && m_outputAcknowledgesSize > m_settings.m_acknowledgeMinimalReadSize) {
@@ -501,6 +507,7 @@ bool SocketFrameHandler::WriteFrames()
         }
     }
 
+    bool jobDone = false;
     // write all outgoing segments to tcp socket
     while (!m_outputSegments.empty()) {
         const auto& frontSegment = m_outputSegments.front();
@@ -513,13 +520,14 @@ bool SocketFrameHandler::WriteFrames()
         auto writeResult = m_channel->Write(frontSegment.data, sizeForWrite);
         if (writeResult == IDataSocket::WriteState::TryAgain)
             break;
+        jobDone = true;
 
         m_outputSegments.pop_front();
         if (writeResult == IDataSocket::WriteState::Fail) {
             Syslogger(m_logContext, m_settings.m_writeFailureLogLevel) << "Write failed: sizeForWrite=" << sizeForWrite
                                                                        << ", maxSize=" << maxSize
                                                                        << ", m_bytesWaitingAcknowledge=" << m_bytesWaitingAcknowledge;
-            return false;
+            return QuantResult::Interrupt;
         }
 
         m_lineTestQueued   = false;
@@ -531,7 +539,7 @@ bool SocketFrameHandler::WriteFrames()
                 break;
         }
     }
-    return true;
+    return jobDone ? QuantResult::JobDone : QuantResult::NeedSleep;
 }
 
 bool SocketFrameHandler::CheckConnection() const

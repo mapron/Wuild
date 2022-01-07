@@ -89,6 +89,13 @@ public:
         Timeout
     };
 
+    enum class QuantResult
+    {
+        JobDone,
+        NeedSleep,
+        Interrupt,
+    };
+
     using Ptr                   = std::shared_ptr<SocketFrameHandler>;
     using StateNotifierCallback = std::function<void(bool)>;
     using ReplyNotifier         = std::function<void(SocketFrame::Ptr, ReplyState, const std::string&)>;
@@ -132,8 +139,7 @@ public:
     /// Stop quant function.
     void Cancel();
 
-    void MainLoop();
-    bool Quant();
+    QuantResult Quant();
 
     /// Check loop and connection status.
     bool IsActive() const;
@@ -211,10 +217,10 @@ protected:
 
 protected:
     void         SetConnectionState(ConnectionState connectionState);
-    bool         ReadFrames();
+    QuantResult  ReadFrames();
     ConsumeState ConsumeReadBuffer();
     ConsumeState ConsumeFrameBuffer();
-    bool         WriteFrames();
+    QuantResult  WriteFrames();
     bool         CheckConnection() const;
     bool         CheckAndCreateConnection();
     bool         IsOutputBufferEmpty();
