@@ -85,7 +85,7 @@ protected:
 
     std::mutex              m_awaitingMutex;
     std::condition_variable m_awaitingCV;
-    std::atomic_bool        m_awaitingRead = true;
+    std::atomic_bool        m_awaitingRead{ true };
     std::function<void()>   m_readPollCallbackInstall{ [] {} };
 
 private:
