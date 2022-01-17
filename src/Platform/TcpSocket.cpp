@@ -141,7 +141,7 @@ public:
     }
     void Stop()
     {
-        std::unique_lock lock(m_mutex);
+        std::unique_lock<std::mutex> lock(m_mutex);
         if (!m_h || m_stopped)
             return;
 
@@ -152,7 +152,7 @@ public:
     bool Wait()
     {
         {
-            std::unique_lock lock(m_mutex);
+            std::unique_lock<std::mutex> lock(m_mutex);
             if (!m_h || m_stopped)
                 return false;
         }
