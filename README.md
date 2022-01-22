@@ -228,7 +228,7 @@ And finally, we have ini config [option reference](docs/ExampleConfigurations/Wu
 
 # Used thirdparty products
 - (Apache 2) "Ninja build system" (https://github.com/ninja-build) is used for a fast frontentd;
-- (Zlib) Zlib, (BSD) LZ4 and (BSD) ZStd libraries are used for compression algorithms;
+- (BSD) ZStd library used for compression algorithms;
 - (MIT) Hlohmann Json library (https://github.com/nlohmann/json) is used for json output in debug tools;
 - (MIT) GHC filesystem library (https://github.com/gulrak/filesystem) for a C++17-compatible Filesystem implementation.
 
