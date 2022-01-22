@@ -23,9 +23,9 @@ namespace Wuild {
 enum class CompressionType
 {
     None,
-    LZ4,
-    Gzip,
-    ZStd
+    Unsupported1,
+    Unsupported2,
+    ZStd,
 };
 
 struct CompressionInfo {

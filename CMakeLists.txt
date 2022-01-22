@@ -16,20 +16,14 @@ project(Wuild)
 
 # main paths.
 set(NINJA_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/ninja/src)
-set(ZLIB_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/zlib)
-set(LZ4_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/lz4-1.7.3)
-set(LZ4_STREAM_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/lz4_stream)
 set(ZSTD_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/zstd/lib)
 set(JSON_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/json)
 set(GHC_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/filesystem/include)
 
 #configure options
 option( WARNING_AS_ERROR "" OFF )
-option( USE_ZLIB_COMPRESSION "" ON )
-option( USE_LZ4_COMPRESSION "" ON )
 option( USE_ZSTD_COMPRESSION "" ON )
 option( USE_GHC_STL "" OFF )
-option( USE_SYSTEM_ZLIB "Use system zlib library." ON )
 
 #platform configuration.
 if (USE_GHC_STL)
@@ -40,7 +34,6 @@ endif()
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if (MSVC)
-	set(USE_SYSTEM_ZLIB OFF)
 	add_definitions(-D_CRT_SECURE_NO_WARNINGS -DNOMINMAX -D_HAS_STD_BYTE=0)
 	add_compile_options(/wd4267 /wd4244 /Zc:__cplusplus)
 else()
@@ -111,23 +104,6 @@ function(AddTarget)
 endfunction()
 
 # Compression targets
-if (USE_ZLIB_COMPRESSION)
-	if (USE_SYSTEM_ZLIB)
-		list(APPEND COMPRESSION_LIBS -lz)
-	else()
-		AddTarget(NAME zlib_static ROOT ${ZLIB_ROOT}/ CSRC *.c)
-		list(APPEND COMPRESSION_LIBS zlib_static)
-		target_compile_options(zlib_static PRIVATE  /wd4996)
-	endif()
-	list(APPEND COMPRESSION_DEFINES -DUSE_ZLIB)
-endif()
-if (USE_LZ4_COMPRESSION)
-	AddTarget(NAME lz4_static ROOT ${LZ4_ROOT}/ CSRC *.c)
-	AddTarget(NAME lz4_stream ROOT ${LZ4_STREAM_ROOT}/ CSRC *.cpp DEPS lz4_static)
-	list(APPEND COMPRESSION_LIBS lz4_stream lz4_static)
-	list(APPEND COMPRESSION_DEFINES -DUSE_LZ4)
-endif()
-
 if (USE_ZSTD_COMPRESSION)
 	AddTarget(NAME zstd_static ROOT ${ZSTD_ROOT}/ CSRC common/*.c compress/*.c  decompress/*.c
 		INCLUDES ${ZSTD_ROOT}/ ${ZSTD_ROOT}/common/

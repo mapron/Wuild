@@ -360,10 +360,6 @@ void ConfiguredApplication::ReadCompressionConfig(CompressionInfo& compressionIn
     auto type = m_config->GetString(groupName, "compressionType", "ZStd");
     if (type == "None")
         compressionInfo.m_type = CompressionType::None;
-    else if (type == "LZ4")
-        compressionInfo.m_type = CompressionType::LZ4;
-    else if (type == "Gzip")
-        compressionInfo.m_type = CompressionType::Gzip;
     else if (type == "ZStd")
         compressionInfo.m_type = CompressionType::ZStd;
     else

@@ -33,10 +33,10 @@ int main(int argc, char** argv)
     auto                  tmp = Application::Instance().GetTempDir();
     Syslogger(Syslogger::Notice) << "tmp=" << tmp;
 
-    for (auto compressionType : { CompressionType::LZ4, CompressionType::Gzip, CompressionType::ZStd }) {
+    for (auto compressionType : { CompressionType::ZStd }) {
         CompressionInfo info;
         info.m_type  = compressionType;
-        info.m_level = compressionType == CompressionType::Gzip ? 6 : 9;
+        info.m_level = 9;
         TimePoint start(true);
         for (size_t dataSize : { 1, 1000, 100000, 10000000 }) {
             ByteArrayHolder uncompressed, uncompressed2;
