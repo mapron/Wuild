@@ -18,17 +18,23 @@ namespace Wuild {
 void MsvcCommandLineParser::UpdateInfo()
 {
     StringVector realArgs;
-    bool         skipNext   = false;
     bool         ignoreNext = false;
+
+    auto consumeArg = [&realArgs, &ignoreNext](const std::string& arg) {
+        if (!arg.empty())
+            realArgs.push_back(arg);
+        ignoreNext = false;
+    };
+    auto consumeArgAndSkipNext = [&realArgs, &ignoreNext](const std::string& arg) {
+        if (!arg.empty())
+            realArgs.push_back(arg);
+        ignoreNext = true;
+    };
 
     m_invocation.m_inputNameIndex  = -1;
     m_invocation.m_outputNameIndex = -1;
     m_invocation.m_type            = ToolInvocation::InvokeType::Unknown;
     for (const auto& arg : m_invocation.m_args) {
-        if (skipNext) {
-            skipNext = false;
-            continue;
-        }
         if (arg[0] == '/' || arg[0] == '-') {
             if (arg[1] == 'c') {
                 m_invocation.m_type = ToolInvocation::InvokeType::Compile;
@@ -41,9 +47,13 @@ void MsvcCommandLineParser::UpdateInfo()
             if (arg.size() > 3 && arg[1] == 'A' && arg[2] == 'I') {
                 m_remotePossible = false;
             }
-            if ((arg[1] == 'D' || arg[1] == 'I') && arg.size() == 2) // /D DEFINE  /I path
-            {
-                ignoreNext = true;
+            if ((arg[1] == 'D' || arg[1] == 'I') && arg.size() == 2) { // /D DEFINE  /I path
+                consumeArgAndSkipNext(arg);
+                continue;
+            }
+            if (arg == "-external:I" || arg == "/external:I") {
+                consumeArgAndSkipNext(arg);
+                continue;
             }
 
             if (arg[1] == 'F') {
@@ -56,19 +66,16 @@ void MsvcCommandLineParser::UpdateInfo()
                         realArgs.push_back(arg.substr(0, 3) + ":");
                         fileIndex     = realArgs.size();
                         auto filename = arg.substr(3);
-                        if (!filename.empty())
-                            realArgs.push_back(filename);
-                        ignoreNext = true;
+                        consumeArgAndSkipNext(filename);
                     } else {
-                        realArgs.push_back(arg);
-                        ignoreNext = true;
+                        consumeArgAndSkipNext(arg);
                         fileIndex  = realArgs.size();
                     }
                     if (fileType == 'o') {
                         m_invocation.m_outputNameIndex = fileIndex;
                     }
                     if (fileType == 'i') {
-                        m_invocation.m_outputNameIndex = fileIndex;
+                        m_invocation.m_inputNameIndex = fileIndex;
                     }
                     continue;
                 }
@@ -80,8 +87,7 @@ void MsvcCommandLineParser::UpdateInfo()
             }
             m_invocation.m_inputNameIndex = realArgs.size();
         }
-        realArgs.push_back(arg);
-        ignoreNext = false;
+        consumeArg(arg);
     }
     m_invocation.m_args = realArgs;
     if (m_invocation.m_inputNameIndex == -1
@@ -143,6 +149,10 @@ void MsvcCommandLineParser::RemovePrepocessorFlags()
                 if (arg.size() == 2) {
                     skipNext = true;
                 }
+                continue;
+            }
+            if (arg == "-external:I" || arg == "/external:I") {
+                skipNext = true;
                 continue;
             }
         }
