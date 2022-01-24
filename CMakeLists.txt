@@ -206,7 +206,7 @@ AddTarget(NAME TestUtil ROOT ${CMAKE_CURRENT_SOURCE_DIR}/src/TestUtil/
 	DEPS ${main_deps} ${sys_deps}
 	)
 
-foreach (testname AllConfigs Balancer Compiler Coordinator Inflate Networking ToolServer)
+foreach (testname AllConfigs Balancer Compiler Coordinator Inflate Networking ToolServer CommandLine)
 	AddTarget(APP NAME Test${testname} ROOT ${CMAKE_CURRENT_SOURCE_DIR}/src/TestsManual/
 		CSRC Test${testname}.cpp
 		DEPS ${main_deps} ${sys_deps} TestUtil
