@@ -82,13 +82,48 @@ StringVector SplitShellCommand(const std::string& str)
 
     return ret;
 }
+
 }
 
-InvocationRewriter::InvocationRewriter() = default;
-
-void InvocationRewriter::SetConfig(const IInvocationRewriter::Config& config)
+InvocationRewriter::InvocationRewriter(Config config)
+    : m_config(std::move(config))
 {
-    m_config = config;
+}
+
+IInvocationRewriter::Ptr InvocationRewriter::Create(Config config)
+{
+    auto guessType = [](const std::string& executableName) -> Config::ToolchainType {
+        if (executableName.find("cl.exe") != std::string::npos)
+            return Config::ToolchainType::MSVC;
+
+        if (executableName.find("clang") != std::string::npos)
+            return Config::ToolchainType::Clang;
+
+        static const std::vector<std::string> s_gccNames{ "gcc", "g++", "mingw", "g__~1" }; // "g__~1" is Windows short name.
+        for (const auto& gccName : s_gccNames) {
+            if (executableName.find(gccName) != std::string::npos)
+                return Config::ToolchainType::GCC;
+        }
+        return Config::ToolchainType::AutoDetect;
+    };
+
+    for (auto& tool : config.m_tools) {
+        if (tool.m_type != Config::ToolchainType::AutoDetect)
+            continue;
+
+        const std::string executableName = FileInfo(tool.m_names[0]).GetFullname();
+        tool.m_type                      = guessType(executableName);
+        if (tool.m_type != Config::ToolchainType::AutoDetect)
+            continue;
+
+        if (tool.m_id.find("ms") != std::string::npos)
+            tool.m_type = Config::ToolchainType::MSVC;
+        else
+            Syslogger(Syslogger::Warning) << "Failed to detect toolchain type for:" << tool.m_id;
+    }
+
+    auto res = std::make_shared<InvocationRewriter>(std::move(config));
+    return res;
 }
 
 const IInvocationRewriter::Config& InvocationRewriter::GetConfig() const
@@ -290,7 +325,7 @@ InvocationRewriter::ToolInfo InvocationRewriter::CompileInfoByUnit(const IInvoca
     info.m_tool                = unit;
     info.m_id.m_toolId         = unit.m_id;
     info.m_id.m_toolExecutable = unit.m_names[0];
-    if (unit.m_type == Config::ToolchainType::GCC)
+    if (unit.m_type == Config::ToolchainType::GCC || unit.m_type == Config::ToolchainType::Clang)
         info.m_parser.reset(new GccCommandLineParser());
     else if (unit.m_type == Config::ToolchainType::MSVC)
         info.m_parser.reset(new MsvcCommandLineParser());

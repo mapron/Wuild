@@ -24,7 +24,9 @@ public:
     {
         GCC,
         MSVC,
-        UpdateFile
+        Clang,
+        UpdateFile,
+        AutoDetect,
     };
     struct Tool {
         std::string              m_id;
@@ -33,7 +35,7 @@ public:
         std::string              m_remoteAlias;
         std::string              m_version;
         std::string              m_envCommand;
-        ToolchainType            m_type = ToolchainType::GCC;
+        ToolchainType            m_type = ToolchainType::AutoDetect;
         std::vector<std::string> m_names;
     };
     std::vector<Tool> m_tools;

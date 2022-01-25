@@ -38,7 +38,6 @@ public:
         : m_config(config)
     {}
 
-    void          SetConfig(const Config& config) override { m_config = config; }
     const Config& GetConfig() const override { return m_config; }
 
     bool IsCompilerInvocation(const ToolInvocation&) const override { return false; }

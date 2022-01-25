@@ -33,7 +33,6 @@ public:
 public:
     virtual ~IInvocationRewriter() = default;
 
-    virtual void          SetConfig(const Config& config) = 0;
     virtual const Config& GetConfig() const               = 0;
 
     /// Checks if an invocation is a compilation

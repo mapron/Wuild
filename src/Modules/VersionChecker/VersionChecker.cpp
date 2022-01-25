@@ -26,27 +26,6 @@ VersionChecker::VersionChecker(ILocalExecutor::Ptr localExecutor, IInvocationRew
 {
 }
 
-IVersionChecker::ToolType VersionChecker::GuessToolType(const ToolInvocation::Id& toolId) const
-{
-    if (toolId.m_toolExecutable.empty())
-        throw std::logic_error("Tool id should be resolved before use.");
-
-    const std::string executableName = FileInfo(toolId.m_toolExecutable).GetFullname();
-
-    if (executableName.find("cl.exe") != std::string::npos)
-        return ToolType::MSVC;
-
-    if (executableName.find("clang") != std::string::npos)
-        return ToolType::Clang;
-
-    static const std::vector<std::string> s_gccNames{ "gcc", "g++", "mingw", "g__~1" }; // "g__~1" is Windows short name.
-    for (const auto& gccName : s_gccNames) {
-        if (executableName.find(gccName) != std::string::npos)
-            return ToolType::GCC;
-    }
-    return ToolType::Unknown;
-}
-
 IVersionChecker::VersionMap VersionChecker::DetermineToolVersions(const std::vector<std::string>& toolIds) const
 {
     VersionMap result;
@@ -66,16 +45,15 @@ IVersionChecker::VersionMap VersionChecker::DetermineToolVersions(const std::vec
             continue;
         }
 
-        const auto toolType = GuessToolType(id);
-        const auto version  = GetToolVersion(id, toolType);
-        result[tool.m_id]   = version;
+        const auto version = GetToolVersion(id, tool.m_type);
+        result[tool.m_id]  = version;
     }
     return result;
 }
 
-IVersionChecker::Version VersionChecker::GetToolVersion(const ToolInvocation::Id& toolId, IVersionChecker::ToolType type) const
+IVersionChecker::Version VersionChecker::GetToolVersion(const ToolInvocation::Id& toolId, ToolType type) const
 {
-    if (type == ToolType::Unknown)
+    if (type == ToolType::AutoDetect || type == ToolType::UpdateFile)
         return IVersionChecker::Version();
 
     static const std::regex versionRegexGnu("\\d+\\.[0-9.]+");

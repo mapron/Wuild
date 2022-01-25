@@ -25,19 +25,8 @@ public:
     using Version    = std::string;
     using VersionMap = std::map<std::string, Version>; //!< toolId=>Version
 
-    enum class ToolType
-    {
-        Unknown,
-        GCC,
-        Clang,
-        MSVC
-    };
-
 public:
     virtual ~IVersionChecker() = default;
-
-    /// Guess tool type by executable name.
-    virtual ToolType GuessToolType(const ToolInvocation::Id& toolId) const = 0;
 
     /// For each id in toolIds, determine version using GetToolVersion and place key in map.
     virtual VersionMap DetermineToolVersions(const std::vector<std::string>& toolIds) const = 0;

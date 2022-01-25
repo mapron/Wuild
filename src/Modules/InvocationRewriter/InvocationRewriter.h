@@ -19,17 +19,10 @@
 namespace Wuild {
 
 class InvocationRewriter : public IInvocationRewriter {
-    InvocationRewriter();
-
 public:
-    static IInvocationRewriter::Ptr Create(const IInvocationRewriter::Config& config)
-    {
-        auto res = IInvocationRewriter::Ptr(new InvocationRewriter());
-        res->SetConfig(config);
-        return res;
-    }
+    InvocationRewriter(IInvocationRewriter::Config config);
+    static IInvocationRewriter::Ptr Create(IInvocationRewriter::Config config);
 
-    void          SetConfig(const Config& config) override;
     const Config& GetConfig() const override;
 
     bool IsCompilerInvocation(const ToolInvocation& original) const override;
@@ -63,7 +56,7 @@ private:
     ToolInfo CompileInfoByToolId(const std::string& toolId) const;
     ToolInfo CompileInfoByUnit(const Config::Tool& unit) const;
 
-    Config m_config;
+    const Config m_config;
 };
 
 }
