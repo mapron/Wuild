@@ -74,9 +74,9 @@ IVersionChecker::Version VersionChecker::GetToolVersion(const ToolInvocation::Id
     };
 
     if (type == ToolType::Clang)
-        versionCheckTask->m_invocation.m_args = { "--version" };
+        versionCheckTask->m_invocation.m_arglist.m_args = { "--version" };
     else if (type == ToolType::GCC)
-        versionCheckTask->m_invocation.m_args = { "-dumpfullversion", "-dumpversion" };
+        versionCheckTask->m_invocation.m_arglist.m_args = { "-dumpfullversion", "-dumpversion" };
 
     m_localExecutor->SyncExecTask(versionCheckTask);
 

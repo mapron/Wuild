@@ -30,7 +30,7 @@ SocketFrame::State RemoteToolRequest::ReadInternal(ByteOrderDataStreamReader& st
     stream >> m_clientId;
     stream >> m_sessionId;
     stream >> m_fileData;
-    stream >> m_invocation.m_args;
+    stream >> m_invocation.m_arglist.m_args;
     stream >> m_invocation.m_id.m_toolId;
     stream >> m_compression;
     return stOk;
@@ -41,7 +41,7 @@ SocketFrame::State RemoteToolRequest::WriteInternal(ByteOrderDataStreamWriter& s
     stream << m_clientId;
     stream << m_sessionId;
     stream << m_fileData;
-    stream << m_invocation.m_args;
+    stream << m_invocation.m_arglist.m_args;
     stream << m_invocation.m_id.m_toolId;
     stream << m_compression;
     return stOk;

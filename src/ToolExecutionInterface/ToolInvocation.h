@@ -13,7 +13,7 @@
 
 #pragma once
 
-#include <CommonTypes.h>
+#include "ArgumentList.h"
 
 namespace Wuild {
 /// Represents tool invocation line (executable with argumnents). Allows changing input/output filenames in arguments.
@@ -52,7 +52,7 @@ public:
 public:
     Id           m_id;
     InvokeType   m_type = InvokeType::Unknown;
-    StringVector m_args;
+    ArgumentList m_arglist;
     StringVector m_ignoredArgs;
     int          m_inputNameIndex  = -1;
     int          m_outputNameIndex = -1;

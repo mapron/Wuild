@@ -23,7 +23,7 @@ void GccCommandLineParser::UpdateInfo()
     m_invocation.m_inputNameIndex  = -1;
     m_invocation.m_outputNameIndex = -1;
     m_invocation.m_type            = ToolInvocation::InvokeType::Unknown;
-    for (const auto& arg : m_invocation.m_args) {
+    for (const auto& arg : m_invocation.m_arglist.m_args) {
         argIndex++;
         if (skipNext) {
             skipNext = false;
@@ -58,7 +58,7 @@ void GccCommandLineParser::UpdateInfo()
             m_invocation.m_inputNameIndex = argIndex;
         }
     }
-    if (m_invocation.m_inputNameIndex == -1 || m_invocation.m_outputNameIndex == -1 || m_invocation.m_outputNameIndex >= (int) m_invocation.m_args.size()) {
+    if (m_invocation.m_inputNameIndex == -1 || m_invocation.m_outputNameIndex == -1 || m_invocation.m_outputNameIndex >= (int) m_invocation.m_arglist.m_args.size()) {
         m_invocation.m_inputNameIndex  = -1;
         m_invocation.m_outputNameIndex = -1;
         m_invocation.m_type            = ToolInvocation::InvokeType::Unknown;
@@ -71,14 +71,14 @@ void GccCommandLineParser::SetInvokeType(ToolInvocation::InvokeType type)
         return;
 
     m_invocation.m_type                    = type;
-    m_invocation.m_args[m_invokeTypeIndex] = type == ToolInvocation::InvokeType::Preprocess ? "-E" : "-c";
+    m_invocation.m_arglist.m_args[m_invokeTypeIndex] = type == ToolInvocation::InvokeType::Preprocess ? "-E" : "-c";
 }
 
 void GccCommandLineParser::RemoveLocalFlags()
 {
     StringVector newArgs;
     bool         skipNext = false;
-    for (const auto& arg : m_invocation.m_args) {
+    for (const auto& arg : m_invocation.m_arglist.m_args) {
         if (skipNext) {
             skipNext = false;
             continue;
@@ -89,7 +89,7 @@ void GccCommandLineParser::RemoveLocalFlags()
         }
         newArgs.push_back(arg);
     }
-    m_invocation.m_args = newArgs;
+    m_invocation.m_arglist.m_args = newArgs;
     UpdateInfo();
 }
 
@@ -97,7 +97,7 @@ void GccCommandLineParser::RemoveDependencyFiles()
 {
     StringVector newArgs;
     bool         skipNext = false;
-    for (const auto& arg : m_invocation.m_args) {
+    for (const auto& arg : m_invocation.m_arglist.m_args) {
         if (skipNext) {
             skipNext = false;
             continue;
@@ -110,7 +110,7 @@ void GccCommandLineParser::RemoveDependencyFiles()
         }
         newArgs.push_back(arg);
     }
-    m_invocation.m_args = newArgs;
+    m_invocation.m_arglist.m_args = newArgs;
     UpdateInfo();
 }
 
@@ -118,7 +118,7 @@ void GccCommandLineParser::RemovePrepocessorFlags()
 {
     StringVector newArgs;
     bool         skipNext = false;
-    for (const auto& arg : m_invocation.m_args) {
+    for (const auto& arg : m_invocation.m_arglist.m_args) {
         if (skipNext) {
             skipNext = false;
             continue;
@@ -140,7 +140,7 @@ void GccCommandLineParser::RemovePrepocessorFlags()
         }
         newArgs.push_back(arg);
     }
-    m_invocation.m_args = newArgs;
+    m_invocation.m_arglist.m_args = newArgs;
     UpdateInfo();
 }
 

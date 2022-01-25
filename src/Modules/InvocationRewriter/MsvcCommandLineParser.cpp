@@ -24,7 +24,7 @@ void MsvcCommandLineParser::UpdateInfo()
     m_invocation.m_inputNameIndex  = -1;
     m_invocation.m_outputNameIndex = -1;
     m_invocation.m_type            = ToolInvocation::InvokeType::Unknown;
-    for (const auto& arg : m_invocation.m_args) {
+    for (const auto& arg : m_invocation.m_arglist.m_args) {
         if (skipNext) {
             skipNext = false;
             continue;
@@ -83,10 +83,10 @@ void MsvcCommandLineParser::UpdateInfo()
         realArgs.push_back(arg);
         ignoreNext = false;
     }
-    m_invocation.m_args = realArgs;
+    m_invocation.m_arglist.m_args = realArgs;
     if (m_invocation.m_inputNameIndex == -1
         || m_invocation.m_outputNameIndex == -1
-        || m_invocation.m_outputNameIndex >= (int) m_invocation.m_args.size()) {
+        || m_invocation.m_outputNameIndex >= (int) m_invocation.m_arglist.m_args.size()) {
         m_invocation.m_inputNameIndex  = -1;
         m_invocation.m_outputNameIndex = -1;
         m_invocation.m_type            = ToolInvocation::InvokeType::Unknown;
@@ -99,15 +99,15 @@ void MsvcCommandLineParser::SetInvokeType(ToolInvocation::InvokeType type)
         return;
     bool pp                                                 = type == ToolInvocation::InvokeType::Preprocess;
     m_invocation.m_type                                     = type;
-    m_invocation.m_args[m_invokeTypeIndex]                  = pp ? "/P" : "/C";
-    m_invocation.m_args[m_invocation.m_outputNameIndex - 1] = pp ? "/Fi:" : "/Fo:";
+    m_invocation.m_arglist.m_args[m_invokeTypeIndex]                  = pp ? "/P" : "/C";
+    m_invocation.m_arglist.m_args[m_invocation.m_outputNameIndex - 1] = pp ? "/Fi:" : "/Fo:";
 }
 
 void MsvcCommandLineParser::RemoveLocalFlags()
 {
     StringVector newArgs;
     bool         skipNext = false;
-    for (const auto& arg : m_invocation.m_args) {
+    for (const auto& arg : m_invocation.m_arglist.m_args) {
         if (skipNext) {
             skipNext = false;
             continue;
@@ -125,7 +125,7 @@ void MsvcCommandLineParser::RemoveLocalFlags()
         }
         newArgs.push_back(arg);
     }
-    m_invocation.m_args = newArgs;
+    m_invocation.m_arglist.m_args = newArgs;
     UpdateInfo();
 }
 
@@ -133,7 +133,7 @@ void MsvcCommandLineParser::RemovePrepocessorFlags()
 {
     StringVector newArgs;
     bool         skipNext = false;
-    for (const auto& arg : m_invocation.m_args) {
+    for (const auto& arg : m_invocation.m_arglist.m_args) {
         if (skipNext) {
             skipNext = false;
             continue;
@@ -148,7 +148,7 @@ void MsvcCommandLineParser::RemovePrepocessorFlags()
         }
         newArgs.push_back(arg);
     }
-    m_invocation.m_args = newArgs;
+    m_invocation.m_arglist.m_args = newArgs;
     UpdateInfo();
 }
 

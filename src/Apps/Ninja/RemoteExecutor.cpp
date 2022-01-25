@@ -82,8 +82,8 @@ IRemoteExecutor::PreprocessResult RemoteExecutor::PreprocessCode(const std::vect
     std::vector<std::string> args = originalRule;
 
     ToolInvocation original, pp, cc;
-    original.m_args        = { originalRule };
-    original.m_ignoredArgs = ignoredArgs;
+    original.m_arglist.m_args = { originalRule };
+    original.m_ignoredArgs    = ignoredArgs;
     original.ParseArgsAsCommanline();
     if (!m_invocationRewriter->SplitInvocation(original, pp, cc, &toolId)) {
         if (!m_invocationRewriter->IsCompilerInvocation(original))
@@ -96,10 +96,10 @@ IRemoteExecutor::PreprocessResult RemoteExecutor::PreprocessCode(const std::vect
         srcExecutable = "\"" + srcExecutable + "\"";
 
     preprocessRule.push_back(srcExecutable + "  ");
-    preprocessRule.insert(preprocessRule.end(), pp.m_args.begin(), pp.m_args.end());
+    preprocessRule.insert(preprocessRule.end(), pp.m_arglist.m_args.begin(), pp.m_arglist.m_args.end());
 
     compileRule.push_back(srcExecutable + "  ");
-    compileRule.insert(compileRule.end(), cc.m_args.begin(), cc.m_args.end());
+    compileRule.insert(compileRule.end(), cc.m_arglist.m_args.begin(), cc.m_arglist.m_args.end());
 
     return PreprocessResult::Success;
 }

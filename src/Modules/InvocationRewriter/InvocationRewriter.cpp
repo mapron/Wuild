@@ -21,69 +21,11 @@
 #include <FileUtils.h>
 #include <StringUtils.h>
 #include <Syslogger.h>
+#include <ArgumentList.h>
 
 #include <algorithm>
 
 namespace Wuild {
-
-namespace {
-
-bool IsSpace(char c)
-{
-    return c == ' ' || c == '\t';
-}
-bool IsQuote(char c)
-{
-    return c == '\"' || c == '\'';
-}
-
-// not a real cmd parser funstion; it just skips quoted strings, doing no unescape.
-StringVector SplitShellCommand(const std::string& str)
-{
-    StringVector ret;
-#ifndef _WIN32
-    bool escape = false;
-#endif
-    std::string buffer;
-    buffer.reserve(str.size());
-    bool inQuoted = false;
-
-    for (char c : str) {
-#ifndef _WIN32
-        if (escape) {
-            buffer += c;
-            escape = false;
-            continue;
-        }
-
-        if (c == '\\') {
-            buffer += c;
-            escape = true;
-            continue;
-        }
-#endif
-
-        if (IsQuote(c)) {
-            inQuoted = !inQuoted;
-        } else if (IsSpace(c) && !inQuoted) {
-            if (!buffer.empty())
-                ret.emplace_back(buffer);
-
-            buffer.clear();
-            continue;
-        }
-
-        // neither quote nor space
-        buffer += c;
-    }
-
-    if (!buffer.empty())
-        ret.emplace_back(buffer);
-
-    return ret;
-}
-
-}
 
 InvocationRewriter::InvocationRewriter(Config config)
     : m_config(std::move(config))
@@ -138,11 +80,7 @@ bool InvocationRewriter::IsCompilerInvocation(const ToolInvocation& original) co
 
     ToolInvocation inv = original;
     inv.m_type         = ToolInvocation::InvokeType::Unknown;
-    inv.m_args.clear();
-    for (const auto& arg : original.m_args) {
-        StringVector argSplit = SplitShellCommand(arg);
-        inv.m_args.insert(inv.m_args.end(), argSplit.begin(), argSplit.end());
-    }
+    inv.m_arglist      = ParseArgumentList(original.m_arglist.m_args);
 
     auto checker = [&inv](ICommandLineParser& parser) -> bool {
         auto parsedInv = parser.ProcessToolInvocation(inv);
@@ -191,11 +129,7 @@ ToolInvocation InvocationRewriter::CompleteInvocation(const ToolInvocation& orig
 {
     ToolInvocation inv = original;
     inv.m_type         = ToolInvocation::InvokeType::Unknown;
-    inv.m_args.clear();
-    for (const auto& arg : original.m_args) {
-        StringVector argSplit = SplitShellCommand(arg);
-        inv.m_args.insert(inv.m_args.end(), argSplit.begin(), argSplit.end());
-    }
+    inv.m_arglist      = ParseArgumentList(original.m_arglist.m_args);
 
     ToolInfo info = CompileInfoById(original.m_id);
     if (info.m_valid) {
@@ -266,14 +200,14 @@ ToolInvocation InvocationRewriter::PrepareRemote(const ToolInvocation& original)
         inv.m_type = original.m_type;
         inv        = info.m_parser->ProcessToolInvocation(inv);
         if (!info.m_tool.m_appendRemote.empty())
-            inv.m_args.push_back(info.m_tool.m_appendRemote);
+            inv.m_arglist.m_args.push_back(info.m_tool.m_appendRemote);
 
         if (!info.m_tool.m_removeRemote.empty()) {
             StringVector newArgs;
-            for (const auto& arg : inv.m_args)
+            for (const auto& arg : inv.m_arglist.m_args)
                 if (arg != info.m_tool.m_removeRemote)
                     newArgs.push_back(arg);
-            newArgs.swap(inv.m_args);
+            newArgs.swap(inv.m_arglist.m_args);
         }
         inv.m_id.m_toolId = info.m_remoteId;
     }

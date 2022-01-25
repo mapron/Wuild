@@ -27,7 +27,7 @@ void ToolProxyRequest::LogTo(std::ostream& os) const
 
 SocketFrame::State ToolProxyRequest::ReadInternal(ByteOrderDataStreamReader& stream)
 {
-    stream >> m_invocation.m_args;
+    stream >> m_invocation.m_arglist.m_args;
     stream >> m_invocation.m_id.m_toolId;
     stream >> m_cwd;
     return stOk;
@@ -35,7 +35,7 @@ SocketFrame::State ToolProxyRequest::ReadInternal(ByteOrderDataStreamReader& str
 
 SocketFrame::State ToolProxyRequest::WriteInternal(ByteOrderDataStreamWriter& stream) const
 {
-    stream << m_invocation.m_args;
+    stream << m_invocation.m_arglist.m_args;
     stream << m_invocation.m_id.m_toolId;
     stream << m_cwd;
     return stOk;
