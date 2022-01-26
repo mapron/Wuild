@@ -54,7 +54,6 @@ private:
     void                   CheckSubprocs();
     LocalExecutorTask::Ptr GetNextTask();
     bool                   Quant();
-    const StringVector&    GetToolIdEnvironment(const std::string& toolId);
 
     size_t             m_maxSubProcesses = 1;
     size_t             m_taskId          = 0;
@@ -63,7 +62,6 @@ private:
     std::queue<LocalExecutorTask::Ptr> m_taskQueue;
 
     IInvocationRewriterProvider::Ptr              m_invocationRewriter;
-    std::map<std::string, StringVector>           m_toolIdEnvironment;
     std::string                                   m_tempPath;
     std::shared_ptr<SubprocessSet>                m_subprocs;
     std::map<Subprocess*, LocalExecutorTask::Ptr> m_subprocToTask;

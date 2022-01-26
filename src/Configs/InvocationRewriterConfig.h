@@ -34,7 +34,6 @@ public:
         std::string              m_appendRemote;
         std::string              m_remoteAlias;
         std::string              m_version;
-        std::string              m_envCommand;
         ToolchainType            m_type = ToolchainType::AutoDetect;
         std::vector<std::string> m_names;
     };

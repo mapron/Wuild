@@ -13,8 +13,6 @@
 
 #include "LocalExecutor.h"
 
-#include "MsvcEnvironment.h"
-
 #include <subprocess.h>
 #include <Syslogger.h>
 #include <ThreadUtils.h>
@@ -60,9 +58,6 @@ void LocalExecutor::SyncExecTask(LocalExecutorTask::Ptr task)
         taskState = true;
         taskStateCond.notify_one();
     };
-
-    if (task->m_setEnv) // working around subsequent SyncExecTask call. Todo: unlimined SyncExecTask recursion?
-        GetToolIdEnvironment(task->m_invocation.m_id.m_toolId);
 
     AddTask(task);
 
@@ -144,9 +139,6 @@ bool LocalExecutor::Quant()
                 IInvocationRewriter::Ptr invocationTool;
                 if ((invocationTool = m_invocationRewriter->GetTool(task->m_invocation.m_id)))
                     inv = invocationTool->CompleteInvocation(inv);
-                StringVector env;
-                if (task->m_setEnv)
-                    env = GetToolIdEnvironment(inv.m_id.m_toolId);
 
                 if (task->m_writeInput) {
                     FileInfo inputFile(inv.GetInput());
@@ -175,7 +167,7 @@ bool LocalExecutor::Quant()
                 }
                 task->m_invocation     = inv;
                 task->m_executionStart = TimePoint(true);
-                Subprocess* addsubproc = m_subprocs->Add(cmd, false, env, task->m_readStderr);
+                Subprocess* addsubproc = m_subprocs->Add(cmd, false, {}, task->m_readStderr);
                 if (!addsubproc) {
                     task->ErrorResult("Failed to execute: " + cmd);
                     break;
@@ -228,22 +220,6 @@ bool LocalExecutor::Quant()
         task->m_callback(result);
     }
     return true;
-}
-
-const StringVector& LocalExecutor::GetToolIdEnvironment(const std::string& toolId)
-{
-    auto it = m_toolIdEnvironment.find(toolId);
-    if (it != m_toolIdEnvironment.end())
-        return it->second;
-
-    StringVector env;
-    //    for (const InvocationRewriterConfig::Tool& tool : m_invocationRewriter->GetConfig().m_tools) {
-    //        if (tool.m_id == toolId && !tool.m_envCommand.empty()) {
-    //            env = ExtractVsVars(tool.m_envCommand, *this);
-    //        }
-    //    }
-    auto newit = m_toolIdEnvironment.insert(std::make_pair(toolId, env));
-    return newit.first->second;
 }
 
 }
