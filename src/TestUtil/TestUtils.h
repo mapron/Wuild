@@ -30,30 +30,25 @@
     }
 
 namespace Wuild {
-class InvocationRewriterStub : public IInvocationRewriter {
-    Config m_config;
+class InvocationRewriterStub : public IInvocationRewriterProvider {
+    Config                    m_config;
+    StringVector              m_toolIds;
+    IInvocationRewriter::List m_toolList;
 
 public:
     InvocationRewriterStub(const Config& config)
         : m_config(config)
     {}
 
-    const Config& GetConfig() const override { return m_config; }
+    const IInvocationRewriter::List& GetTools() const override { return m_toolList; }
 
-    bool IsCompilerInvocation(const ToolInvocation&) const override { return false; }
+    const StringVector& GetToolIds() const override { return m_toolIds; }
 
-    bool SplitInvocation(const ToolInvocation&,
-                         ToolInvocation&,
-                         ToolInvocation&,
-                         std::string*) const override { return false; }
+    IInvocationRewriter::Ptr GetTool(const ToolInvocation::Id& id) const override { return nullptr; }
 
-    ToolInvocation     CompleteInvocation(const ToolInvocation& original) const override { return original; }
-    ToolInvocation     PrepareRemote(const ToolInvocation& original) const override { return original; }
+    bool IsCompilerInvocation(const ToolInvocation& original) const override { return false; }
+
     ToolInvocation::Id CompleteToolId(const ToolInvocation::Id& original) const override { return original; }
-    bool               CheckRemotePossibleForFlags(const ToolInvocation& original) const override { return true; }
-    ToolInvocation     FilterFlags(const ToolInvocation& original) const override { return original; }
-
-    std::string GetPreprocessedPath(const std::string&, const std::string& objectPath) const override { return objectPath + ".pp"; }
 };
 
 class TestConfiguration {
@@ -61,7 +56,7 @@ class TestConfiguration {
     ~TestConfiguration() = delete;
 
 public:
-    static bool GetTestToolConfig(IInvocationRewriter::Config& settings)
+    static bool GetTestToolConfig(IInvocationRewriterProvider::Config& settings)
     {
         settings.m_toolIds.push_back("testTool");
         settings.m_tools.resize(1);
@@ -71,7 +66,8 @@ public:
     }
     static const std::string g_testProgram;
 
-    static IInvocationRewriter::Ptr s_invocationRewriter;
+    static IInvocationRewriterProvider::Ptr s_invocationRewriter;
+    static IInvocationRewriterProvider::Config s_invocationConfig;
 
     static void ExitHandler(int code) { std::cout << (code == 0 ? "OK" : "FAIL") << std::endl; }
 };

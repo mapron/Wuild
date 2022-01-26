@@ -23,6 +23,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <cassert>
 #include <functional>
 #include <fstream>
 #include <algorithm>
@@ -136,7 +137,7 @@ public:
             }
             m_parent->UpdateSessionInfo(info);
             if (task.m_attemptsRemain > 0 && retry) {
-                Syslogger(Syslogger::Warning) << info.m_stdOutput << " Retrying (" << task.m_attemptsRemain << " attempts remain), args:" << task.m_invocation.GetArgsString(false);
+                Syslogger(Syslogger::Warning) << info.m_stdOutput << " Retrying (" << task.m_attemptsRemain << " attempts remain), args:" << task.m_invocation.GetArgsString();
                 auto taskCopy = task;
                 taskCopy.m_attemptsRemain--;
                 taskCopy.m_taskIndex        = this->m_parent->m_taskIndex++;
@@ -157,7 +158,7 @@ public:
     }
 };
 
-RemoteToolClient::RemoteToolClient(IInvocationRewriter::Ptr invocationRewriter, const IVersionChecker::VersionMap& versionMap)
+RemoteToolClient::RemoteToolClient(IInvocationRewriterProvider::Ptr invocationRewriter, const IVersionChecker::VersionMap& versionMap)
     : m_impl(new RemoteToolClientImpl())
     , m_invocationRewriter(std::move(invocationRewriter))
     , m_toolVersionMap(versionMap)
@@ -305,8 +306,10 @@ void RemoteToolClient::InvokeTool(const ToolInvocation& invocation, const Invoke
     }
     m_totalCompressionTime += start.GetElapsedTime();
 
+    auto tool = m_invocationRewriter->GetTool(invocation.m_id);
+    assert(tool);
     RemoteToolRequest::Ptr toolRequest(new RemoteToolRequest());
-    toolRequest->m_invocation  = m_invocationRewriter->PrepareRemote(invocation);
+    toolRequest->m_invocation  = tool->PrepareRemote(invocation);
     toolRequest->m_fileData    = inputData;
     toolRequest->m_compression = m_config.m_compression;
     toolRequest->m_sessionId   = m_sessionId;
@@ -326,7 +329,7 @@ void RemoteToolClient::InvokeTool(const ToolInvocation& invocation, const Invoke
     m_sentBytes += inputData.size();
 
     Syslogger(Syslogger::Info) << "QueueFrame [" << wrap.m_taskIndex << "] -> " << toolRequest->m_invocation.m_id.m_toolId
-                               << " " << toolRequest->m_invocation.GetArgsString(false)
+                               << " " << toolRequest->m_invocation.GetArgsString()
                                << ", balancerFree:" << m_impl->m_balancer.GetFreeThreads()
                                << ", pending:" << m_impl->m_pendingTasks;
 

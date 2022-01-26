@@ -31,21 +31,21 @@ namespace Wuild {
 ///
 /// Uses ninja's SubprocessSet.
 class LocalExecutor : public ILocalExecutor {
-    LocalExecutor(IInvocationRewriter::Ptr invocationRewriter, std::string tempPath, const std::shared_ptr<SubprocessSet>& subprocessSet);
+    LocalExecutor(IInvocationRewriterProvider::Ptr invocationRewriter, std::string tempPath, const std::shared_ptr<SubprocessSet>& subprocessSet);
 
 public:
-    static Ptr Create(IInvocationRewriter::Ptr invocationRewriter, std::string tempPath, const std::shared_ptr<SubprocessSet>& subprocessSet = nullptr)
+    static Ptr Create(IInvocationRewriterProvider::Ptr invocationRewriter, std::string tempPath, const std::shared_ptr<SubprocessSet>& subprocessSet = nullptr)
     {
         return Ptr(new LocalExecutor(invocationRewriter, std::move(tempPath), subprocessSet));
     }
 
 public:
-    void         AddTask(LocalExecutorTask::Ptr task) override;
-    void         SyncExecTask(LocalExecutorTask::Ptr task) override;
-    TaskPair     SplitTask(LocalExecutorTask::Ptr task, std::string& err) override;
-    StringVector GetToolIds() const override;
-    void         SetThreadCount(int threads) override;
-    size_t       GetQueueSize() const override;
+    void                AddTask(LocalExecutorTask::Ptr task) override;
+    void                SyncExecTask(LocalExecutorTask::Ptr task) override;
+    TaskPair            SplitTask(LocalExecutorTask::Ptr task, std::string& err) override;
+    const StringVector& GetToolIds() const override;
+    void                SetThreadCount(int threads) override;
+    size_t              GetQueueSize() const override;
 
     ~LocalExecutor();
 
@@ -62,7 +62,7 @@ private:
     using Guard = std::lock_guard<std::mutex>;
     std::queue<LocalExecutorTask::Ptr> m_taskQueue;
 
-    std::shared_ptr<IInvocationRewriter>          m_invocationRewriter;
+    IInvocationRewriterProvider::Ptr              m_invocationRewriter;
     std::map<std::string, StringVector>           m_toolIdEnvironment;
     std::string                                   m_tempPath;
     std::shared_ptr<SubprocessSet>                m_subprocs;

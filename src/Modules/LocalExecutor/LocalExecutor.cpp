@@ -25,8 +25,8 @@
 
 namespace Wuild {
 
-LocalExecutor::LocalExecutor(IInvocationRewriter::Ptr invocationRewriter, std::string tempPath, const std::shared_ptr<SubprocessSet>& subprocessSet)
-    : m_invocationRewriter(std::move(std::move(invocationRewriter)))
+LocalExecutor::LocalExecutor(IInvocationRewriterProvider::Ptr invocationRewriter, std::string tempPath, const std::shared_ptr<SubprocessSet>& subprocessSet)
+    : m_invocationRewriter(std::move(invocationRewriter))
     , m_tempPath(std::move(tempPath))
     , m_subprocs(subprocessSet)
 {
@@ -74,9 +74,14 @@ void LocalExecutor::SyncExecTask(LocalExecutorTask::Ptr task)
 
 ILocalExecutor::TaskPair LocalExecutor::SplitTask(LocalExecutorTask::Ptr task, std::string& err)
 {
-    TaskPair       result;
-    ToolInvocation pp, cc;
-    if (!m_invocationRewriter->SplitInvocation(task->m_invocation, pp, cc)) {
+    TaskPair                 result;
+    ToolInvocation           pp, cc;
+    IInvocationRewriter::Ptr invocationTool;
+    if (!(invocationTool = m_invocationRewriter->GetTool(task->m_invocation.m_id))) {
+        err = "Failed to detect CC command.";
+        return result;
+    }
+    if (!invocationTool->SplitInvocation(task->m_invocation, pp, cc)) {
         err = "Failed to detect CC command.";
         return result;
     }
@@ -90,9 +95,9 @@ ILocalExecutor::TaskPair LocalExecutor::SplitTask(LocalExecutorTask::Ptr task, s
     return TaskPair(taskPP, taskCC);
 }
 
-StringVector LocalExecutor::GetToolIds() const
+const StringVector& LocalExecutor::GetToolIds() const
 {
-    return m_invocationRewriter->GetConfig().m_toolIds;
+    return m_invocationRewriter->GetToolIds();
 }
 
 void LocalExecutor::SetThreadCount(int threads)
@@ -135,8 +140,10 @@ bool LocalExecutor::Quant()
         auto task = GetNextTask();
         if (task) {
             do {
-                ToolInvocation inv = task->m_invocation;
-                inv                = m_invocationRewriter->CompleteInvocation(inv);
+                ToolInvocation           inv = task->m_invocation;
+                IInvocationRewriter::Ptr invocationTool;
+                if ((invocationTool = m_invocationRewriter->GetTool(task->m_invocation.m_id)))
+                    inv = invocationTool->CompleteInvocation(inv);
                 StringVector env;
                 if (task->m_setEnv)
                     env = GetToolIdEnvironment(inv.m_id.m_toolId);
@@ -161,8 +168,8 @@ bool LocalExecutor::Quant()
                     inv.SetOutput(task->m_outputFile.GetPath());
                 }
 
-                auto cmd = inv.GetArgsString(true);
-                if (cmd.empty()) {
+                auto cmd = inv.m_id.m_toolExecutable + " " + inv.GetArgsString();
+                if (inv.m_id.m_toolExecutable.empty()) {
                     task->ErrorResult("Failed to create cmd string for " + task->GetShortErrorInfo());
                     break;
                 }
@@ -230,11 +237,11 @@ const StringVector& LocalExecutor::GetToolIdEnvironment(const std::string& toolI
         return it->second;
 
     StringVector env;
-    for (const InvocationRewriterConfig::Tool& tool : m_invocationRewriter->GetConfig().m_tools) {
-        if (tool.m_id == toolId && !tool.m_envCommand.empty()) {
-            env = ExtractVsVars(tool.m_envCommand, *this);
-        }
-    }
+    //    for (const InvocationRewriterConfig::Tool& tool : m_invocationRewriter->GetConfig().m_tools) {
+    //        if (tool.m_id == toolId && !tool.m_envCommand.empty()) {
+    //            env = ExtractVsVars(tool.m_envCommand, *this);
+    //        }
+    //    }
     auto newit = m_toolIdEnvironment.insert(std::make_pair(toolId, env));
     return newit.first->second;
 }

@@ -20,7 +20,7 @@ RemoteExecutor::RemoteExecutor(ConfiguredApplication& app)
 {
     bool silent = !Syslogger::IsLogLevelEnabled(Syslogger::Debug);
 
-    IInvocationRewriter::Config compilerConfig;
+    IInvocationRewriterProvider::Config compilerConfig;
     if (!m_app.GetInvocationRewriterConfig(compilerConfig, silent))
         return;
 
@@ -81,11 +81,11 @@ IRemoteExecutor::PreprocessResult RemoteExecutor::PreprocessCode(const std::vect
 
     std::vector<std::string> args = originalRule;
 
-    ToolInvocation original, pp, cc;
-    original.m_arglist.m_args = { originalRule };
-    original.m_ignoredArgs    = ignoredArgs;
-    original.ParseArgsAsCommanline();
-    if (!m_invocationRewriter->SplitInvocation(original, pp, cc, &toolId)) {
+    ToolInvocation original(originalRule), pp, cc;
+    original.m_ignoredArgs = ignoredArgs;
+    original.FetchExecutableFromArgs();
+    IInvocationRewriter::Ptr tool;
+    if (!(tool = m_invocationRewriter->GetTool(original.m_id)) || !tool->SplitInvocation(original, pp, cc, &toolId)) {
         if (!m_invocationRewriter->IsCompilerInvocation(original))
             return PreprocessResult::Skipped;
 
@@ -108,8 +108,11 @@ bool RemoteExecutor::CheckRemotePossibleForFlags(const std::string& toolId, cons
 {
     if (!m_remoteEnabled)
         return false;
+    IInvocationRewriter::Ptr tool;
+    if (!(tool = m_invocationRewriter->GetTool({ toolId })))
+        return false;
 
-    return m_invocationRewriter->CheckRemotePossibleForFlags(ToolInvocation(flags, ToolInvocation::InvokeType::Preprocess).SetId(toolId));
+    return tool->CheckRemotePossibleForFlags(ToolInvocation(flags, ToolInvocation::InvokeType::Preprocess).SetId(toolId));
 }
 
 std::string RemoteExecutor::GetPreprocessedPath(const std::string& sourcePath, const std::string& objectPath) const
@@ -117,15 +120,19 @@ std::string RemoteExecutor::GetPreprocessedPath(const std::string& sourcePath, c
     if (!m_remoteEnabled)
         return "";
 
-    return m_invocationRewriter->GetPreprocessedPath(sourcePath, objectPath);
+    return IInvocationRewriterProvider::GetPreprocessedPath(sourcePath, objectPath);
 }
 
 std::string RemoteExecutor::FilterPreprocessorFlags(const std::string& toolId, const std::string& flags) const
 {
     if (!m_remoteEnabled)
         return flags;
+    IInvocationRewriter::Ptr tool;
+    if (!(tool = m_invocationRewriter->GetTool({ toolId })))
+        return flags;
 
-    return m_invocationRewriter->FilterFlags(ToolInvocation(flags, ToolInvocation::InvokeType::Preprocess).SetId(toolId)).GetArgsString(false);
+    const auto inv = ToolInvocation(flags, ToolInvocation::InvokeType::Preprocess).SetId(toolId);
+    return tool->FilterFlags(inv).GetArgsString();
 }
 
 std::string RemoteExecutor::FilterCompilerFlags(const std::string& toolId, const std::string& flags) const
@@ -133,7 +140,12 @@ std::string RemoteExecutor::FilterCompilerFlags(const std::string& toolId, const
     if (!m_remoteEnabled)
         return flags;
 
-    return m_invocationRewriter->FilterFlags(ToolInvocation(flags, ToolInvocation::InvokeType::Compile).SetId(toolId)).GetArgsString(false);
+    IInvocationRewriter::Ptr tool;
+    if (!(tool = m_invocationRewriter->GetTool({ toolId })))
+        return flags;
+
+    const auto inv = ToolInvocation(flags, ToolInvocation::InvokeType::Compile).SetId(toolId);
+    return tool->FilterFlags(inv).GetArgsString();
 }
 
 void RemoteExecutor::RunIfNeeded(const std::vector<std::string>& toolIds, const std::shared_ptr<SubprocessSet>& subprocessSet)
@@ -182,8 +194,12 @@ bool RemoteExecutor::StartCommand(Edge* userData, const std::string& command)
         return false;
 
     ToolInvocation invocation({ command });
-    invocation.ParseArgsAsCommanline();
-    invocation = m_invocationRewriter->CompleteInvocation(invocation);
+    invocation.FetchExecutableFromArgs();
+    auto tool = m_invocationRewriter->GetTool(invocation.m_id);
+    if (!tool)
+        return false;
+
+    invocation = tool->CompleteInvocation(invocation);
 
     auto outputFilename = invocation.GetOutput();
     auto callback       = [this, userData, outputFilename](const RemoteToolClient::TaskExecutionInfo& info) {

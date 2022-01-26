@@ -35,10 +35,10 @@ public:
     ToolInvocation(StringVector args = StringVector(), InvokeType type = InvokeType::Unknown);
     ToolInvocation(const std::string& args, InvokeType type);
 
-    void ParseArgsAsCommanline();
+    void FetchExecutableFromArgs();
 
     void        SetArgsString(const std::string& args);
-    std::string GetArgsString(bool prependExecutable = true) const;
+    std::string GetArgsString() const;
 
     bool        SetInput(const std::string& filename);
     std::string GetInput() const;

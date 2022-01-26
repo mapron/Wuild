@@ -17,7 +17,8 @@ namespace Wuild {
 const std::string TestConfiguration::g_testProgram = "#include<iostream> \n"
                                                      "int main() { std::cout << \"OK\\n\"; return 0; } \n";
 
-IInvocationRewriter::Ptr TestConfiguration::s_invocationRewriter;
+IInvocationRewriterProvider::Ptr TestConfiguration::s_invocationRewriter;
+IInvocationRewriterProvider::Config TestConfiguration::s_invocationConfig;
 
 StringVector CreateTestProgramInvocation()
 {
@@ -49,15 +50,13 @@ int HandleTestResult()
 bool CreateInvocationRewriter(ConfiguredApplication& app, bool stub)
 {
     if (!stub) {
-        IInvocationRewriter::Config config;
-        if (!app.GetInvocationRewriterConfig(config))
+        if (!app.GetInvocationRewriterConfig(TestConfiguration::s_invocationConfig))
             return false;
 
-        TestConfiguration::s_invocationRewriter = InvocationRewriter::Create(config);
+        TestConfiguration::s_invocationRewriter = InvocationRewriter::Create(TestConfiguration::s_invocationConfig);
     } else {
-        IInvocationRewriter::Config config;
-        TestConfiguration::GetTestToolConfig(config);
-        TestConfiguration::s_invocationRewriter.reset(new InvocationRewriterStub(config));
+        TestConfiguration::GetTestToolConfig(TestConfiguration::s_invocationConfig);
+        TestConfiguration::s_invocationRewriter.reset(new InvocationRewriterStub(TestConfiguration::s_invocationConfig));
     }
     return true;
 }

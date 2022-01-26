@@ -24,15 +24,60 @@
 #include <ArgumentList.h>
 
 #include <algorithm>
+#include <cassert>
 
 namespace Wuild {
 
 InvocationRewriter::InvocationRewriter(Config config)
     : m_config(std::move(config))
 {
+    for (const auto& tool : m_config.m_tools) {
+        if (tool.m_type == Config::ToolchainType::AutoDetect)
+            continue;
+        auto         toolProvider = std::make_shared<InvocationRewriterTool>(tool);
+        const size_t i            = m_tools.size();
+        m_tools.push_back(toolProvider);
+        m_indexById[tool.m_id] = i;
+        if (!tool.m_remoteAlias.empty())
+            m_indexById[tool.m_remoteAlias] = i;
+        for (const auto& name : tool.m_names) {
+            if (!name.empty())
+                m_indexByName[name] = i;
+        }
+        m_toolIds.push_back(tool.m_id);
+    }
 }
 
-IInvocationRewriter::Ptr InvocationRewriter::Create(Config config)
+InvocationRewriter::InvocationRewriterTool::InvocationRewriterTool(const InvocationRewriterConfig::Tool& toolConfig)
+{
+    m_toolInfo.m_tool                = toolConfig;
+    m_toolInfo.m_id.m_toolId         = toolConfig.m_id;
+    m_toolInfo.m_id.m_toolExecutable = toolConfig.m_names[0];
+    if (toolConfig.m_type == InvocationRewriterConfig::ToolchainType::GCC || toolConfig.m_type == InvocationRewriterConfig::ToolchainType::Clang)
+        m_toolInfo.m_parser.reset(new GccCommandLineParser());
+    else if (toolConfig.m_type == InvocationRewriterConfig::ToolchainType::MSVC)
+        m_toolInfo.m_parser.reset(new MsvcCommandLineParser());
+    else if (toolConfig.m_type == InvocationRewriterConfig::ToolchainType::UpdateFile)
+        m_toolInfo.m_parser.reset(new UpdateFileCommandParser());
+    else
+        assert(!"Invalid logic");
+
+    m_toolInfo.m_remoteId = m_toolInfo.m_id.m_toolId;
+    if (!toolConfig.m_remoteAlias.empty())
+        m_toolInfo.m_remoteId = toolConfig.m_remoteAlias;
+}
+
+ToolInvocation::Id InvocationRewriter::InvocationRewriterTool::GetId() const
+{
+    return m_toolInfo.m_id;
+}
+
+const IInvocationRewriter::Config& InvocationRewriter::InvocationRewriterTool::GetConfig() const
+{
+    return m_toolInfo.m_tool;
+}
+
+IInvocationRewriterProvider::Ptr InvocationRewriter::Create(Config config)
 {
     auto guessType = [](const std::string& executableName) -> Config::ToolchainType {
         if (executableName.find("cl.exe") != std::string::npos)
@@ -68,19 +113,25 @@ IInvocationRewriter::Ptr InvocationRewriter::Create(Config config)
     return res;
 }
 
-const IInvocationRewriter::Config& InvocationRewriter::GetConfig() const
+const StringVector& InvocationRewriter::GetToolIds() const
 {
-    return m_config;
+    return m_toolIds;
+}
+
+const IInvocationRewriter::List& InvocationRewriter::GetTools() const
+{
+    return m_tools;
 }
 
 bool InvocationRewriter::IsCompilerInvocation(const ToolInvocation& original) const
 {
+    // we DO NOT look into our m_tools, because this can be compiler invocation which is unconfigured.
+    // so we can possible tell user we have configuration problem (usage of a compiler that not configured as a tool).
     GccCommandLineParser  gcc;
     MsvcCommandLineParser msvc;
 
     ToolInvocation inv = original;
     inv.m_type         = ToolInvocation::InvokeType::Unknown;
-    inv.m_arglist      = ParseArgumentList(original.m_arglist.m_args);
 
     auto checker = [&inv](ICommandLineParser& parser) -> bool {
         auto parsedInv = parser.ProcessToolInvocation(inv);
@@ -89,28 +140,27 @@ bool InvocationRewriter::IsCompilerInvocation(const ToolInvocation& original) co
     return checker(gcc) || checker(msvc);
 }
 
-bool InvocationRewriter::SplitInvocation(const ToolInvocation& original, ToolInvocation& preprocessor, ToolInvocation& compilation, std::string* remoteToolId) const
+bool InvocationRewriter::InvocationRewriterTool::SplitInvocation(const ToolInvocation& original, ToolInvocation& preprocessor, ToolInvocation& compilation, std::string* remoteToolId) const
 {
-    ToolInfo toolInfo = CompileInfoById(original.m_id);
-    if (!toolInfo.m_parser)
-        return false;
     ToolInvocation origComplete = CompleteInvocation(original);
 
-    if (origComplete.m_type != ToolInvocation::InvokeType::Compile)
+    if (origComplete.m_type != ToolInvocation::InvokeType::Compile) {
+        origComplete = CompleteInvocation(original);
         return false;
+    }
 
     if (remoteToolId)
-        *remoteToolId = toolInfo.m_remoteId;
-    toolInfo.m_parser->SetToolInvocation(origComplete);
-    toolInfo.m_parser->SetInvokeType(ToolInvocation::InvokeType::Preprocess);
-    toolInfo.m_parser->RemoveLocalFlags();
-    preprocessor = toolInfo.m_parser->GetToolInvocation();
+        *remoteToolId = m_toolInfo.m_remoteId;
+    m_toolInfo.m_parser->SetToolInvocation(origComplete);
+    m_toolInfo.m_parser->SetInvokeType(ToolInvocation::InvokeType::Preprocess);
+    m_toolInfo.m_parser->RemoveLocalFlags();
+    preprocessor = m_toolInfo.m_parser->GetToolInvocation();
 
-    toolInfo.m_parser->SetToolInvocation(origComplete);
-    toolInfo.m_parser->RemoveLocalFlags();
-    toolInfo.m_parser->RemovePrepocessorFlags();
-    toolInfo.m_parser->RemoveDependencyFiles();
-    compilation = toolInfo.m_parser->GetToolInvocation();
+    m_toolInfo.m_parser->SetToolInvocation(origComplete);
+    m_toolInfo.m_parser->RemoveLocalFlags();
+    m_toolInfo.m_parser->RemovePrepocessorFlags();
+    m_toolInfo.m_parser->RemoveDependencyFiles();
+    compilation = m_toolInfo.m_parser->GetToolInvocation();
 
     const std::string srcFilename          = origComplete.GetInput(); // we hope  .cpp is coming after -c flag. It's naive.
     const std::string objFilename          = origComplete.GetOutput();
@@ -125,62 +175,47 @@ bool InvocationRewriter::SplitInvocation(const ToolInvocation& original, ToolInv
     return true;
 }
 
-ToolInvocation InvocationRewriter::CompleteInvocation(const ToolInvocation& original) const
+ToolInvocation InvocationRewriter::InvocationRewriterTool::CompleteInvocation(const ToolInvocation& original) const
 {
     ToolInvocation inv = original;
-    inv.m_type         = ToolInvocation::InvokeType::Unknown;
-    inv.m_arglist      = ParseArgumentList(original.m_arglist.m_args);
-
-    ToolInfo info = CompileInfoById(original.m_id);
-    if (info.m_valid) {
-        inv.m_id   = info.m_id;
-        inv.m_type = original.m_type;
-        inv        = info.m_parser->ProcessToolInvocation(inv);
-    }
+    inv.m_id           = m_toolInfo.m_id; // original may have only one part of id - executable ot toolId.
+    inv                = m_toolInfo.m_parser->ProcessToolInvocation(inv);
     return inv;
 }
 
 ToolInvocation::Id InvocationRewriter::CompleteToolId(const ToolInvocation::Id& original) const
 {
-    ToolInfo info = CompileInfoById(original);
-    if (info.m_valid)
-        return info.m_id;
+    auto tool = GetTool(original);
+    return tool ? tool->GetId() : original;
+}
+
+bool InvocationRewriter::InvocationRewriterTool::CheckRemotePossibleForFlags(const ToolInvocation& original) const
+{
+    ToolInvocation flags = CompleteInvocation(original);
+    m_toolInfo.m_parser->SetToolInvocation(flags);
+    return m_toolInfo.m_parser->IsRemotePossible();
+}
+
+ToolInvocation InvocationRewriter::InvocationRewriterTool::FilterFlags(const ToolInvocation& original) const
+{
+    ToolInvocation flags = CompleteInvocation(original);
+    if (flags.m_type == ToolInvocation::InvokeType::Preprocess) {
+        m_toolInfo.m_parser->SetToolInvocation(flags);
+        m_toolInfo.m_parser->RemoveLocalFlags();
+        return m_toolInfo.m_parser->GetToolInvocation();
+    }
+    if (flags.m_type == ToolInvocation::InvokeType::Compile) {
+        m_toolInfo.m_parser->SetToolInvocation(flags);
+        m_toolInfo.m_parser->RemovePrepocessorFlags();
+        m_toolInfo.m_parser->RemoveDependencyFiles();
+        m_toolInfo.m_parser->RemoveLocalFlags();
+        return m_toolInfo.m_parser->GetToolInvocation();
+    }
 
     return original;
 }
 
-bool InvocationRewriter::CheckRemotePossibleForFlags(const ToolInvocation& original) const
-{
-    ToolInfo info = CompileInfoById(original.m_id);
-    if (info.m_valid) {
-        ToolInvocation flags = CompleteInvocation(original);
-        info.m_parser->SetToolInvocation(flags);
-        return info.m_parser->IsRemotePossible();
-    }
-    return false;
-}
-
-ToolInvocation InvocationRewriter::FilterFlags(const ToolInvocation& original) const
-{
-    ToolInfo info = CompileInfoById(original.m_id);
-    if (info.m_valid) {
-        ToolInvocation flags = CompleteInvocation(original);
-        if (flags.m_type == ToolInvocation::InvokeType::Preprocess) {
-            info.m_parser->SetToolInvocation(flags);
-            info.m_parser->RemoveLocalFlags();
-            return info.m_parser->GetToolInvocation();
-        }
-        if (flags.m_type == ToolInvocation::InvokeType::Compile) {
-            info.m_parser->SetToolInvocation(flags);
-            info.m_parser->RemovePrepocessorFlags();
-            info.m_parser->RemoveDependencyFiles();
-            info.m_parser->RemoveLocalFlags();
-            return info.m_parser->GetToolInvocation();
-        }
-    }
-    return original;
-}
-
+/* // commented to make git diff history nicier.
 std::string InvocationRewriter::GetPreprocessedPath(const std::string& sourcePath,
                                                     const std::string& objectPath) const
 {
@@ -190,33 +225,30 @@ std::string InvocationRewriter::GetPreprocessedPath(const std::string& sourcePat
     const std::string preprocessed = objectInfo.GetDir(true) + "pp_" + objectInfo.GetNameWE() + sourceInfo.GetFullExtension();
     return preprocessed;
 }
+*/
 
-ToolInvocation InvocationRewriter::PrepareRemote(const ToolInvocation& original) const
+ToolInvocation InvocationRewriter::InvocationRewriterTool::PrepareRemote(const ToolInvocation& original) const
 {
-    ToolInvocation inv  = CompleteInvocation(original);
-    ToolInfo       info = CompileInfoById(original.m_id);
-    if (info.m_valid) {
-        inv.m_id   = info.m_id;
-        inv.m_type = original.m_type;
-        inv        = info.m_parser->ProcessToolInvocation(inv);
-        if (!info.m_tool.m_appendRemote.empty())
-            inv.m_arglist.m_args.push_back(info.m_tool.m_appendRemote);
+    ToolInvocation inv = CompleteInvocation(original);
 
-        if (!info.m_tool.m_removeRemote.empty()) {
-            StringVector newArgs;
-            for (const auto& arg : inv.m_arglist.m_args)
-                if (arg != info.m_tool.m_removeRemote)
-                    newArgs.push_back(arg);
-            newArgs.swap(inv.m_arglist.m_args);
-        }
-        inv.m_id.m_toolId = info.m_remoteId;
+    if (!m_toolInfo.m_tool.m_appendRemote.empty())
+        inv.m_arglist.m_args.push_back(m_toolInfo.m_tool.m_appendRemote);
+
+    if (!m_toolInfo.m_tool.m_removeRemote.empty()) {
+        StringVector newArgs;
+        for (const auto& arg : inv.m_arglist.m_args)
+            if (arg != m_toolInfo.m_tool.m_removeRemote)
+                newArgs.push_back(arg);
+        newArgs.swap(inv.m_arglist.m_args);
     }
+    inv.m_id.m_toolId = m_toolInfo.m_remoteId;
+
     inv.SetInput(FileInfo(inv.GetInput()).GetFullname());
     inv.SetOutput(FileInfo(inv.GetOutput()).GetFullname());
     return inv;
 }
 
-InvocationRewriter::ToolInfo InvocationRewriter::CompileInfoById(const ToolInvocation::Id& id) const
+IInvocationRewriter::Ptr InvocationRewriter::GetTool(const ToolInvocation::Id& id) const
 {
     if (id.m_toolId.empty())
         return CompileInfoByExecutable(id.m_toolExecutable);
@@ -224,55 +256,23 @@ InvocationRewriter::ToolInfo InvocationRewriter::CompileInfoById(const ToolInvoc
     return CompileInfoByToolId(id.m_toolId);
 }
 
-InvocationRewriter::ToolInfo InvocationRewriter::CompileInfoByExecutable(const std::string& executable) const
+IInvocationRewriter::Ptr InvocationRewriter::CompileInfoByExecutable(const std::string& executable) const
 {
-    const std::string            exec = FileInfo::ToPlatformPath(FileInfo::LocatePath(executable));
-    InvocationRewriter::ToolInfo info;
-    for (const Config::Tool& unit : m_config.m_tools) {
-        if (std::find(unit.m_names.cbegin(), unit.m_names.cend(), exec) != unit.m_names.cend()) {
-            return CompileInfoByUnit(unit);
-        }
-    }
-    return info;
+    const std::string exec = FileInfo::ToPlatformPath(FileInfo::LocatePath(executable));
+    auto              it   = m_indexByName.find(exec);
+    if (it == m_indexByName.cend())
+        return nullptr;
+
+    return m_tools[it->second];
 }
 
-InvocationRewriter::ToolInfo InvocationRewriter::CompileInfoByToolId(const std::string& toolId) const
+IInvocationRewriter::Ptr InvocationRewriter::CompileInfoByToolId(const std::string& toolId) const
 {
-    InvocationRewriter::ToolInfo info;
-    if (toolId.empty())
-        return info;
+    auto it = m_indexById.find(toolId);
+    if (it == m_indexById.cend())
+        return nullptr;
 
-    for (const Config::Tool& unit : m_config.m_tools) {
-        if (unit.m_id == toolId)
-            return CompileInfoByUnit(unit);
-    }
-    for (const Config::Tool& unit : m_config.m_tools) {
-        if (unit.m_remoteAlias == toolId)
-            return CompileInfoByUnit(unit);
-    }
-    return info;
-}
-
-InvocationRewriter::ToolInfo InvocationRewriter::CompileInfoByUnit(const IInvocationRewriter::Config::Tool& unit) const
-{
-    ToolInfo info;
-    info.m_tool                = unit;
-    info.m_id.m_toolId         = unit.m_id;
-    info.m_id.m_toolExecutable = unit.m_names[0];
-    if (unit.m_type == Config::ToolchainType::GCC || unit.m_type == Config::ToolchainType::Clang)
-        info.m_parser.reset(new GccCommandLineParser());
-    else if (unit.m_type == Config::ToolchainType::MSVC)
-        info.m_parser.reset(new MsvcCommandLineParser());
-    else if (unit.m_type == Config::ToolchainType::UpdateFile)
-        info.m_parser.reset(new UpdateFileCommandParser());
-
-    if (info.m_parser)
-        info.m_valid = true;
-    info.m_remoteId = info.m_id.m_toolId;
-    if (!unit.m_remoteAlias.empty()) {
-        info.m_remoteId = unit.m_remoteAlias;
-    }
-    return info;
+    return m_tools[it->second];
 }
 
 }

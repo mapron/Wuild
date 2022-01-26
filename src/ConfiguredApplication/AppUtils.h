@@ -20,9 +20,9 @@
 #include <functional>
 
 namespace Wuild {
-inline IInvocationRewriter::Ptr CheckedCreateInvocationRewriter(ConfiguredApplication& application)
+inline IInvocationRewriterProvider::Ptr CheckedCreateInvocationRewriter(ConfiguredApplication& application)
 {
-    IInvocationRewriter::Config config;
+    IInvocationRewriterProvider::Config config;
     if (!application.GetInvocationRewriterConfig(config, false))
         return nullptr;
     return InvocationRewriter::Create(config);

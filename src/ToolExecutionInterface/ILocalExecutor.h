@@ -34,7 +34,7 @@ public:
     virtual TaskPair SplitTask(LocalExecutorTask::Ptr task, std::string& err) = 0;
 
     /// Returns tools ids available for execution.
-    virtual StringVector GetToolIds() const = 0;
+    virtual const StringVector& GetToolIds() const = 0;
 
     /// Sets maximal process count.
     virtual void SetThreadCount(int threads) = 0;

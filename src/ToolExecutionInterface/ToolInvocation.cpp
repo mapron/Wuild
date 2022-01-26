@@ -31,7 +31,7 @@ ToolInvocation::ToolInvocation(const std::string& args, ToolInvocation::InvokeTy
     SetArgsString(args);
 }
 
-void ToolInvocation::ParseArgsAsCommanline()
+void ToolInvocation::FetchExecutableFromArgs()
 {
     assert(m_id.m_toolExecutable.empty());
     assert(!m_arglist.m_args.empty());
@@ -45,12 +45,9 @@ void ToolInvocation::SetArgsString(const std::string& args)
     m_arglist = ParseArgumentList(args);
 }
 
-std::string ToolInvocation::GetArgsString(bool prependExecutable) const
+std::string ToolInvocation::GetArgsString() const
 {
-    std::string ret;
-    if (prependExecutable)
-        ret += m_id.m_toolExecutable + " ";
-    return ret + m_arglist.ToString();
+    return m_arglist.ToString();
 }
 
 bool ToolInvocation::SetInput(const std::string& filename)

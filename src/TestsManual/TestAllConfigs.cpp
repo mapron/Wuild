@@ -42,7 +42,7 @@ int main(int argc, char** argv)
     auto localExecutor = LocalExecutor::Create(TestConfiguration::s_invocationRewriter, app.m_tempDir);
 
     auto        versionChecker = VersionChecker::Create(localExecutor, TestConfiguration::s_invocationRewriter);
-    const auto& toolsConfig    = TestConfiguration::s_invocationRewriter->GetConfig();
+    const auto& toolsConfig    = TestConfiguration::s_invocationConfig;
     const auto  toolsVersions  = versionChecker->DetermineToolVersions({});
     for (const auto& toolId : toolsConfig.m_toolIds)
         Syslogger(Syslogger::Notice) << "tool[" << toolId << "] version=" << toolsVersions.at(toolId);

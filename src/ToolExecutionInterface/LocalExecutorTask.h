@@ -61,7 +61,7 @@ struct LocalExecutorTask {
 
     std::string GetShortErrorInfo() const
     {
-        return m_invocation.m_id.m_toolId + ": " + m_invocation.GetArgsString(false);
+        return m_invocation.m_id.m_toolId + ": " + m_invocation.GetArgsString();
     }
 
     void ErrorResult(const std::string& text) const

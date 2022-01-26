@@ -46,9 +46,10 @@ public:
     {
         return TaskPair();
     }
-    StringVector GetToolIds() const override
+    const StringVector& GetToolIds() const override
     {
-        return StringVector({ g_testTool, g_testTool2 });
+        static const StringVector ids({ g_testTool, g_testTool2 });
+        return ids;
     }
     void SetThreadCount(int) override {}
 };

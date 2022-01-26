@@ -18,6 +18,7 @@
 #include <CommonTypes.h>
 #include <StringUtils.h>
 #include <InvocationRewriterConfig.h>
+#include <FileUtils.h>
 
 #include <sstream>
 namespace Wuild {
@@ -26,17 +27,17 @@ namespace Wuild {
 /// Can determine tool info from invocataion; moreover, split invocation to preprocess and compilation.
 class IInvocationRewriter {
 public:
-    using Config     = InvocationRewriterConfig;
     using StringPair = std::pair<std::string, std::string>;
     using Ptr        = std::shared_ptr<IInvocationRewriter>;
+    using List       = std::vector<Ptr>;
+    using Config     = InvocationRewriterConfig::Tool;
 
 public:
     virtual ~IInvocationRewriter() = default;
 
-    virtual const Config& GetConfig() const               = 0;
+    virtual ToolInvocation::Id GetId() const = 0;
 
-    /// Checks if an invocation is a compilation
-    virtual bool IsCompilerInvocation(const ToolInvocation& original) const = 0;
+    virtual const Config& GetConfig() const = 0;
 
     /// Split invocation on two steps. If succeeded, returns true.
     virtual bool SplitInvocation(const ToolInvocation& original,
@@ -47,19 +48,44 @@ public:
     /// Normalizes invocation struct, making possible to replace input/output files. Substitute toolId if possible.
     virtual ToolInvocation CompleteInvocation(const ToolInvocation& original) const = 0;
 
-    /// Performs substitution of toolId executable if possible.
-    virtual ToolInvocation::Id CompleteToolId(const ToolInvocation::Id& original) const = 0;
-
     virtual bool CheckRemotePossibleForFlags(const ToolInvocation& original) const = 0;
 
     /// Remove preprocessor flags from splitted compilation phase; also remove extra preprocessor flags which not supported for distributed build.
     virtual ToolInvocation FilterFlags(const ToolInvocation& original) const = 0;
 
-    /// Get preprocessed filename path.
-    virtual std::string GetPreprocessedPath(const std::string& sourcePath, const std::string& objectPath) const = 0;
-
     /// Prepare invocation for remote execution
     virtual ToolInvocation PrepareRemote(const ToolInvocation& original) const = 0;
+};
+
+class IInvocationRewriterProvider {
+public:
+    using Config = InvocationRewriterConfig;
+    using Ptr    = std::shared_ptr<IInvocationRewriterProvider>;
+
+public:
+    virtual ~IInvocationRewriterProvider() = default;
+
+    virtual const IInvocationRewriter::List& GetTools() const = 0;
+
+    virtual const StringVector& GetToolIds() const = 0;
+
+    virtual IInvocationRewriter::Ptr GetTool(const ToolInvocation::Id& id) const = 0;
+
+    /// Checks if an invocation is a compilation
+    virtual bool IsCompilerInvocation(const ToolInvocation& original) const = 0;
+
+    /// Performs substitution of toolId executable if possible.
+    virtual ToolInvocation::Id CompleteToolId(const ToolInvocation::Id& original) const = 0;
+
+    static std::string GetPreprocessedPath(const std::string& sourcePath,
+                                           const std::string& objectPath)
+    {
+        FileInfo sourceInfo(sourcePath);
+        FileInfo objectInfo(objectPath);
+
+        const std::string preprocessed = objectInfo.GetDir(true) + "pp_" + objectInfo.GetNameWE() + sourceInfo.GetFullExtension();
+        return preprocessed;
+    }
 };
 
 }

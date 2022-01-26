@@ -56,7 +56,7 @@ public:
     using InvokeCallback          = std::function<void(const TaskExecutionInfo&)>;
 
 public:
-    RemoteToolClient(IInvocationRewriter::Ptr invocationRewriter, const IVersionChecker::VersionMap& versionMap);
+    RemoteToolClient(IInvocationRewriterProvider::Ptr invocationRewriter, const IVersionChecker::VersionMap& versionMap);
     ~RemoteToolClient();
 
     bool SetConfig(const Config& config);
@@ -101,9 +101,9 @@ protected:
     RemoteAvailableCallback m_remoteAvailableCallback;
     Config                  m_config;
 
-    IInvocationRewriter::Ptr    m_invocationRewriter;
-    IVersionChecker::VersionMap m_toolVersionMap;
-    StringVector                m_requiredToolIds;
+    IInvocationRewriterProvider::Ptr m_invocationRewriter;
+    IVersionChecker::VersionMap      m_toolVersionMap;
+    StringVector                     m_requiredToolIds;
 };
 
 }

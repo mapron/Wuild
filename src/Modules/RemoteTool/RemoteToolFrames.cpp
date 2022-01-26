@@ -21,7 +21,7 @@ namespace Wuild {
 void RemoteToolRequest::LogTo(std::ostream& os) const
 {
     SocketFrame::LogTo(os);
-    os << " " << m_invocation.m_id.m_toolId << " args:" << m_invocation.GetArgsString(false);
+    os << " " << m_invocation.m_id.m_toolId << " args:" << m_invocation.GetArgsString();
     os << " file: [" << m_fileData.size() << ", COMP:" << uint32_t(m_compression.m_type) << "]";
 }
 

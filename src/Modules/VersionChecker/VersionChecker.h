@@ -20,10 +20,10 @@
 
 namespace Wuild {
 class VersionChecker : public IVersionChecker {
-    VersionChecker(ILocalExecutor::Ptr localExecutor, IInvocationRewriter::Ptr rewriter);
+    VersionChecker(ILocalExecutor::Ptr localExecutor, IInvocationRewriterProvider::Ptr rewriter);
 
 public:
-    static Ptr Create(ILocalExecutor::Ptr localExecutor, IInvocationRewriter::Ptr rewriter)
+    static Ptr Create(ILocalExecutor::Ptr localExecutor, IInvocationRewriterProvider::Ptr rewriter)
     {
         return Ptr(new VersionChecker(std::move(localExecutor), std::move(rewriter)));
     }
@@ -35,8 +35,8 @@ private:
     Version GetToolVersion(const ToolInvocation::Id& toolId, ToolType type) const;
 
 private:
-    ILocalExecutor::Ptr      m_localExecutor;
-    IInvocationRewriter::Ptr m_rewriter;
+    ILocalExecutor::Ptr              m_localExecutor;
+    IInvocationRewriterProvider::Ptr m_rewriter;
 };
 
 }

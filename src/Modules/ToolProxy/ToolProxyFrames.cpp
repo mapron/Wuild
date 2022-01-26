@@ -22,7 +22,7 @@ namespace Wuild {
 void ToolProxyRequest::LogTo(std::ostream& os) const
 {
     SocketFrame::LogTo(os);
-    os << " " << m_invocation.m_id.m_toolId << " args:" << m_invocation.GetArgsString(false) << " cwd:" << m_cwd;
+    os << " " << m_invocation.m_id.m_toolId << " args:" << m_invocation.GetArgsString() << " cwd:" << m_cwd;
 }
 
 SocketFrame::State ToolProxyRequest::ReadInternal(ByteOrderDataStreamReader& stream)

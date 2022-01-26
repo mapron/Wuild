@@ -31,7 +31,7 @@ int main(int argc, char** argv)
     ArgStorage            argStorage(argc, argv);
     ConfiguredApplication app(argStorage.GetConfigValues(), "ToolExecutor");
 
-    IInvocationRewriter::Config iconfig;
+    IInvocationRewriterProvider::Config iconfig;
     if (!app.GetInvocationRewriterConfig(iconfig))
         return 1;
 
@@ -49,7 +49,12 @@ int main(int argc, char** argv)
     }
     const auto toolId = args[0];
     args.erase(args.begin());
-    ToolInvocation invocation = invocationRewriter->CompleteInvocation(ToolInvocation(args).SetId(toolId));
+    auto tool = invocationRewriter->GetTool({ toolId });
+    if (!tool) {
+        Syslogger(Syslogger::Err) << "Failed to find tool=" << toolId;
+        return 1;
+    }
+    ToolInvocation invocation = tool->CompleteInvocation(ToolInvocation(args).SetId(toolId));
 
     RemoteToolClient::Config config;
     if (!app.GetRemoteToolClientConfig(config))

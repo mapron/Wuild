@@ -40,7 +40,7 @@ int main(int argc, char** argv)
     std::string            err;
     LocalExecutorTask::Ptr original(new LocalExecutorTask());
     original->m_readOutput = original->m_writeInput = false;
-    original->m_invocation                          = ToolInvocation(args).SetExecutable(TestConfiguration::s_invocationRewriter->GetConfig().GetFirstToolName());
+    original->m_invocation                          = ToolInvocation(args).SetExecutable(TestConfiguration::s_invocationConfig.GetFirstToolName());
     auto tasks                                      = localExecutor->SplitTask(original, err);
     if (!tasks.first) {
         Syslogger(Syslogger::Err) << err;
@@ -67,7 +67,7 @@ int main(int argc, char** argv)
     ToolServerInfo   toolServerInfo;
     toolServerInfo.m_connectionHost = "localhost";
     toolServerInfo.m_connectionPort = g_toolsServerTestPort;
-    toolServerInfo.m_toolIds        = TestConfiguration::s_invocationRewriter->GetConfig().m_toolIds;
+    toolServerInfo.m_toolIds        = TestConfiguration::s_invocationConfig.m_toolIds;
     toolServerInfo.m_totalThreads   = 1;
     rcClient.AddClient(toolServerInfo);
     RemoteToolClient::Config clientConfig;
