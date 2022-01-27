@@ -17,14 +17,15 @@ namespace Wuild {
 
 bool MsvcCommandLineParser::ProcessInternal(ToolCommandline& invocation, const Options& options, bool& remotePossible) const
 {
+    bool result = true;
     int invokeTypeIndex = -1;
     if (!Update(invocation, &invokeTypeIndex, &remotePossible))
-        return false;
+        result = false;
 
     if (invocation.m_inputNameIndex == -1
         || invocation.m_outputNameIndex == -1
         || invocation.m_outputNameIndex >= (int) invocation.m_arglist.m_args.size()) {
-        return false;
+        result = false;
     }
 
     if (options.m_changeType != ToolCommandline::InvokeType::Unknown) {
@@ -89,9 +90,9 @@ bool MsvcCommandLineParser::ProcessInternal(ToolCommandline& invocation, const O
     }
     if (options.m_removeLocalFlags || options.m_removeDependencyFiles || options.m_removePrepocessorFlags)
         if (!Update(invocation))
-            return false;
+            result = false;
 
-    return true;
+    return result;
 }
 
 bool MsvcCommandLineParser::Update(ToolCommandline& invocation, int* invokeTypeIndex, bool* remotePossible) const

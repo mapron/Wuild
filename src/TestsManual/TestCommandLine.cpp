@@ -193,6 +193,15 @@ int main(int argc, char** argv)
                     3,    // out
                     "-c foo.cpp -o foo.o"))
         return 1;
+    
+    if (!parserCase(gccParser,
+                    "-c foo.cpp -DBAR=1 -o foo.o -isysroot path",
+                    true, // success
+                    true, // isCompiler
+                    1,    // in
+                    3,    // out
+                    "-c foo.cpp -o foo.o"))
+        return 1;
 
     if (!parserCase(vcParser,
                     "-c foo.cpp /Fo: foo.obj",

@@ -18,16 +18,17 @@ namespace Wuild {
 
 bool GccCommandLineParser::ProcessInternal(ToolCommandline& invocation, const Options& options, bool& remotePossible) const
 {
+    bool result = true;
     int invokeTypeIndex = -1;
     if (!Update(invocation, &invokeTypeIndex))
-        return false;
+        result = false;
 
     if (invocation.m_inputNameIndex == -1
         || invocation.m_outputNameIndex == -1
         || invocation.m_outputNameIndex >= (int) invocation.m_arglist.m_args.size()) {
-        return false;
+        result = false;
     }
-    if (options.m_changeType != ToolCommandline::InvokeType::Unknown) {
+    if (options.m_changeType != ToolCommandline::InvokeType::Unknown && invokeTypeIndex != -1) {
         invocation.m_type                            = options.m_changeType;
         invocation.m_arglist.m_args[invokeTypeIndex] = options.m_changeType == ToolCommandline::InvokeType::Preprocess ? "-E" : "-c";
     }
@@ -94,9 +95,9 @@ bool GccCommandLineParser::ProcessInternal(ToolCommandline& invocation, const Op
     }
     if (options.m_removeLocalFlags || options.m_removeDependencyFiles || options.m_removePrepocessorFlags)
         if (!Update(invocation))
-            return false;
+            result = false;
 
-    return true;
+    return result;
 }
 
 bool GccCommandLineParser::Update(ToolCommandline& invocation, int* invokeTypeIndex) const

@@ -116,8 +116,6 @@ ToolCommandline InvocationTool::FilterFlags(const ToolCommandline& original) con
         ICommandLineParser::Options opt;
         opt.m_removeLocalFlags = true;
         auto result            = m_toolInfo.m_parser->Process(original, opt);
-        if (!result.m_success)
-            return original;
         return result.m_inv;
     }
     if (original.m_type == ToolCommandline::InvokeType::Compile) {
@@ -126,8 +124,6 @@ ToolCommandline InvocationTool::FilterFlags(const ToolCommandline& original) con
         opt.m_removeDependencyFiles  = true;
         opt.m_removePrepocessorFlags = true;
         auto result                  = m_toolInfo.m_parser->Process(original, opt);
-        if (!result.m_success)
-            return original;
         return result.m_inv;
     }
 
