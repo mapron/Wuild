@@ -107,6 +107,7 @@ endfunction()
 if (USE_ZSTD_COMPRESSION)
 	AddTarget(NAME zstd_static ROOT ${ZSTD_ROOT}/ CSRC common/*.c compress/*.c  decompress/*.c
 		INCLUDES ${ZSTD_ROOT}/ ${ZSTD_ROOT}/common/
+		DEFINES ZSTD_DISABLE_ASM
 		)
 	list(APPEND COMPRESSION_LIBS zstd_static)
 	list(APPEND COMPRESSION_DEFINES -DUSE_ZSTD)
