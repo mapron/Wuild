@@ -175,6 +175,24 @@ int main(int argc, char** argv)
         }
         return true;
     };
+    
+    if (!parserCase(gccParser,
+                    "-c foo.cpp -o foo.o",
+                    true, // success
+                    true, // isCompiler
+                    1,    // in
+                    3,    // out
+                    "-c foo.cpp -o foo.o"))
+        return 1;
+    
+    if (!parserCase(gccParser,
+                    "-c foo.cpp -DBAR=1 -o foo.o -Ipath",
+                    true, // success
+                    true, // isCompiler
+                    1,    // in
+                    3,    // out
+                    "-c foo.cpp -o foo.o"))
+        return 1;
 
     if (!parserCase(vcParser,
                     "-c foo.cpp /Fo: foo.obj",

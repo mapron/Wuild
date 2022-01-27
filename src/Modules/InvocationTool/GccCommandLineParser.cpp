@@ -101,8 +101,11 @@ bool GccCommandLineParser::ProcessInternal(ToolCommandline& invocation, const Op
 
 bool GccCommandLineParser::Update(ToolCommandline& invocation, int* invokeTypeIndex) const
 {
-    bool skipNext = false;
-    int  argIndex = -1;
+    bool skipNext                = false;
+    int  argIndex                = -1;
+    invocation.m_inputNameIndex  = -1;
+    invocation.m_outputNameIndex = -1;
+    invocation.m_type            = ToolCommandline::InvokeType::Unknown;
     for (const auto& arg : invocation.m_arglist.m_args) {
         argIndex++;
         if (skipNext) {
