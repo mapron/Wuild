@@ -19,9 +19,7 @@ namespace Wuild {
 
 class UpdateFileCommandParser : public AbstractCommandLineParser {
 public:
-    void UpdateInfo() override;
-
-    void SetInvokeType(ToolCommandline::InvokeType type) override;
+    bool ProcessInternal(ToolCommandline& invocation, const Options& options, bool& remotePossible) const override;
 };
 
 }

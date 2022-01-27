@@ -115,8 +115,8 @@ bool InvocationToolProvider::IsCompilerInvocation(const ToolCommandline& origina
     inv.m_type          = ToolCommandline::InvokeType::Unknown;
 
     auto checker = [&inv](ICommandLineParser& parser) -> bool {
-        auto parsedInv = parser.ProcessToolInvocation(inv);
-        return parsedInv.m_type == ToolCommandline::InvokeType::Compile;
+        auto parsedInv = parser.Process(inv, {});
+        return parsedInv.m_inv.m_type == ToolCommandline::InvokeType::Compile;
     };
     return checker(gcc) || checker(msvc);
 }

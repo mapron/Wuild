@@ -53,23 +53,34 @@ bool InvocationTool::SplitInvocation(const ToolCommandline& original, ToolComman
 {
     ToolCommandline origComplete = CompleteInvocation(original);
 
-    if (origComplete.m_type != ToolCommandline::InvokeType::Compile) {
-        origComplete = CompleteInvocation(original);
+    if (origComplete.m_type != ToolCommandline::InvokeType::Compile)
         return false;
-    }
 
     if (remoteToolId)
         *remoteToolId = m_toolInfo.m_remoteId;
-    m_toolInfo.m_parser->SetToolInvocation(origComplete);
-    m_toolInfo.m_parser->SetInvokeType(ToolCommandline::InvokeType::Preprocess);
-    m_toolInfo.m_parser->RemoveLocalFlags();
-    preprocessor = m_toolInfo.m_parser->GetToolInvocation();
 
-    m_toolInfo.m_parser->SetToolInvocation(origComplete);
-    m_toolInfo.m_parser->RemoveLocalFlags();
-    m_toolInfo.m_parser->RemovePrepocessorFlags();
-    m_toolInfo.m_parser->RemoveDependencyFiles();
-    compilation = m_toolInfo.m_parser->GetToolInvocation();
+    {
+        ICommandLineParser::Options opt;
+        opt.m_changeType       = ToolCommandline::InvokeType::Preprocess;
+        opt.m_removeLocalFlags = true; // @todo: investigate why it's needed.
+        auto result            = m_toolInfo.m_parser->Process(origComplete, opt);
+        if (!result.m_success)
+            return false;
+
+        preprocessor = result.m_inv;
+    }
+
+    {
+        ICommandLineParser::Options opt;
+        opt.m_removeLocalFlags       = true;
+        opt.m_removeDependencyFiles  = true;
+        opt.m_removePrepocessorFlags = true;
+        auto result                  = m_toolInfo.m_parser->Process(origComplete, opt);
+        if (!result.m_success)
+            return false;
+
+        compilation = result.m_inv;
+    }
 
     const std::string srcFilename          = origComplete.GetInput(); // we hope  .cpp is coming after -c flag. It's naive.
     const std::string objFilename          = origComplete.GetOutput();
@@ -88,31 +99,36 @@ ToolCommandline InvocationTool::CompleteInvocation(const ToolCommandline& origin
 {
     ToolCommandline inv = original;
     inv.m_id            = m_toolInfo.m_id; // original may have only one part of id - executable ot toolId.
-    inv                 = m_toolInfo.m_parser->ProcessToolInvocation(inv);
+    auto result         = m_toolInfo.m_parser->Process(inv, {});
+    inv                 = result.m_inv;
     return inv;
 }
 
 bool InvocationTool::CheckRemotePossibleForFlags(const ToolCommandline& original) const
 {
-    ToolCommandline flags = CompleteInvocation(original);
-    m_toolInfo.m_parser->SetToolInvocation(flags);
-    return m_toolInfo.m_parser->IsRemotePossible();
+    auto result = m_toolInfo.m_parser->Process(original, {});
+    return result.m_isRemotePossible;
 }
 
 ToolCommandline InvocationTool::FilterFlags(const ToolCommandline& original) const
 {
-    ToolCommandline flags = CompleteInvocation(original);
-    if (flags.m_type == ToolCommandline::InvokeType::Preprocess) {
-        m_toolInfo.m_parser->SetToolInvocation(flags);
-        m_toolInfo.m_parser->RemoveLocalFlags();
-        return m_toolInfo.m_parser->GetToolInvocation();
+    if (original.m_type == ToolCommandline::InvokeType::Preprocess) {
+        ICommandLineParser::Options opt;
+        opt.m_removeLocalFlags = true;
+        auto result            = m_toolInfo.m_parser->Process(original, opt);
+        if (!result.m_success)
+            return original;
+        return result.m_inv;
     }
-    if (flags.m_type == ToolCommandline::InvokeType::Compile) {
-        m_toolInfo.m_parser->SetToolInvocation(flags);
-        m_toolInfo.m_parser->RemovePrepocessorFlags();
-        m_toolInfo.m_parser->RemoveDependencyFiles();
-        m_toolInfo.m_parser->RemoveLocalFlags();
-        return m_toolInfo.m_parser->GetToolInvocation();
+    if (original.m_type == ToolCommandline::InvokeType::Compile) {
+        ICommandLineParser::Options opt;
+        opt.m_removeLocalFlags       = true;
+        opt.m_removeDependencyFiles  = true;
+        opt.m_removePrepocessorFlags = true;
+        auto result                  = m_toolInfo.m_parser->Process(original, opt);
+        if (!result.m_success)
+            return original;
+        return result.m_inv;
     }
 
     return original;
@@ -134,6 +150,7 @@ ToolCommandline InvocationTool::PrepareRemote(const ToolCommandline& original) c
     }
     inv.m_id.m_toolId = m_toolInfo.m_remoteId;
 
+    // strip filenames directories.
     inv.SetInput(FileInfo(inv.GetInput()).GetFullname());
     inv.SetOutput(FileInfo(inv.GetOutput()).GetFullname());
     return inv;

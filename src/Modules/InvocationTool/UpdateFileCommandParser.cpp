@@ -18,18 +18,18 @@
 
 namespace Wuild {
 
-void UpdateFileCommandParser::UpdateInfo()
+bool UpdateFileCommandParser::ProcessInternal(ToolCommandline& invocation, const Options& options, bool& remotePossible) const
 {
-    m_invocation.m_inputNameIndex  = -1;
-    m_invocation.m_outputNameIndex = -1;
-    m_invocation.m_type            = ToolCommandline::InvokeType::Unknown;
-    if (!m_invocation.m_arglist.m_args.empty())
-        m_invocation.m_inputNameIndex = m_invocation.m_outputNameIndex = m_invocation.m_arglist.m_args.size() - 1;
-}
+    if (options.m_changeType != ToolCommandline::InvokeType::Unknown) {
+        assert(!"Broken logic.");
+        return false;
+    }
+    if (invocation.m_arglist.m_args.empty())
+        return false;
 
-void UpdateFileCommandParser::SetInvokeType(ToolCommandline::InvokeType /*type*/)
-{
-    assert(!"Unsupported logic.");
+    invocation.m_inputNameIndex = invocation.m_outputNameIndex = invocation.m_arglist.m_args.size() - 1;
+
+    return true;
 }
 
 }

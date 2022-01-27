@@ -17,15 +17,10 @@
 
 namespace Wuild {
 class GccCommandLineParser : public AbstractCommandLineParser {
-    int m_invokeTypeIndex = -1;
-
 public:
-    void UpdateInfo() override;
+    bool ProcessInternal(ToolCommandline& invocation, const Options& options, bool& remotePossible) const override;
 
-    void SetInvokeType(ToolCommandline::InvokeType type) override;
-
-    void RemoveLocalFlags() override;
-    void RemoveDependencyFiles() override;
-    void RemovePrepocessorFlags() override;
+private:
+    bool Update(ToolCommandline& invocation, int* invokeTypeIndex = nullptr) const;
 };
 }

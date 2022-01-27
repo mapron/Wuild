@@ -17,22 +17,28 @@
 
 namespace Wuild {
 
-bool AbstractCommandLineParser::IsIgnored(const std::string& arg) const
+bool AbstractCommandLineParser::IsIgnored(const ToolCommandline& invocation, const std::string& arg) const
 {
-    return std::find(m_invocation.m_ignoredArgs.cbegin(), m_invocation.m_ignoredArgs.cend(), arg) != m_invocation.m_ignoredArgs.cend();
+    return std::find(invocation.m_ignoredArgs.cbegin(), invocation.m_ignoredArgs.cend(), arg) != invocation.m_ignoredArgs.cend();
 }
 
-ToolCommandline AbstractCommandLineParser::GetToolInvocation() const
+ICommandLineParser::Result AbstractCommandLineParser::Process(const ToolCommandline& invocation, const Options& options) const
 {
-    return m_invocation;
-}
+    Result result;
+    result.m_inv                   = invocation;
+    result.m_inv.m_inputNameIndex  = -1;
+    result.m_inv.m_outputNameIndex = -1;
+    result.m_inv.m_type            = ToolCommandline::InvokeType::Unknown;
+    result.m_isRemotePossible      = true;
+    result.m_success               = ProcessInternal(result.m_inv, options, result.m_isRemotePossible);
+    if (!result.m_success) {
+        result.m_inv.m_inputNameIndex  = -1;
+        result.m_inv.m_outputNameIndex = -1;
+        result.m_inv.m_type            = ToolCommandline::InvokeType::Unknown; 
+        // result.m_isRemotePossible      = false; // we can have partial set of flags; so overall parsing will be failed, but remote is possible.
+    }
 
-void AbstractCommandLineParser::SetToolInvocation(const ToolCommandline& invocation)
-{
-    m_invocation = invocation;
-    UpdateInfo();
-    if (invocation.m_type != ToolCommandline::InvokeType::Unknown)
-        m_invocation.m_type = invocation.m_type;
+    return result;
 }
 
 }

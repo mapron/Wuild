@@ -26,21 +26,19 @@ public:
 public:
     virtual ~ICommandLineParser() = default;
 
-    virtual ToolCommandline GetToolInvocation() const                            = 0;
-    virtual void            SetToolInvocation(const ToolCommandline& invocation) = 0;
+    struct Result {
+        bool            m_success = false;
+        ToolCommandline m_inv;
+        bool            m_isRemotePossible = true;
+    };
 
-    ToolCommandline ProcessToolInvocation(const ToolCommandline& invocation)
-    {
-        SetToolInvocation(invocation);
-        return GetToolInvocation();
-    }
+    struct Options {
+        ToolCommandline::InvokeType m_changeType             = ToolCommandline::InvokeType::Unknown;
+        bool                        m_removeLocalFlags       = false;
+        bool                        m_removeDependencyFiles  = false;
+        bool                        m_removePrepocessorFlags = false;
+    };
 
-    virtual void SetInvokeType(ToolCommandline::InvokeType type) = 0;
-
-    virtual bool IsRemotePossible() const = 0;
-
-    virtual void RemoveLocalFlags()       = 0;
-    virtual void RemoveDependencyFiles()  = 0;
-    virtual void RemovePrepocessorFlags() = 0;
+    virtual Result Process(const ToolCommandline& invocation, const Options& options) const = 0;
 };
 }

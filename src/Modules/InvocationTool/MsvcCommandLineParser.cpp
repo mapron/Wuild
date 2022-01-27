@@ -15,31 +15,105 @@
 
 namespace Wuild {
 
-void MsvcCommandLineParser::UpdateInfo()
+bool MsvcCommandLineParser::ProcessInternal(ToolCommandline& invocation, const Options& options, bool& remotePossible) const
+{
+    int invokeTypeIndex = -1;
+    if (!Update(invocation, &invokeTypeIndex, &remotePossible))
+        return false;
+
+    if (invocation.m_inputNameIndex == -1
+        || invocation.m_outputNameIndex == -1
+        || invocation.m_outputNameIndex >= (int) invocation.m_arglist.m_args.size()) {
+        return false;
+    }
+
+    if (options.m_changeType != ToolCommandline::InvokeType::Unknown) {
+        const bool pp = options.m_changeType == ToolCommandline::InvokeType::Preprocess;
+
+        invocation.m_type                                             = options.m_changeType;
+        invocation.m_arglist.m_args[invokeTypeIndex]                  = pp ? "/P" : "/C";
+        invocation.m_arglist.m_args[invocation.m_outputNameIndex - 1] = pp ? "/Fi:" : "/Fo:";
+    }
+    if (options.m_removeLocalFlags) {
+        StringVector newArgs;
+        bool         skipNext = false;
+        for (const auto& arg : invocation.m_arglist.m_args) {
+            if (skipNext) {
+                skipNext = false;
+                continue;
+            }
+            if (arg == "/Fd:") {
+                skipNext = true;
+                continue;
+            }
+            if (arg == "/ZI" || arg == "/Zi") {
+                newArgs.push_back("/Z7");
+                continue;
+            }
+            if (arg == "/Gm" || arg == "/FS") {
+                continue;
+            }
+            newArgs.push_back(arg);
+        }
+        invocation.m_arglist.m_args = newArgs;
+    }
+    if (options.m_removeDependencyFiles) {
+    }
+    if (options.m_removePrepocessorFlags) {
+        StringVector newArgs;
+        bool         skipNext = false;
+        for (const auto& arg : invocation.m_arglist.m_args) {
+            if (skipNext) {
+                skipNext = false;
+                continue;
+            }
+            if (arg[0] == '-' || arg[0] == '/') {
+                if (arg[1] == 'I' || arg[1] == 'D' || arg.substr(1) == "showIncludes") {
+                    if (arg.size() == 2) {
+                        skipNext = true;
+                    }
+                    continue;
+                }
+            }
+            newArgs.push_back(arg);
+        }
+        invocation.m_arglist.m_args = newArgs;
+    }
+    if (options.m_removeLocalFlags || options.m_removeDependencyFiles || options.m_removePrepocessorFlags)
+        if (!Update(invocation))
+            return false;
+
+    return true;
+}
+
+bool MsvcCommandLineParser::Update(ToolCommandline& invocation, int* invokeTypeIndex, bool* remotePossible) const
 {
     StringVector realArgs;
     bool         skipNext   = false;
     bool         ignoreNext = false;
 
-    m_invocation.m_inputNameIndex  = -1;
-    m_invocation.m_outputNameIndex = -1;
-    m_invocation.m_type            = ToolCommandline::InvokeType::Unknown;
-    for (const auto& arg : m_invocation.m_arglist.m_args) {
+    invocation.m_inputNameIndex  = -1;
+    invocation.m_outputNameIndex = -1;
+    invocation.m_type            = ToolCommandline::InvokeType::Unknown;
+    for (const auto& arg : invocation.m_arglist.m_args) {
         if (skipNext) {
             skipNext = false;
             continue;
         }
         if (arg[0] == '/' || arg[0] == '-') {
             if (arg[1] == 'c') {
-                m_invocation.m_type = ToolCommandline::InvokeType::Compile;
-                m_invokeTypeIndex   = realArgs.size();
+                invocation.m_type = ToolCommandline::InvokeType::Compile;
+                if (invokeTypeIndex)
+                    *invokeTypeIndex = realArgs.size();
             }
             if (arg[1] == 'P') {
-                m_invocation.m_type = ToolCommandline::InvokeType::Preprocess;
-                m_invokeTypeIndex   = realArgs.size();
+                invocation.m_type = ToolCommandline::InvokeType::Preprocess;
+                if (invokeTypeIndex)
+                    *invokeTypeIndex = realArgs.size();
             }
             if (arg.size() > 3 && arg[1] == 'A' && arg[2] == 'I') {
-                m_remotePossible = false;
+                if (remotePossible)
+                    *remotePossible = false;
             }
             if ((arg[1] == 'D' || arg[1] == 'I') && arg.size() == 2) // /D DEFINE  /I path
             {
@@ -65,91 +139,26 @@ void MsvcCommandLineParser::UpdateInfo()
                         fileIndex  = realArgs.size();
                     }
                     if (fileType == 'o') {
-                        m_invocation.m_outputNameIndex = fileIndex;
+                        invocation.m_outputNameIndex = fileIndex;
                     }
                     if (fileType == 'i') {
-                        m_invocation.m_outputNameIndex = fileIndex;
+                        invocation.m_outputNameIndex = fileIndex;
                     }
                     continue;
                 }
             }
-        } else if (!IsIgnored(arg) && !ignoreNext) {
-            if (m_invocation.m_inputNameIndex != -1) {
-                m_invocation.m_type = ToolCommandline::InvokeType::Unknown;
-                return;
+        } else if (!IsIgnored(invocation, arg) && !ignoreNext) {
+            if (invocation.m_inputNameIndex != -1) {
+                invocation.m_type = ToolCommandline::InvokeType::Unknown;
+                return false;
             }
-            m_invocation.m_inputNameIndex = realArgs.size();
+            invocation.m_inputNameIndex = realArgs.size();
         }
         realArgs.push_back(arg);
         ignoreNext = false;
     }
-    m_invocation.m_arglist.m_args = realArgs;
-    if (m_invocation.m_inputNameIndex == -1
-        || m_invocation.m_outputNameIndex == -1
-        || m_invocation.m_outputNameIndex >= (int) m_invocation.m_arglist.m_args.size()) {
-        m_invocation.m_inputNameIndex  = -1;
-        m_invocation.m_outputNameIndex = -1;
-        m_invocation.m_type            = ToolCommandline::InvokeType::Unknown;
-    }
-}
-
-void MsvcCommandLineParser::SetInvokeType(ToolCommandline::InvokeType type)
-{
-    if (m_invocation.m_type == ToolCommandline::InvokeType::Unknown)
-        return;
-    bool pp                                                           = type == ToolCommandline::InvokeType::Preprocess;
-    m_invocation.m_type                                               = type;
-    m_invocation.m_arglist.m_args[m_invokeTypeIndex]                  = pp ? "/P" : "/C";
-    m_invocation.m_arglist.m_args[m_invocation.m_outputNameIndex - 1] = pp ? "/Fi:" : "/Fo:";
-}
-
-void MsvcCommandLineParser::RemoveLocalFlags()
-{
-    StringVector newArgs;
-    bool         skipNext = false;
-    for (const auto& arg : m_invocation.m_arglist.m_args) {
-        if (skipNext) {
-            skipNext = false;
-            continue;
-        }
-        if (arg == "/Fd:") {
-            skipNext = true;
-            continue;
-        }
-        if (arg == "/ZI" || arg == "/Zi") {
-            newArgs.push_back("/Z7");
-            continue;
-        }
-        if (arg == "/Gm" || arg == "/FS") {
-            continue;
-        }
-        newArgs.push_back(arg);
-    }
-    m_invocation.m_arglist.m_args = newArgs;
-    UpdateInfo();
-}
-
-void MsvcCommandLineParser::RemovePrepocessorFlags()
-{
-    StringVector newArgs;
-    bool         skipNext = false;
-    for (const auto& arg : m_invocation.m_arglist.m_args) {
-        if (skipNext) {
-            skipNext = false;
-            continue;
-        }
-        if (arg[0] == '-' || arg[0] == '/') {
-            if (arg[1] == 'I' || arg[1] == 'D' || arg.substr(1) == "showIncludes") {
-                if (arg.size() == 2) {
-                    skipNext = true;
-                }
-                continue;
-            }
-        }
-        newArgs.push_back(arg);
-    }
-    m_invocation.m_arglist.m_args = newArgs;
-    UpdateInfo();
+    invocation.m_arglist.m_args = realArgs;
+    return true;
 }
 
 }

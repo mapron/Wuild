@@ -18,21 +18,11 @@
 namespace Wuild {
 class AbstractCommandLineParser : public ICommandLineParser {
 protected:
-    ToolCommandline m_invocation;
-    bool            m_remotePossible = true;
+    bool IsIgnored(const ToolCommandline& invocation, const std::string& arg) const;
 
-    bool IsIgnored(const std::string& arg) const;
+    virtual Result Process(const ToolCommandline& invocation, const Options& options) const override;
 
-public:
-    ToolCommandline GetToolInvocation() const override;
-    void            SetToolInvocation(const ToolCommandline& invocation) override;
-
-    virtual void UpdateInfo() = 0;
-
-    bool IsRemotePossible() const override { return m_remotePossible; }
-    void RemoveLocalFlags() override {}
-    void RemoveDependencyFiles() override {}
-    void RemovePrepocessorFlags() override {}
+    virtual bool ProcessInternal(ToolCommandline& invocation, const Options& options, bool& remotePossible) const = 0;
 };
 
 }
