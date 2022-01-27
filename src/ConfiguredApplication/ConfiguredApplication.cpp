@@ -278,10 +278,7 @@ void ConfiguredApplication::ReadInvocationToolProviderConfig()
     for (const auto& id : m_invocationToolProviderConfig.m_toolIds) {
         InvocationToolConfig::Tool unit;
         unit.m_id          = id;
-        std::string append = m_config->GetString(defaultGroup, id + "_appendRemote");
-        if (!append.empty()) {
-            unit.m_appendRemote = " " + append + " ";
-        }
+        unit.m_appendRemote = m_config->GetString(defaultGroup, id + "_appendRemote");
         unit.m_removeRemote = m_config->GetString(defaultGroup, id + "_removeRemote");
         unit.m_remoteAlias  = m_config->GetString(defaultGroup, id + "_remoteAlias");
         unit.m_version      = m_config->GetString(defaultGroup, id + "_version");
