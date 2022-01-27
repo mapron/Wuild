@@ -244,6 +244,15 @@ int main(int argc, char** argv)
                     3,    // out
                     "-c foo.cpp /Fo: foo.obj"))
         return 1;
+    
+    if (!parserCase(vcParser,
+                    "-c foo.cpp /external:I bar -external:I baz /external:Ifar -external:Ifaz /Fo: foo.obj",
+                    true, // success
+                    true, // isCompiler
+                    1,    // in
+                    3,    // out
+                    "-c foo.cpp /Fo: foo.obj"))
+        return 1;
 
     std::cout << "OK\n";
     return 0;

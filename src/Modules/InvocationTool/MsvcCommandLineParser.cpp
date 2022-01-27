@@ -60,8 +60,9 @@ bool MsvcCommandLineParser::ProcessInternal(ToolCommandline& invocation, const O
     if (options.m_removeDependencyFiles) {
     }
     if (options.m_removePrepocessorFlags) {
-        StringVector newArgs;
-        bool         skipNext = false;
+        StringVector             newArgs;
+        bool                     skipNext = false;
+        static const std::string s_externalInc{ "external:I" };
         for (const auto& arg : invocation.m_arglist.m_args) {
             if (skipNext) {
                 skipNext = false;
@@ -72,6 +73,13 @@ bool MsvcCommandLineParser::ProcessInternal(ToolCommandline& invocation, const O
                     if (arg.size() == 2) {
                         skipNext = true;
                     }
+                    continue;
+                }
+                if (arg.substr(1) == s_externalInc) {
+                    skipNext = true;
+                    continue;
+                }
+                if (arg.substr(1, s_externalInc.size()) == s_externalInc) {
                     continue;
                 }
             }
@@ -125,6 +133,10 @@ bool MsvcCommandLineParser::Update(ToolCommandline& invocation, int* invokeTypeI
                 consumeArgAndSkipNext(arg);
                 continue;
             }
+            if (arg.substr(1) == "external:I") {
+                consumeArgAndSkipNext(arg);
+                continue;
+            }
 
             if (arg[1] == 'F') {
                 char fileType = arg[2];
@@ -139,7 +151,7 @@ bool MsvcCommandLineParser::Update(ToolCommandline& invocation, int* invokeTypeI
                         consumeArgAndSkipNext(filename);
                     } else {
                         consumeArgAndSkipNext(arg);
-                        fileIndex  = realArgs.size();
+                        fileIndex = realArgs.size();
                     }
                     if (fileType == 'o') {
                         invocation.m_outputNameIndex = fileIndex;
