@@ -36,7 +36,7 @@ class RemoteToolRequestWrap {
 public:
     TimePoint                        m_start;
     int64_t                          m_taskIndex = 0;
-    ToolInvocation                   m_invocation;
+    ToolCommandline                  m_invocation;
     std::string                      m_originalFilename;
     RemoteToolRequest::Ptr           m_toolRequest;
     RemoteToolClient::InvokeCallback m_callback;
@@ -158,9 +158,9 @@ public:
     }
 };
 
-RemoteToolClient::RemoteToolClient(IInvocationRewriterProvider::Ptr invocationRewriter, const IVersionChecker::VersionMap& versionMap)
+RemoteToolClient::RemoteToolClient(IInvocationToolProvider::Ptr invocationToolProvider, const IVersionChecker::VersionMap& versionMap)
     : m_impl(new RemoteToolClientImpl())
-    , m_invocationRewriter(std::move(invocationRewriter))
+    , m_invocationToolProvider(std::move(invocationToolProvider))
     , m_toolVersionMap(versionMap)
 {
     m_impl->m_parent = this;
@@ -295,7 +295,7 @@ void RemoteToolClient::AddClient(const ToolServerInfo& info, bool start)
         handler->Start();
 }
 
-void RemoteToolClient::InvokeTool(const ToolInvocation& invocation, const InvokeCallback& callback)
+void RemoteToolClient::InvokeTool(const ToolCommandline& invocation, const InvokeCallback& callback)
 {
     TimePoint         start(true);
     const std::string inputFilename = invocation.GetInput();
@@ -306,7 +306,7 @@ void RemoteToolClient::InvokeTool(const ToolInvocation& invocation, const Invoke
     }
     m_totalCompressionTime += start.GetElapsedTime();
 
-    auto tool = m_invocationRewriter->GetTool(invocation.m_id);
+    auto tool = m_invocationToolProvider->GetTool(invocation.m_id);
     assert(tool);
     RemoteToolRequest::Ptr toolRequest(new RemoteToolRequest());
     toolRequest->m_invocation  = tool->PrepareRemote(invocation);
@@ -394,7 +394,7 @@ bool RemoteToolClient::CheckRemoteToolVersions(const IVersionChecker::VersionMap
         if (localVersion == remoteVersion)
             continue; // OK, most common situation
 
-        if (localVersion == InvocationRewriterConfig::VERSION_NO_CHECK || remoteVersion == InvocationRewriterConfig::VERSION_NO_CHECK)
+        if (localVersion == InvocationToolConfig::VERSION_NO_CHECK || remoteVersion == InvocationToolConfig::VERSION_NO_CHECK)
             continue;
 
         Syslogger(Syslogger::Err) << "Tool id=" << toolId << " has local version='" << localVersion

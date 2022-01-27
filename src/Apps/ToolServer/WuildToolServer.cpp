@@ -26,13 +26,13 @@ int main(int argc, char** argv)
     if (!app.GetRemoteToolServerConfig(toolServerConfig))
         return 1;
 
-    auto invocationRewriter = CheckedCreateInvocationRewriter(app);
-    if (!invocationRewriter)
+    auto invocationToolProvider = CheckedCreateInvocationToolProvider(app);
+    if (!invocationToolProvider)
         return 1;
 
-    auto localExecutor = LocalExecutor::Create(invocationRewriter, app.m_tempDir);
+    auto localExecutor = LocalExecutor::Create(invocationToolProvider, app.m_tempDir);
 
-    auto       versionChecker = VersionChecker::Create(localExecutor, invocationRewriter);
+    auto       versionChecker = VersionChecker::Create(localExecutor, invocationToolProvider);
     const auto toolsVersions  = versionChecker->DetermineToolVersions({});
 
     RemoteToolServer rcService(localExecutor, toolsVersions);

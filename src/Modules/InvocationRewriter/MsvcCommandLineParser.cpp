@@ -23,7 +23,7 @@ void MsvcCommandLineParser::UpdateInfo()
 
     m_invocation.m_inputNameIndex  = -1;
     m_invocation.m_outputNameIndex = -1;
-    m_invocation.m_type            = ToolInvocation::InvokeType::Unknown;
+    m_invocation.m_type            = ToolCommandline::InvokeType::Unknown;
     for (const auto& arg : m_invocation.m_arglist.m_args) {
         if (skipNext) {
             skipNext = false;
@@ -31,11 +31,11 @@ void MsvcCommandLineParser::UpdateInfo()
         }
         if (arg[0] == '/' || arg[0] == '-') {
             if (arg[1] == 'c') {
-                m_invocation.m_type = ToolInvocation::InvokeType::Compile;
+                m_invocation.m_type = ToolCommandline::InvokeType::Compile;
                 m_invokeTypeIndex   = realArgs.size();
             }
             if (arg[1] == 'P') {
-                m_invocation.m_type = ToolInvocation::InvokeType::Preprocess;
+                m_invocation.m_type = ToolCommandline::InvokeType::Preprocess;
                 m_invokeTypeIndex   = realArgs.size();
             }
             if (arg.size() > 3 && arg[1] == 'A' && arg[2] == 'I') {
@@ -75,7 +75,7 @@ void MsvcCommandLineParser::UpdateInfo()
             }
         } else if (!IsIgnored(arg) && !ignoreNext) {
             if (m_invocation.m_inputNameIndex != -1) {
-                m_invocation.m_type = ToolInvocation::InvokeType::Unknown;
+                m_invocation.m_type = ToolCommandline::InvokeType::Unknown;
                 return;
             }
             m_invocation.m_inputNameIndex = realArgs.size();
@@ -89,16 +89,16 @@ void MsvcCommandLineParser::UpdateInfo()
         || m_invocation.m_outputNameIndex >= (int) m_invocation.m_arglist.m_args.size()) {
         m_invocation.m_inputNameIndex  = -1;
         m_invocation.m_outputNameIndex = -1;
-        m_invocation.m_type            = ToolInvocation::InvokeType::Unknown;
+        m_invocation.m_type            = ToolCommandline::InvokeType::Unknown;
     }
 }
 
-void MsvcCommandLineParser::SetInvokeType(ToolInvocation::InvokeType type)
+void MsvcCommandLineParser::SetInvokeType(ToolCommandline::InvokeType type)
 {
-    if (m_invocation.m_type == ToolInvocation::InvokeType::Unknown)
+    if (m_invocation.m_type == ToolCommandline::InvokeType::Unknown)
         return;
-    bool pp                                                 = type == ToolInvocation::InvokeType::Preprocess;
-    m_invocation.m_type                                     = type;
+    bool pp                                                           = type == ToolCommandline::InvokeType::Preprocess;
+    m_invocation.m_type                                               = type;
     m_invocation.m_arglist.m_args[m_invokeTypeIndex]                  = pp ? "/P" : "/C";
     m_invocation.m_arglist.m_args[m_invocation.m_outputNameIndex - 1] = pp ? "/Fi:" : "/Fo:";
 }

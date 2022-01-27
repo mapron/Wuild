@@ -13,7 +13,7 @@
 
 #pragma once
 
-#include "ToolInvocation.h"
+#include "ToolCommandline.h"
 
 #include <TimePoint.h>
 #include <CommonTypes.h>
@@ -45,7 +45,7 @@ struct LocalExecutorTask {
     using CallbackType = std::function<void(LocalExecutorResult::Ptr)>;
 
     CallbackType    m_callback;          //!< Called when process finished or on fail.
-    ToolInvocation  m_invocation;        //!< Commandline arguments
+    ToolCommandline  m_invocation;        //!< Commandline arguments
     ByteArrayHolder m_inputData;         //!< Some input file data
     CompressionInfo m_compressionInput;  //!< Compression information
     CompressionInfo m_compressionOutput; //!< Compression information

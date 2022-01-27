@@ -16,7 +16,7 @@
 #include <AppUtils.h>
 #include <ConfiguredApplication.h>
 #include <Application.h>
-#include <InvocationRewriter.h>
+#include <InvocationToolProvider.h>
 #include <Syslogger.h>
 
 #include <iostream>
@@ -30,25 +30,25 @@
     }
 
 namespace Wuild {
-class InvocationRewriterStub : public IInvocationRewriterProvider {
-    Config                    m_config;
-    StringVector              m_toolIds;
-    IInvocationRewriter::List m_toolList;
+class InvocationToolStub : public IInvocationToolProvider {
+    Config                m_config;
+    StringVector          m_toolIds;
+    IInvocationTool::List m_toolList;
 
 public:
-    InvocationRewriterStub(const Config& config)
+    InvocationToolStub(const Config& config)
         : m_config(config)
     {}
 
-    const IInvocationRewriter::List& GetTools() const override { return m_toolList; }
+    const IInvocationTool::List& GetTools() const override { return m_toolList; }
 
     const StringVector& GetToolIds() const override { return m_toolIds; }
 
-    IInvocationRewriter::Ptr GetTool(const ToolInvocation::Id& id) const override { return nullptr; }
+    IInvocationTool::Ptr GetTool(const ToolId& id) const override { return nullptr; }
 
-    bool IsCompilerInvocation(const ToolInvocation& original) const override { return false; }
+    bool IsCompilerInvocation(const ToolCommandline& original) const override { return false; }
 
-    ToolInvocation::Id CompleteToolId(const ToolInvocation::Id& original) const override { return original; }
+    ToolId CompleteToolId(const ToolId& original) const override { return original; }
 };
 
 class TestConfiguration {
@@ -56,7 +56,7 @@ class TestConfiguration {
     ~TestConfiguration() = delete;
 
 public:
-    static bool GetTestToolConfig(IInvocationRewriterProvider::Config& settings)
+    static bool GetTestToolConfig(IInvocationToolProvider::Config& settings)
     {
         settings.m_toolIds.push_back("testTool");
         settings.m_tools.resize(1);
@@ -66,15 +66,15 @@ public:
     }
     static const std::string g_testProgram;
 
-    static IInvocationRewriterProvider::Ptr s_invocationRewriter;
-    static IInvocationRewriterProvider::Config s_invocationConfig;
+    static IInvocationToolProvider::Ptr    s_invocationToolProvider;
+    static IInvocationToolProvider::Config s_invocationConfig;
 
     static void ExitHandler(int code) { std::cout << (code == 0 ? "OK" : "FAIL") << std::endl; }
 };
 
 StringVector CreateTestProgramInvocation();
 
-bool CreateInvocationRewriter(ConfiguredApplication& app, bool stub = false);
+bool CreateInvocationToolProvider(ConfiguredApplication& app, bool stub = false);
 
 int HandleTestResult();
 

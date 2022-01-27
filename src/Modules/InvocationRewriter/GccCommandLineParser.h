@@ -22,7 +22,7 @@ class GccCommandLineParser : public AbstractCommandLineParser {
 public:
     void UpdateInfo() override;
 
-    void SetInvokeType(ToolInvocation::InvokeType type) override;
+    void SetInvokeType(ToolCommandline::InvokeType type) override;
 
     void RemoveLocalFlags() override;
     void RemoveDependencyFiles() override;

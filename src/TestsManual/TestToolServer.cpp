@@ -31,16 +31,16 @@ int main(int argc, char** argv)
     using namespace Wuild;
     ArgStorage            argStorage(argc, argv);
     ConfiguredApplication app(argStorage.GetConfigValues(), "TestToolServer");
-    if (!CreateInvocationRewriter(app))
+    if (!CreateInvocationToolProvider(app))
         return 1;
 
     StringVector args          = argStorage.GetArgs();
-    auto         localExecutor = LocalExecutor::Create(TestConfiguration::s_invocationRewriter, app.m_tempDir);
+    auto         localExecutor = LocalExecutor::Create(TestConfiguration::s_invocationToolProvider, app.m_tempDir);
 
     std::string            err;
     LocalExecutorTask::Ptr original(new LocalExecutorTask());
     original->m_readOutput = original->m_writeInput = false;
-    original->m_invocation                          = ToolInvocation(args).SetExecutable(TestConfiguration::s_invocationConfig.GetFirstToolName());
+    original->m_invocation                          = ToolCommandline(args).SetExecutable(TestConfiguration::s_invocationConfig.GetFirstToolName());
     auto tasks                                      = localExecutor->SplitTask(original, err);
     if (!tasks.first) {
         Syslogger(Syslogger::Err) << err;
@@ -55,7 +55,7 @@ int main(int argc, char** argv)
     toolServerConfig.m_coordinator.m_enabled = false;
     toolServerConfig.m_compression.m_type    = g_compType;
 
-    const auto toolsVersions = VersionChecker::Create(localExecutor, TestConfiguration::s_invocationRewriter)->DetermineToolVersions({});
+    const auto toolsVersions = VersionChecker::Create(localExecutor, TestConfiguration::s_invocationToolProvider)->DetermineToolVersions({});
 
     RemoteToolServer rcServer(localExecutor, toolsVersions);
     if (!rcServer.SetConfig(toolServerConfig))
@@ -63,7 +63,7 @@ int main(int argc, char** argv)
 
     rcServer.Start();
 
-    RemoteToolClient rcClient(TestConfiguration::s_invocationRewriter, toolsVersions);
+    RemoteToolClient rcClient(TestConfiguration::s_invocationToolProvider, toolsVersions);
     ToolServerInfo   toolServerInfo;
     toolServerInfo.m_connectionHost = "localhost";
     toolServerInfo.m_connectionPort = g_toolsServerTestPort;

@@ -107,7 +107,7 @@ ConfiguredApplication::ConfiguredApplication(const StringVector& argConfig, cons
     config.ReadCommandLine(argConfig);
 
     ReadLoggingConfig();
-    ReadInvocationRewriterConfig();
+    ReadInvocationToolProviderConfig();
     ReadRemoteToolClientConfig();
     ReadRemoteToolServerConfig();
     ReadCoordinatorServerConfig();
@@ -171,16 +171,16 @@ bool ConfiguredApplication::InitLogging(const LoggerConfig& loggerConfig)
     return true;
 }
 
-bool ConfiguredApplication::GetInvocationRewriterConfig(InvocationRewriterConfig& config, bool silent) const
+bool ConfiguredApplication::GetInvocationToolConfig(InvocationToolConfig& config, bool silent) const
 {
     // TODO: make template, remove copy-paste.
     std::ostringstream os;
-    if (!m_invocationRewriterConfig.Validate(&os)) {
+    if (!m_invocationToolProviderConfig.Validate(&os)) {
         if (!silent)
             Syslogger(Syslogger::Err) << os.str();
         return false;
     }
-    config = m_invocationRewriterConfig;
+    config = m_invocationToolProviderConfig;
     return true;
 }
 
@@ -267,16 +267,16 @@ void ConfiguredApplication::ReadLoggingConfig()
         m_loggerConfig.m_logType = LoggerConfig::LogType::Cerr;
 }
 
-void ConfiguredApplication::ReadInvocationRewriterConfig()
+void ConfiguredApplication::ReadInvocationToolProviderConfig()
 {
     const std::string defaultGroup("tools");
     const bool        disableVersionChecks = m_config->GetBool(defaultGroup, "disableVersionChecks");
     if (disableVersionChecks)
         Syslogger(Syslogger::Warning) << "Warning: compiler version checks disabled!";
 
-    m_invocationRewriterConfig.m_toolIds = m_config->GetStringList(defaultGroup, "toolIds");
-    for (const auto& id : m_invocationRewriterConfig.m_toolIds) {
-        InvocationRewriterConfig::Tool unit;
+    m_invocationToolProviderConfig.m_toolIds = m_config->GetStringList(defaultGroup, "toolIds");
+    for (const auto& id : m_invocationToolProviderConfig.m_toolIds) {
+        InvocationToolConfig::Tool unit;
         unit.m_id          = id;
         std::string append = m_config->GetString(defaultGroup, id + "_appendRemote");
         if (!append.empty()) {
@@ -287,17 +287,17 @@ void ConfiguredApplication::ReadInvocationRewriterConfig()
         unit.m_version      = m_config->GetString(defaultGroup, id + "_version");
 
         if (disableVersionChecks)
-            unit.m_version = InvocationRewriterConfig::VERSION_NO_CHECK;
+            unit.m_version = InvocationToolConfig::VERSION_NO_CHECK;
 
         std::string type = m_config->GetString(defaultGroup, id + "_type", "auto"); // "gcc"|"clang"|"msvc"
         if (type == "msvc")
-            unit.m_type = InvocationRewriterConfig::ToolchainType::MSVC;
+            unit.m_type = InvocationToolConfig::Tool::ToolchainType::MSVC;
         else if (type == "gcc")
-            unit.m_type = InvocationRewriterConfig::ToolchainType::GCC;
+            unit.m_type = InvocationToolConfig::Tool::ToolchainType::GCC;
         else if (type == "clang")
-            unit.m_type = InvocationRewriterConfig::ToolchainType::Clang;
+            unit.m_type = InvocationToolConfig::Tool::ToolchainType::Clang;
         else if (type == "update_file")
-            unit.m_type = InvocationRewriterConfig::ToolchainType::UpdateFile;
+            unit.m_type = InvocationToolConfig::Tool::ToolchainType::UpdateFile;
 
         for (auto executable : m_config->GetStringList(defaultGroup, id)) {
             executable                  = FileInfo::ToPlatformPath(executable);
@@ -307,7 +307,7 @@ void ConfiguredApplication::ReadInvocationRewriterConfig()
             unit.m_names.push_back(executable);
         }
 
-        m_invocationRewriterConfig.m_tools.push_back(unit);
+        m_invocationToolProviderConfig.m_tools.push_back(unit);
     }
 }
 

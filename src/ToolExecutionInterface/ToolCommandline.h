@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2021 Smirnov Vladimir mapron1@gmail.com
+ * Copyright (C) 2017-2022 Smirnov Vladimir mapron1@gmail.com
  * Source code licensed under the Apache License, Version 2.0 (the "License");
  * You may not use this file except in compliance with the License.
  * You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 or in file COPYING-APACHE-2.0.txt
@@ -14,10 +14,11 @@
 #pragma once
 
 #include "ArgumentList.h"
+#include "ToolId.h"
 
 namespace Wuild {
-/// Represents tool invocation line (executable with argumnents). Allows changing input/output filenames in arguments.
-class ToolInvocation {
+/// Represents tool invocation line (executable with arguments). Allows changing input/output filenames in arguments.
+class ToolCommandline {
 public:
     /// Type of invocation.
     enum class InvokeType
@@ -26,14 +27,10 @@ public:
         Preprocess,
         Compile
     };
-    struct Id {
-        std::string m_toolId;         //!< abstract toolchain id (configurable)
-        std::string m_toolExecutable; //!< full tool executable path
-    };
 
 public:
-    ToolInvocation(StringVector args = StringVector(), InvokeType type = InvokeType::Unknown);
-    ToolInvocation(const std::string& args, InvokeType type);
+    ToolCommandline(StringVector args = StringVector(), InvokeType type = InvokeType::Unknown);
+    ToolCommandline(const std::string& args, InvokeType type);
 
     void FetchExecutableFromArgs();
 
@@ -46,11 +43,11 @@ public:
     bool        SetOutput(const std::string& filename);
     std::string GetOutput() const;
 
-    ToolInvocation& SetId(const std::string& toolId);
-    ToolInvocation& SetExecutable(const std::string& toolExecutable);
+    ToolCommandline& SetId(const std::string& toolId);
+    ToolCommandline& SetExecutable(const std::string& toolExecutable);
 
 public:
-    Id           m_id;
+    ToolId       m_id;
     InvokeType   m_type = InvokeType::Unknown;
     ArgumentList m_arglist;
     StringVector m_ignoredArgs;

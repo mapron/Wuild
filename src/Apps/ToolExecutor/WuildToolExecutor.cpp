@@ -31,11 +31,11 @@ int main(int argc, char** argv)
     ArgStorage            argStorage(argc, argv);
     ConfiguredApplication app(argStorage.GetConfigValues(), "ToolExecutor");
 
-    IInvocationRewriterProvider::Config iconfig;
-    if (!app.GetInvocationRewriterConfig(iconfig))
+    IInvocationToolProvider::Config iconfig;
+    if (!app.GetInvocationToolConfig(iconfig))
         return 1;
 
-    auto invocationRewriter = InvocationRewriter::Create(iconfig);
+    auto invocationToolProvider = InvocationToolProvider::Create(iconfig);
 
     //Syslogger() << "Configuration: " << app.DumpAllConfigValues();
 
@@ -49,21 +49,21 @@ int main(int argc, char** argv)
     }
     const auto toolId = args[0];
     args.erase(args.begin());
-    auto tool = invocationRewriter->GetTool({ toolId });
+    auto tool = invocationToolProvider->GetTool({ toolId });
     if (!tool) {
         Syslogger(Syslogger::Err) << "Failed to find tool=" << toolId;
         return 1;
     }
-    ToolInvocation invocation = tool->CompleteInvocation(ToolInvocation(args).SetId(toolId));
+    ToolCommandline invocation = tool->CompleteInvocation(ToolCommandline(args).SetId(toolId));
 
     RemoteToolClient::Config config;
     if (!app.GetRemoteToolClientConfig(config))
         return 1;
 
-    auto       localExecutor = LocalExecutor::Create(invocationRewriter, app.m_tempDir);
-    const auto toolsVersions = VersionChecker::Create(localExecutor, invocationRewriter)->DetermineToolVersions({ toolId });
+    auto       localExecutor = LocalExecutor::Create(invocationToolProvider, app.m_tempDir);
+    const auto toolsVersions = VersionChecker::Create(localExecutor, invocationToolProvider)->DetermineToolVersions({ toolId });
 
-    RemoteToolClient rcClient(invocationRewriter, toolsVersions);
+    RemoteToolClient rcClient(invocationToolProvider, toolsVersions);
     config.m_queueTimeout = TimePoint(5.0);
 
     if (!rcClient.SetConfig(config))

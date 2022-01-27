@@ -22,12 +22,12 @@ void UpdateFileCommandParser::UpdateInfo()
 {
     m_invocation.m_inputNameIndex  = -1;
     m_invocation.m_outputNameIndex = -1;
-    m_invocation.m_type            = ToolInvocation::InvokeType::Unknown;
+    m_invocation.m_type            = ToolCommandline::InvokeType::Unknown;
     if (!m_invocation.m_arglist.m_args.empty())
         m_invocation.m_inputNameIndex = m_invocation.m_outputNameIndex = m_invocation.m_arglist.m_args.size() - 1;
 }
 
-void UpdateFileCommandParser::SetInvokeType(ToolInvocation::InvokeType /*type*/)
+void UpdateFileCommandParser::SetInvokeType(ToolCommandline::InvokeType /*type*/)
 {
     assert(!"Unsupported logic.");
 }

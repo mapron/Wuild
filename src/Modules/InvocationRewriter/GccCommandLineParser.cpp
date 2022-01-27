@@ -22,7 +22,7 @@ void GccCommandLineParser::UpdateInfo()
     int  argIndex                  = -1;
     m_invocation.m_inputNameIndex  = -1;
     m_invocation.m_outputNameIndex = -1;
-    m_invocation.m_type            = ToolInvocation::InvokeType::Unknown;
+    m_invocation.m_type            = ToolCommandline::InvokeType::Unknown;
     for (const auto& arg : m_invocation.m_arglist.m_args) {
         argIndex++;
         if (skipNext) {
@@ -32,11 +32,11 @@ void GccCommandLineParser::UpdateInfo()
         if (arg.size() > 1 && arg[0] == '-') {
             if (arg[1] == 'c') {
                 m_invokeTypeIndex   = argIndex;
-                m_invocation.m_type = ToolInvocation::InvokeType::Compile;
+                m_invocation.m_type = ToolCommandline::InvokeType::Compile;
             }
             if (arg[1] == 'E') {
                 m_invokeTypeIndex   = argIndex;
-                m_invocation.m_type = ToolInvocation::InvokeType::Preprocess;
+                m_invocation.m_type = ToolCommandline::InvokeType::Preprocess;
             }
             if (arg[1] == 'o') {
                 m_invocation.m_outputNameIndex = argIndex + 1;
@@ -52,7 +52,7 @@ void GccCommandLineParser::UpdateInfo()
         }
         if (!IsIgnored(arg)) {
             if (m_invocation.m_inputNameIndex != -1) {
-                m_invocation.m_type = ToolInvocation::InvokeType::Unknown;
+                m_invocation.m_type = ToolCommandline::InvokeType::Unknown;
                 return;
             }
             m_invocation.m_inputNameIndex = argIndex;
@@ -61,17 +61,17 @@ void GccCommandLineParser::UpdateInfo()
     if (m_invocation.m_inputNameIndex == -1 || m_invocation.m_outputNameIndex == -1 || m_invocation.m_outputNameIndex >= (int) m_invocation.m_arglist.m_args.size()) {
         m_invocation.m_inputNameIndex  = -1;
         m_invocation.m_outputNameIndex = -1;
-        m_invocation.m_type            = ToolInvocation::InvokeType::Unknown;
+        m_invocation.m_type            = ToolCommandline::InvokeType::Unknown;
     }
 }
 
-void GccCommandLineParser::SetInvokeType(ToolInvocation::InvokeType type)
+void GccCommandLineParser::SetInvokeType(ToolCommandline::InvokeType type)
 {
-    if (m_invocation.m_type == ToolInvocation::InvokeType::Unknown)
+    if (m_invocation.m_type == ToolCommandline::InvokeType::Unknown)
         return;
 
-    m_invocation.m_type                    = type;
-    m_invocation.m_arglist.m_args[m_invokeTypeIndex] = type == ToolInvocation::InvokeType::Preprocess ? "-E" : "-c";
+    m_invocation.m_type                              = type;
+    m_invocation.m_arglist.m_args[m_invokeTypeIndex] = type == ToolCommandline::InvokeType::Preprocess ? "-E" : "-c";
 }
 
 void GccCommandLineParser::RemoveLocalFlags()

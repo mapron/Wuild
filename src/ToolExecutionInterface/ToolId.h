@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Smirnov Vladimir mapron1@gmail.com
+ * Copyright (C) 2017-2022 Smirnov Vladimir mapron1@gmail.com
  * Source code licensed under the Apache License, Version 2.0 (the "License");
  * You may not use this file except in compliance with the License.
  * You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 or in file COPYING-APACHE-2.0.txt
@@ -10,26 +10,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.h
  */
-
 #pragma once
 
-#include "ToolCommandline.h"
-
-#include <map>
+#include <string>
 
 namespace Wuild {
-/// Interface for retrieving version information for tool.
-class IVersionChecker {
-public:
-    using Ptr        = std::shared_ptr<IVersionChecker>;
-    using Version    = std::string;
-    using VersionMap = std::map<std::string, Version>; //!< toolId=>Version
 
-public:
-    virtual ~IVersionChecker() = default;
-
-    /// For each id in toolIds, determine version using GetToolVersion and place key in map.
-    virtual VersionMap DetermineToolVersions(const std::vector<std::string>& toolIds) const = 0;
+struct ToolId {
+    std::string m_toolId;         //!< abstract toolchain id (configurable)
+    std::string m_toolExecutable; //!< full tool executable path
 };
 
 }

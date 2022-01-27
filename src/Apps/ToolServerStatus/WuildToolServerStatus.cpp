@@ -134,13 +134,13 @@ int main(int argc, char** argv)
     writer->FormatMessage("Tool versions by toolserver:\n");
 
     if (showLocalTools) {
-        auto invocationRewriter = CheckedCreateInvocationRewriter(app);
-        if (!invocationRewriter)
+        auto invocationToolProvider = CheckedCreateInvocationToolProvider(app);
+        if (!invocationToolProvider)
             return 1;
 
-        auto localExecutor = LocalExecutor::Create(invocationRewriter, app.m_tempDir);
+        auto localExecutor = LocalExecutor::Create(invocationToolProvider, app.m_tempDir);
 
-        auto       versionChecker = VersionChecker::Create(localExecutor, invocationRewriter);
+        auto       versionChecker = VersionChecker::Create(localExecutor, invocationToolProvider);
         const auto toolsVersions  = versionChecker->DetermineToolVersions({});
 
         toolVersionClient.ProcessToolsVersions("localhost", toolsVersions);

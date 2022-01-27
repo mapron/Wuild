@@ -18,14 +18,14 @@
 namespace Wuild {
 class AbstractCommandLineParser : public ICommandLineParser {
 protected:
-    ToolInvocation m_invocation;
-    bool           m_remotePossible = true;
+    ToolCommandline m_invocation;
+    bool            m_remotePossible = true;
 
     bool IsIgnored(const std::string& arg) const;
 
 public:
-    ToolInvocation GetToolInvocation() const override;
-    void           SetToolInvocation(const ToolInvocation& invocation) override;
+    ToolCommandline GetToolInvocation() const override;
+    void            SetToolInvocation(const ToolCommandline& invocation) override;
 
     virtual void UpdateInfo() = 0;
 

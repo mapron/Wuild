@@ -13,7 +13,7 @@
 
 #pragma once
 
-#include "ToolInvocation.h"
+#include "ToolCommandline.h"
 
 #include <CommonTypes.h>
 
@@ -26,16 +26,16 @@ public:
 public:
     virtual ~ICommandLineParser() = default;
 
-    virtual ToolInvocation GetToolInvocation() const                           = 0;
-    virtual void           SetToolInvocation(const ToolInvocation& invocation) = 0;
+    virtual ToolCommandline GetToolInvocation() const                            = 0;
+    virtual void            SetToolInvocation(const ToolCommandline& invocation) = 0;
 
-    ToolInvocation ProcessToolInvocation(const ToolInvocation& invocation)
+    ToolCommandline ProcessToolInvocation(const ToolCommandline& invocation)
     {
         SetToolInvocation(invocation);
         return GetToolInvocation();
     }
 
-    virtual void SetInvokeType(ToolInvocation::InvokeType type) = 0;
+    virtual void SetInvokeType(ToolCommandline::InvokeType type) = 0;
 
     virtual bool IsRemotePossible() const = 0;
 

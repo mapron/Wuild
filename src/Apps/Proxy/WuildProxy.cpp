@@ -23,8 +23,8 @@ int main(int argc, char** argv)
     using namespace Wuild;
     ConfiguredApplication app(argc, argv, "WuildProxyServer", "proxy");
 
-    auto invocationRewriter = CheckedCreateInvocationRewriter(app);
-    if (!invocationRewriter)
+    auto invocationToolProvider = CheckedCreateInvocationToolProvider(app);
+    if (!invocationToolProvider)
         return 1;
 
     ToolProxyServer::Config proxyConfig;
@@ -35,10 +35,10 @@ int main(int argc, char** argv)
     if (!app.GetRemoteToolClientConfig(config))
         return 1;
 
-    auto       localExecutor = LocalExecutor::Create(invocationRewriter, app.m_tempDir);
-    const auto toolsVersions = VersionChecker::Create(localExecutor, invocationRewriter)->DetermineToolVersions({ proxyConfig.m_toolId });
+    auto       localExecutor = LocalExecutor::Create(invocationToolProvider, app.m_tempDir);
+    const auto toolsVersions = VersionChecker::Create(localExecutor, invocationToolProvider)->DetermineToolVersions({ proxyConfig.m_toolId });
 
-    RemoteToolClient rcClient(invocationRewriter, toolsVersions);
+    RemoteToolClient rcClient(invocationToolProvider, toolsVersions);
     if (!rcClient.SetConfig(config))
         return 1;
 

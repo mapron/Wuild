@@ -15,7 +15,7 @@
 #include <AppUtils.h>
 #include <ConfiguredApplication.h>
 #include <Application.h>
-#include <InvocationRewriter.h>
+#include <InvocationToolProvider.h>
 #include <Syslogger.h>
 #include <SocketFrameService.h>
 #include <ByteOrderStream.h>

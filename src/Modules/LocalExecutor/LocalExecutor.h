@@ -13,7 +13,7 @@
 
 #pragma once
 #include <ILocalExecutor.h>
-#include <IInvocationRewriter.h>
+#include <IInvocationToolProvider.h>
 #include <ThreadLoop.h>
 
 #include <queue>
@@ -31,12 +31,12 @@ namespace Wuild {
 ///
 /// Uses ninja's SubprocessSet.
 class LocalExecutor : public ILocalExecutor {
-    LocalExecutor(IInvocationRewriterProvider::Ptr invocationRewriter, std::string tempPath, const std::shared_ptr<SubprocessSet>& subprocessSet);
+    LocalExecutor(IInvocationToolProvider::Ptr invocationToolProvider, std::string tempPath, const std::shared_ptr<SubprocessSet>& subprocessSet);
 
 public:
-    static Ptr Create(IInvocationRewriterProvider::Ptr invocationRewriter, std::string tempPath, const std::shared_ptr<SubprocessSet>& subprocessSet = nullptr)
+    static Ptr Create(IInvocationToolProvider::Ptr invocationToolProvider, std::string tempPath, const std::shared_ptr<SubprocessSet>& subprocessSet = nullptr)
     {
-        return Ptr(new LocalExecutor(invocationRewriter, std::move(tempPath), subprocessSet));
+        return Ptr(new LocalExecutor(invocationToolProvider, std::move(tempPath), subprocessSet));
     }
 
 public:
@@ -61,7 +61,7 @@ private:
     using Guard = std::lock_guard<std::mutex>;
     std::queue<LocalExecutorTask::Ptr> m_taskQueue;
 
-    IInvocationRewriterProvider::Ptr              m_invocationRewriter;
+    IInvocationToolProvider::Ptr                  m_invocationToolProvider;
     std::string                                   m_tempPath;
     std::shared_ptr<SubprocessSet>                m_subprocs;
     std::map<Subprocess*, LocalExecutorTask::Ptr> m_subprocToTask;

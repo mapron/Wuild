@@ -13,30 +13,30 @@
 
 #pragma once
 
-#include "IVersionChecker.h"
-#include "IInvocationRewriter.h"
+#include <IVersionChecker.h>
+#include <IInvocationToolProvider.h>
 
 #include <ILocalExecutor.h>
 
 namespace Wuild {
 class VersionChecker : public IVersionChecker {
-    VersionChecker(ILocalExecutor::Ptr localExecutor, IInvocationRewriterProvider::Ptr rewriter);
+    VersionChecker(ILocalExecutor::Ptr localExecutor, IInvocationToolProvider::Ptr invocationToolProvider);
 
 public:
-    static Ptr Create(ILocalExecutor::Ptr localExecutor, IInvocationRewriterProvider::Ptr rewriter)
+    static Ptr Create(ILocalExecutor::Ptr localExecutor, IInvocationToolProvider::Ptr invocationToolProvider)
     {
-        return Ptr(new VersionChecker(std::move(localExecutor), std::move(rewriter)));
+        return Ptr(new VersionChecker(std::move(localExecutor), std::move(invocationToolProvider)));
     }
 
     VersionMap DetermineToolVersions(const std::vector<std::string>& toolIds) const override;
 
 private:
-    using ToolType = InvocationRewriterConfig::ToolchainType;
-    Version GetToolVersion(const ToolInvocation::Id& toolId, ToolType type) const;
+    using ToolType = IInvocationTool::Config::ToolchainType;
+    Version GetToolVersion(const ToolId& toolId, ToolType type) const;
 
 private:
-    ILocalExecutor::Ptr              m_localExecutor;
-    IInvocationRewriterProvider::Ptr m_rewriter;
+    ILocalExecutor::Ptr          m_localExecutor;
+    IInvocationToolProvider::Ptr m_invocationToolProvider;
 };
 
 }

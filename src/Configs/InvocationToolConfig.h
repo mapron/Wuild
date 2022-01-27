@@ -15,20 +15,21 @@
 #include "IConfig.h"
 
 namespace Wuild {
-class InvocationRewriterConfig : public IConfig {
+class InvocationToolConfig : public IConfig {
 public:
     static const std::string VERSION_NO_CHECK;
 
 public:
-    enum class ToolchainType
-    {
-        GCC,
-        MSVC,
-        Clang,
-        UpdateFile,
-        AutoDetect,
-    };
     struct Tool {
+        enum class ToolchainType
+        {
+            GCC,
+            MSVC,
+            Clang,
+            UpdateFile,
+            AutoDetect,
+        };
+
         std::string              m_id;
         std::string              m_removeRemote;
         std::string              m_appendRemote;

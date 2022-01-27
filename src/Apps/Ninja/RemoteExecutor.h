@@ -17,7 +17,7 @@
 
 #include <ConfiguredApplication.h>
 #include <RemoteToolClient.h>
-#include <InvocationRewriter.h>
+#include <InvocationToolProvider.h>
 #include <ThreadUtils.h>
 #include <Syslogger.h>
 #include <LocalExecutor.h>
@@ -31,7 +31,7 @@
 
 class RemoteExecutor : public IRemoteExecutor {
     Wuild::ConfiguredApplication&            m_app;
-    Wuild::IInvocationRewriterProvider::Ptr  m_invocationRewriter;
+    Wuild::IInvocationToolProvider::Ptr      m_invocationToolProvider;
     Wuild::RemoteToolClient::Config          m_remoteToolConfig;
     std::shared_ptr<Wuild::RemoteToolClient> m_remoteService;
 

@@ -28,20 +28,20 @@ int main(int argc, char** argv)
 {
     using namespace Wuild;
     ConfiguredApplication app(argc, argv, "TestCompiler");
-    if (!CreateInvocationRewriter(app))
+    if (!CreateInvocationToolProvider(app))
         return 1;
 
     //Syslogger() << app.DumpAllConfigValues();
-    Syslogger() << app.m_invocationRewriterConfig.Dump();
+    Syslogger() << app.m_invocationToolProviderConfig.Dump();
 
     const auto args = CreateTestProgramInvocation();
 
-    auto localExecutor = LocalExecutor::Create(TestConfiguration::s_invocationRewriter, app.m_tempDir);
+    auto localExecutor = LocalExecutor::Create(TestConfiguration::s_invocationToolProvider, app.m_tempDir);
 
     std::string            err;
     LocalExecutorTask::Ptr original(new LocalExecutorTask());
     original->m_readOutput = original->m_writeInput = false;
-    original->m_invocation                          = ToolInvocation(args).SetExecutable(TestConfiguration::s_invocationConfig.GetFirstToolName());
+    original->m_invocation                          = ToolCommandline(args).SetExecutable(TestConfiguration::s_invocationConfig.GetFirstToolName());
     auto tasks                                      = localExecutor->SplitTask(original, err);
     if (!tasks.first) {
         Syslogger(Syslogger::Err) << err;

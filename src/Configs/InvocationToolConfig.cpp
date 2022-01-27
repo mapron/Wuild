@@ -11,25 +11,25 @@
  * limitations under the License.h
  */
 
-#include "InvocationRewriterConfig.h"
+#include "InvocationToolConfig.h"
 
 #include <iostream>
 #include <sstream>
 
 namespace Wuild {
-const std::string InvocationRewriterConfig::VERSION_NO_CHECK = "NO_CHECK";
+const std::string InvocationToolConfig::VERSION_NO_CHECK = "NO_CHECK";
 
-std::string InvocationRewriterConfig::GetFirstToolId() const
+std::string InvocationToolConfig::GetFirstToolId() const
 {
     return m_tools.empty() ? "" : m_tools[0].m_id;
 }
 
-std::string InvocationRewriterConfig::GetFirstToolName() const
+std::string InvocationToolConfig::GetFirstToolName() const
 {
     return m_tools.empty() || m_tools[0].m_names.empty() ? "" : m_tools[0].m_names[0];
 }
 
-bool InvocationRewriterConfig::Validate(std::ostream* errStream) const
+bool InvocationToolConfig::Validate(std::ostream* errStream) const
 {
     if (m_tools.empty()) {
         if (errStream)
@@ -46,7 +46,7 @@ bool InvocationRewriterConfig::Validate(std::ostream* errStream) const
     return true;
 }
 
-std::string InvocationRewriterConfig::Dump() const
+std::string InvocationToolConfig::Dump() const
 {
     std::ostringstream os;
     for (const Tool& tool : m_tools) {

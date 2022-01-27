@@ -124,7 +124,7 @@ void ToolProxyClient::RunTask(const StringVector& args)
         Application::Interrupt(1 - result);
     };
     ToolProxyRequest::Ptr req(new ToolProxyRequest());
-    req->m_invocation               = ToolInvocation(args);
+    req->m_invocation               = ToolCommandline(args);
     req->m_invocation.m_id.m_toolId = m_config.m_toolId;
     req->m_cwd                      = GetCWD();
     m_client->QueueFrame(req, frameCallback, m_config.m_proxyClientTimeout);

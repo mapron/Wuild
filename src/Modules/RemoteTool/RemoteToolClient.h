@@ -18,8 +18,8 @@
 #include <TimePoint.h>
 #include <CommonTypes.h>
 #include <RemoteToolClientConfig.h>
-#include <ToolInvocation.h>
-#include <IInvocationRewriter.h>
+#include <ToolCommandline.h>
+#include <IInvocationToolProvider.h>
 #include <IVersionChecker.h>
 
 #include <functional>
@@ -56,7 +56,7 @@ public:
     using InvokeCallback          = std::function<void(const TaskExecutionInfo&)>;
 
 public:
-    RemoteToolClient(IInvocationRewriterProvider::Ptr invocationRewriter, const IVersionChecker::VersionMap& versionMap);
+    RemoteToolClient(IInvocationToolProvider::Ptr invocationToolProvider, const IVersionChecker::VersionMap& versionMap);
     ~RemoteToolClient();
 
     bool SetConfig(const Config& config);
@@ -72,7 +72,7 @@ public:
     void SetRemoteAvailableCallback(RemoteAvailableCallback callback);
 
     /// Starts new remote task.
-    void InvokeTool(const ToolInvocation& invocation, const InvokeCallback& callback);
+    void InvokeTool(const ToolCommandline& invocation, const InvokeCallback& callback);
 
     std::string GetSessionInformation() const;
 
@@ -101,9 +101,9 @@ protected:
     RemoteAvailableCallback m_remoteAvailableCallback;
     Config                  m_config;
 
-    IInvocationRewriterProvider::Ptr m_invocationRewriter;
-    IVersionChecker::VersionMap      m_toolVersionMap;
-    StringVector                     m_requiredToolIds;
+    IInvocationToolProvider::Ptr m_invocationToolProvider;
+    IVersionChecker::VersionMap  m_toolVersionMap;
+    StringVector                 m_requiredToolIds;
 };
 
 }

@@ -20,17 +20,17 @@
 
 namespace Wuild {
 
-VersionChecker::VersionChecker(ILocalExecutor::Ptr localExecutor, IInvocationRewriterProvider::Ptr rewriter)
+VersionChecker::VersionChecker(ILocalExecutor::Ptr localExecutor, IInvocationToolProvider::Ptr invocationToolProvider)
     : m_localExecutor(std::move(localExecutor))
-    , m_rewriter(std::move(rewriter))
+    , m_invocationToolProvider(std::move(invocationToolProvider))
 {
 }
 
 IVersionChecker::VersionMap VersionChecker::DetermineToolVersions(const std::vector<std::string>& toolIds) const
 {
     VersionMap result;
-    for (auto && tool : m_rewriter->GetTools()) {
-        ToolInvocation::Id id = tool->GetId();
+    for (auto&& tool : m_invocationToolProvider->GetTools()) {
+        ToolId id = tool->GetId();
         if (!toolIds.empty() && std::find(toolIds.cbegin(), toolIds.cend(), id.m_toolId) == toolIds.cend())
             continue;
 
@@ -43,13 +43,13 @@ IVersionChecker::VersionMap VersionChecker::DetermineToolVersions(const std::vec
             continue;
         }
 
-        const auto version = GetToolVersion(id, tool->GetConfig().m_type);
-        result[id.m_toolId]  = version;
+        const auto version  = GetToolVersion(id, tool->GetConfig().m_type);
+        result[id.m_toolId] = version;
     }
     return result;
 }
 
-IVersionChecker::Version VersionChecker::GetToolVersion(const ToolInvocation::Id& toolId, ToolType type) const
+IVersionChecker::Version VersionChecker::GetToolVersion(const ToolId& toolId, ToolType type) const
 {
     if (type == ToolType::AutoDetect || type == ToolType::UpdateFile)
         return IVersionChecker::Version();

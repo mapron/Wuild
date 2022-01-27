@@ -23,8 +23,8 @@
 
 namespace Wuild {
 
-LocalExecutor::LocalExecutor(IInvocationRewriterProvider::Ptr invocationRewriter, std::string tempPath, const std::shared_ptr<SubprocessSet>& subprocessSet)
-    : m_invocationRewriter(std::move(invocationRewriter))
+LocalExecutor::LocalExecutor(IInvocationToolProvider::Ptr invocationToolProvider, std::string tempPath, const std::shared_ptr<SubprocessSet>& subprocessSet)
+    : m_invocationToolProvider(std::move(invocationToolProvider))
     , m_tempPath(std::move(tempPath))
     , m_subprocs(subprocessSet)
 {
@@ -70,9 +70,9 @@ void LocalExecutor::SyncExecTask(LocalExecutorTask::Ptr task)
 ILocalExecutor::TaskPair LocalExecutor::SplitTask(LocalExecutorTask::Ptr task, std::string& err)
 {
     TaskPair                 result;
-    ToolInvocation           pp, cc;
-    IInvocationRewriter::Ptr invocationTool;
-    if (!(invocationTool = m_invocationRewriter->GetTool(task->m_invocation.m_id))) {
+    ToolCommandline           pp, cc;
+    IInvocationTool::Ptr invocationTool;
+    if (!(invocationTool = m_invocationToolProvider->GetTool(task->m_invocation.m_id))) {
         err = "Failed to detect CC command.";
         return result;
     }
@@ -92,7 +92,7 @@ ILocalExecutor::TaskPair LocalExecutor::SplitTask(LocalExecutorTask::Ptr task, s
 
 const StringVector& LocalExecutor::GetToolIds() const
 {
-    return m_invocationRewriter->GetToolIds();
+    return m_invocationToolProvider->GetToolIds();
 }
 
 void LocalExecutor::SetThreadCount(int threads)
@@ -135,9 +135,9 @@ bool LocalExecutor::Quant()
         auto task = GetNextTask();
         if (task) {
             do {
-                ToolInvocation           inv = task->m_invocation;
-                IInvocationRewriter::Ptr invocationTool;
-                if ((invocationTool = m_invocationRewriter->GetTool(task->m_invocation.m_id)))
+                ToolCommandline           inv = task->m_invocation;
+                IInvocationTool::Ptr invocationTool;
+                if ((invocationTool = m_invocationToolProvider->GetTool(task->m_invocation.m_id)))
                     inv = invocationTool->CompleteInvocation(inv);
 
                 if (task->m_writeInput) {

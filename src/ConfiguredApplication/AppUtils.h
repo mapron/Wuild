@@ -15,17 +15,17 @@
 #include "ConfiguredApplication.h"
 
 #include <Application.h>
-#include <InvocationRewriter.h>
+#include <InvocationToolProvider.h>
 
 #include <functional>
 
 namespace Wuild {
-inline IInvocationRewriterProvider::Ptr CheckedCreateInvocationRewriter(ConfiguredApplication& application)
+inline IInvocationToolProvider::Ptr CheckedCreateInvocationToolProvider(ConfiguredApplication& application)
 {
-    IInvocationRewriterProvider::Config config;
-    if (!application.GetInvocationRewriterConfig(config, false))
+    IInvocationToolProvider::Config config;
+    if (!application.GetInvocationToolConfig(config, false))
         return nullptr;
-    return InvocationRewriter::Create(config);
+    return InvocationToolProvider::Create(config);
 }
 
 inline int ExecAppLoop(std::function<void(int)> exitCodeHandler = std::function<void(int)>())

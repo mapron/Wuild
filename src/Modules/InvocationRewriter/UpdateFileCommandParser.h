@@ -21,7 +21,7 @@ class UpdateFileCommandParser : public AbstractCommandLineParser {
 public:
     void UpdateInfo() override;
 
-    void SetInvokeType(ToolInvocation::InvokeType type) override;
+    void SetInvokeType(ToolCommandline::InvokeType type) override;
 };
 
 }

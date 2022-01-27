@@ -29,7 +29,7 @@ int main(int argc, char** argv)
     using namespace Wuild;
     ArgStorage            argStorage(argc, argv);
     ConfiguredApplication app(argStorage.GetConfigValues(), "TestAllConfigs");
-    if (!CreateInvocationRewriter(app))
+    if (!CreateInvocationToolProvider(app))
         return 1;
 
     Syslogger() << "Configuration: " << app.DumpAllConfigValues();
@@ -39,9 +39,9 @@ int main(int argc, char** argv)
 
     const auto args = argStorage.GetArgs();
 
-    auto localExecutor = LocalExecutor::Create(TestConfiguration::s_invocationRewriter, app.m_tempDir);
+    auto localExecutor = LocalExecutor::Create(TestConfiguration::s_invocationToolProvider, app.m_tempDir);
 
-    auto        versionChecker = VersionChecker::Create(localExecutor, TestConfiguration::s_invocationRewriter);
+    auto        versionChecker = VersionChecker::Create(localExecutor, TestConfiguration::s_invocationToolProvider);
     const auto& toolsConfig    = TestConfiguration::s_invocationConfig;
     const auto  toolsVersions  = versionChecker->DetermineToolVersions({});
     for (const auto& toolId : toolsConfig.m_toolIds)
@@ -50,7 +50,7 @@ int main(int argc, char** argv)
     std::string            err;
     LocalExecutorTask::Ptr original(new LocalExecutorTask());
     original->m_readOutput = original->m_writeInput = false;
-    original->m_invocation                          = ToolInvocation(args).SetExecutable(toolsConfig.GetFirstToolName());
+    original->m_invocation                          = ToolCommandline(args).SetExecutable(toolsConfig.GetFirstToolName());
     auto tasks                                      = localExecutor->SplitTask(original, err);
     if (!tasks.first) {
         Syslogger(Syslogger::Err) << err;
@@ -63,7 +63,7 @@ int main(int argc, char** argv)
     if (!app.GetRemoteToolClientConfig(config))
         return 1;
 
-    RemoteToolClient rcClient(TestConfiguration::s_invocationRewriter, toolsVersions);
+    RemoteToolClient rcClient(TestConfiguration::s_invocationToolProvider, toolsVersions);
     config.m_queueTimeout = TimePoint(3.0);
 
     if (!rcClient.SetConfig(config))

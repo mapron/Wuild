@@ -32,7 +32,7 @@ Configs contains settings structures for other services.
 ConfiguredApplication integrates utility options.  
 Main application logic contained in Modules directory:
 - LocalExecutor is lib for running tasks on local host based on Ninja's SubprocessSet;  
-- InvocationRewriter splits tool invocation into preprocess and compilation; 
+- InvocationTool splits tool invocation into preprocess and compilation; 
 - RemoteToolServer executes compilator on a host, and recives tasks for such execution;
 - CoordinatorSever maintains list of RemoteToolServers;
 - RemoteToolClient sends compilation task to different ToolServers; ToolServers retrived from Coordinator;

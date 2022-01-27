@@ -63,7 +63,7 @@ const int g_coordinatorTestPort = 12346;
 int main(int argc, char** argv)
 {
     ConfiguredApplication app(argc, argv, "TestCoordinator");
-    if (!CreateInvocationRewriter(app, true))
+    if (!CreateInvocationToolProvider(app, true))
         return 1;
 
     app.m_loggerConfig.m_outputTimeoffsets = true;
@@ -96,13 +96,13 @@ int main(int argc, char** argv)
     clientConfig.m_queueTimeout       = TimePoint(2.0);
     clientConfig.m_requestTimeout     = TimePoint(1.0);
 
-    const auto toolsVersions = VersionChecker::Create(executor, TestConfiguration::s_invocationRewriter)->DetermineToolVersions({});
+    const auto toolsVersions = VersionChecker::Create(executor, TestConfiguration::s_invocationToolProvider)->DetermineToolVersions({});
 
     RemoteToolServer rcServer(executor, toolsVersions);
     if (!rcServer.SetConfig(toolServerConfig))
         return 1;
 
-    RemoteToolClient rcClient(TestConfiguration::s_invocationRewriter, toolsVersions);
+    RemoteToolClient rcClient(TestConfiguration::s_invocationToolProvider, toolsVersions);
     if (!rcClient.SetConfig(clientConfig))
         return 1;
 
@@ -139,9 +139,9 @@ int main(int argc, char** argv)
     rcClient.SetRemoteAvailableCallback([&start, &totalCount, &rcClient, &callback, &callbackFail]() {
         Syslogger(Syslogger::Info) << "Init client taken: " << start.GetElapsedTime().GetUS() << " us.";
         totalCount++;
-        rcClient.InvokeTool(ToolInvocation().SetId(g_testTool), callback);
+        rcClient.InvokeTool(ToolCommandline().SetId(g_testTool), callback);
         totalCount++;
-        rcClient.InvokeTool(ToolInvocation().SetId(g_testTool2), callbackFail);
+        rcClient.InvokeTool(ToolCommandline().SetId(g_testTool2), callbackFail);
     });
 
     return ExecAppLoop(TestConfiguration::ExitHandler);

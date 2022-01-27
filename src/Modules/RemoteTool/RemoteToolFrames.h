@@ -13,7 +13,7 @@
 
 #pragma once
 #include <SocketFrameHandler.h>
-#include <ToolInvocation.h>
+#include <ToolCommandline.h>
 #include <TimePoint.h>
 #include <CommonTypes.h>
 #include <FileUtils.h>
@@ -29,7 +29,7 @@ public:
 
     std::string     m_clientId;
     uint64_t        m_sessionId;
-    ToolInvocation  m_invocation;
+    ToolCommandline  m_invocation;
     ByteArrayHolder m_fileData;
     CompressionInfo m_compression;
 

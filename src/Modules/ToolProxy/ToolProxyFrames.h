@@ -14,7 +14,7 @@
 #pragma once
 
 #include <SocketFrameHandler.h>
-#include <ToolInvocation.h>
+#include <ToolCommandline.h>
 #include <TimePoint.h>
 #include <CommonTypes.h>
 
@@ -29,7 +29,7 @@ public:
     using Ptr                          = std::shared_ptr<ToolProxyRequest>;
 
 public:
-    ToolInvocation m_invocation;
+    ToolCommandline m_invocation;
     std::string    m_cwd;
 
     uint8_t FrameTypeId() const override { return s_frameTypeId; }

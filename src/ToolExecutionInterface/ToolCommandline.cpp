@@ -11,7 +11,7 @@
  * limitations under the License.h
  */
 
-#include "ToolInvocation.h"
+#include "ToolCommandline.h"
 
 #include <StringUtils.h>
 
@@ -19,19 +19,19 @@
 #include <cassert>
 
 namespace Wuild {
-ToolInvocation::ToolInvocation(StringVector args, InvokeType type)
+ToolCommandline::ToolCommandline(StringVector args, InvokeType type)
     : m_type(type)
 {
     m_arglist = ParseArgumentList(args);
 }
 
-ToolInvocation::ToolInvocation(const std::string& args, ToolInvocation::InvokeType type)
+ToolCommandline::ToolCommandline(const std::string& args, ToolCommandline::InvokeType type)
     : m_type(type)
 {
     SetArgsString(args);
 }
 
-void ToolInvocation::FetchExecutableFromArgs()
+void ToolCommandline::FetchExecutableFromArgs()
 {
     assert(m_id.m_toolExecutable.empty());
     assert(!m_arglist.m_args.empty());
@@ -40,17 +40,17 @@ void ToolInvocation::FetchExecutableFromArgs()
     m_arglist.m_args.erase(m_arglist.m_args.begin());
 }
 
-void ToolInvocation::SetArgsString(const std::string& args)
+void ToolCommandline::SetArgsString(const std::string& args)
 {
     m_arglist = ParseArgumentList(args);
 }
 
-std::string ToolInvocation::GetArgsString() const
+std::string ToolCommandline::GetArgsString() const
 {
     return m_arglist.ToString();
 }
 
-bool ToolInvocation::SetInput(const std::string& filename)
+bool ToolCommandline::SetInput(const std::string& filename)
 {
     if (m_inputNameIndex < 0)
         return false;
@@ -59,7 +59,7 @@ bool ToolInvocation::SetInput(const std::string& filename)
     return true;
 }
 
-std::string ToolInvocation::GetInput() const
+std::string ToolCommandline::GetInput() const
 {
     if (m_inputNameIndex < 0)
         return std::string();
@@ -67,7 +67,7 @@ std::string ToolInvocation::GetInput() const
     return m_arglist.m_args[m_inputNameIndex];
 }
 
-bool ToolInvocation::SetOutput(const std::string& filename)
+bool ToolCommandline::SetOutput(const std::string& filename)
 {
     if (m_outputNameIndex < 0)
         return false;
@@ -76,7 +76,7 @@ bool ToolInvocation::SetOutput(const std::string& filename)
     return true;
 }
 
-std::string ToolInvocation::GetOutput() const
+std::string ToolCommandline::GetOutput() const
 {
     if (m_outputNameIndex < 0)
         return std::string();
@@ -84,13 +84,13 @@ std::string ToolInvocation::GetOutput() const
     return m_arglist.m_args[m_outputNameIndex];
 }
 
-ToolInvocation& ToolInvocation::SetId(const std::string& toolId)
+ToolCommandline& ToolCommandline::SetId(const std::string& toolId)
 {
     m_id.m_toolId = toolId;
     return *this;
 }
 
-ToolInvocation& ToolInvocation::SetExecutable(const std::string& toolExecutable)
+ToolCommandline& ToolCommandline::SetExecutable(const std::string& toolExecutable)
 {
     m_id.m_toolExecutable = toolExecutable;
     return *this;

@@ -15,7 +15,7 @@
 
 #include <CommonTypes.h>
 #include <Syslogger.h>
-#include <InvocationRewriterConfig.h>
+#include <InvocationToolConfig.h>
 #include <LoggerConfig.h>
 #include <RemoteToolClientConfig.h>
 #include <RemoteToolServerConfig.h>
@@ -31,12 +31,12 @@ class AbstractConfig;
 /// Contains prepared configs for different services
 class ConfiguredApplication {
 public:
-    LoggerConfig             m_loggerConfig;
-    InvocationRewriterConfig m_invocationRewriterConfig;
-    RemoteToolClientConfig   m_remoteToolClientConfig;
-    RemoteToolServerConfig   m_remoteToolServerConfig;
-    CoordinatorServerConfig  m_coordinatorServerConfig;
-    ToolProxyServerConfig    m_toolProxyServerConfig;
+    LoggerConfig            m_loggerConfig;
+    InvocationToolConfig    m_invocationToolProviderConfig;
+    RemoteToolClientConfig  m_remoteToolClientConfig;
+    RemoteToolServerConfig  m_remoteToolServerConfig;
+    CoordinatorServerConfig m_coordinatorServerConfig;
+    ToolProxyServerConfig   m_toolProxyServerConfig;
 
     std::string m_tempDir;
 
@@ -49,7 +49,7 @@ public:
 
     bool InitLogging(const LoggerConfig& loggerConfig);
 
-    bool GetInvocationRewriterConfig(InvocationRewriterConfig& config, bool silent = false) const;
+    bool GetInvocationToolConfig(InvocationToolConfig& config, bool silent = false) const;
     bool GetCoordinatorServerConfig(CoordinatorServerConfig& config) const;
     bool GetToolProxyServerConfig(ToolProxyServerConfig& config) const;
 
@@ -62,7 +62,7 @@ private:
     ConfiguredApplication(const ConfiguredApplication&) = delete;
 
     void ReadLoggingConfig();
-    void ReadInvocationRewriterConfig();
+    void ReadInvocationToolProviderConfig();
     void ReadRemoteToolClientConfig();
     void ReadRemoteToolServerConfig();
     void ReadCoordinatorClientConfig(CoordinatorClientConfig& config, const std::string& groupName);
