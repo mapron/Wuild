@@ -15,6 +15,8 @@
 
 #include <AbstractInvocation.h>
 #include <ArgumentList.h>
+#include <MsvcCommandLineParser.h>
+#include <GccCommandLineParser.h>
 
 std::ostream& operator<<(std::ostream& out, const Wuild::StringVector& v)
 {
@@ -123,6 +125,107 @@ int main(int argc, char** argv)
     TEST_EXPECT((StringVector{ "foo", "/bar" }), {}, (AbstractInvocation::ArgList{ AbstractInvocation::Arg{ "/bar" } }));
     TEST_EXPECT((StringVector{ "foo", "/bar", "-baz" }), (AbstractInvocationParseSettings{ true, AbstractInvocationParseSettings::s_ms }), (AbstractInvocation::ArgList{ AbstractInvocation::Arg{ "bar", true, '/' }, AbstractInvocation::Arg{ "baz", true, '-' } }));
     TEST_EXPECT((StringVector{ "foo", "-bar", "fe zz" }), {}, (AbstractInvocation::ArgList{ AbstractInvocation::Arg{ "bar", true, '-' }, AbstractInvocation::Arg{ "fe zz" } }));
+
+    MsvcCommandLineParser vcParser;
+    GccCommandLineParser  gccParser;
+    auto                  parserCase = [](const ICommandLineParser& parser,
+                         const std::string&        cmdStr,
+                         bool                      expectedSuccess,
+                         bool                      expectedCompiler,
+                         int                       inputIndex,
+                         int                       outputIndex,
+                         const std::string&        cmdOut) -> bool {
+        ToolCommandline             cmd(cmdStr, ToolCommandline::InvokeType::Unknown);
+        ICommandLineParser::Options opt;
+        opt.m_removeDependencyFiles  = true;
+        opt.m_removeLocalFlags       = true;
+        opt.m_removePrepocessorFlags = true;
+        auto result                  = parser.Process(cmd, opt);
+        if (result.m_success != expectedSuccess) {
+            std::cout << "For input='" << cmdStr << "', expected parse success=" << expectedSuccess << ", but actual=" << result.m_success << "\n";
+            assert(0);
+            return false;
+        }
+        if (!expectedSuccess)
+            return true;
+
+        const bool isComplerDetected = result.m_inv.m_type == ToolCommandline::InvokeType::Compile;
+        if (expectedCompiler != isComplerDetected) {
+            std::cout << "For input='" << cmdStr << "', expected compiler detection=" << expectedCompiler << ", but actual=" << isComplerDetected << "\n";
+            assert(0);
+            return false;
+        }
+        const int inputIndexDetected = result.m_inv.m_inputNameIndex;
+        const int outputIndexDetected = result.m_inv.m_outputNameIndex;
+        if (inputIndexDetected != inputIndex) {
+            std::cout << "For input='" << cmdStr << "', expected input index=" << inputIndex << ", but actual=" << inputIndexDetected << "\n";
+            assert(0);
+            return false;
+        }
+        if (inputIndexDetected != inputIndex) {
+            std::cout << "For input='" << cmdStr << "', expected output index=" << outputIndex << ", but actual=" << outputIndexDetected << "\n";
+            assert(0);
+            return false;
+        }
+        const std::string out = result.m_inv.GetArgsString();
+        if (out != cmdOut) {
+            std::cout << "For input='" << cmdStr << "', expected cmd output='" << cmdOut << "', but actual='" << out << "'\n";
+            assert(0);
+            return false;
+        }
+        return true;
+    };
+
+    if (!parserCase(vcParser,
+                    "-c foo.cpp /Fo: foo.obj",
+                    true, // success
+                    true, // isCompiler
+                    1,    // in
+                    3,    // out
+                    "-c foo.cpp /Fo: foo.obj"))
+        return 1;
+    if (!parserCase(vcParser,
+                    "",
+                    false, // success
+                    false, // isCompiler
+                    0,     // in
+                    0,     // out
+                    ""))
+        return 1;
+    if (!parserCase(vcParser,
+                    "-c foo.cpp",
+                    false, // success
+                    false, // isCompiler
+                    0,     // in
+                    0,     // out
+                    ""))
+        return 1;
+    if (!parserCase(vcParser,
+                    "/Fo: foo.obj",
+                    false, // success
+                    false, // isCompiler
+                    0,     // in
+                    0,     // out
+                    ""))
+        return 1;
+    
+    if (!parserCase(vcParser,
+                    "-DFOO=1 -c foo.cpp -Ibar /Fo: foo.obj",
+                    true, // success
+                    true, // isCompiler
+                    1,    // in
+                    3,    // out
+                    "-c foo.cpp /Fo: foo.obj"))
+        return 1;
+    
+    if (!parserCase(vcParser,
+                    "-D FOO=1 -c foo.cpp -I bar /Fo: foo.obj",
+                    true, // success
+                    true, // isCompiler
+                    1,    // in
+                    3,    // out
+                    "-c foo.cpp /Fo: foo.obj"))
+        return 1;
 
     std::cout << "OK\n";
     return 0;

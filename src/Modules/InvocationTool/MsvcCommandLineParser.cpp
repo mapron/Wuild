@@ -89,17 +89,23 @@ bool MsvcCommandLineParser::ProcessInternal(ToolCommandline& invocation, const O
 bool MsvcCommandLineParser::Update(ToolCommandline& invocation, int* invokeTypeIndex, bool* remotePossible) const
 {
     StringVector realArgs;
-    bool         skipNext   = false;
     bool         ignoreNext = false;
+
+    auto consumeArg = [&realArgs, &ignoreNext](const std::string& arg) {
+        if (!arg.empty())
+            realArgs.push_back(arg);
+        ignoreNext = false;
+    };
+    auto consumeArgAndSkipNext = [&realArgs, &ignoreNext](const std::string& arg) {
+        if (!arg.empty())
+            realArgs.push_back(arg);
+        ignoreNext = true;
+    };
 
     invocation.m_inputNameIndex  = -1;
     invocation.m_outputNameIndex = -1;
     invocation.m_type            = ToolCommandline::InvokeType::Unknown;
     for (const auto& arg : invocation.m_arglist.m_args) {
-        if (skipNext) {
-            skipNext = false;
-            continue;
-        }
         if (arg[0] == '/' || arg[0] == '-') {
             if (arg[1] == 'c') {
                 invocation.m_type = ToolCommandline::InvokeType::Compile;
@@ -115,9 +121,9 @@ bool MsvcCommandLineParser::Update(ToolCommandline& invocation, int* invokeTypeI
                 if (remotePossible)
                     *remotePossible = false;
             }
-            if ((arg[1] == 'D' || arg[1] == 'I') && arg.size() == 2) // /D DEFINE  /I path
-            {
-                ignoreNext = true;
+            if ((arg[1] == 'D' || arg[1] == 'I') && arg.size() == 2) { // /D DEFINE  /I path
+                consumeArgAndSkipNext(arg);
+                continue;
             }
 
             if (arg[1] == 'F') {
@@ -130,19 +136,16 @@ bool MsvcCommandLineParser::Update(ToolCommandline& invocation, int* invokeTypeI
                         realArgs.push_back(arg.substr(0, 3) + ":");
                         fileIndex     = realArgs.size();
                         auto filename = arg.substr(3);
-                        if (!filename.empty())
-                            realArgs.push_back(filename);
-                        ignoreNext = true;
+                        consumeArgAndSkipNext(filename);
                     } else {
-                        realArgs.push_back(arg);
-                        ignoreNext = true;
+                        consumeArgAndSkipNext(arg);
                         fileIndex  = realArgs.size();
                     }
                     if (fileType == 'o') {
                         invocation.m_outputNameIndex = fileIndex;
                     }
                     if (fileType == 'i') {
-                        invocation.m_outputNameIndex = fileIndex;
+                        invocation.m_outputNameIndex = fileIndex; // no error here! /Fi: stands for out for preprocessor.
                     }
                     continue;
                 }
@@ -154,8 +157,7 @@ bool MsvcCommandLineParser::Update(ToolCommandline& invocation, int* invokeTypeI
             }
             invocation.m_inputNameIndex = realArgs.size();
         }
-        realArgs.push_back(arg);
-        ignoreNext = false;
+        consumeArg(arg);
     }
     invocation.m_arglist.m_args = realArgs;
     return true;
