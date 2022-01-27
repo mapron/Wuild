@@ -29,7 +29,7 @@ public:
 
     std::string     m_clientId;
     uint64_t        m_sessionId;
-    ToolCommandline  m_invocation;
+    ToolCommandline m_invocation;
     ByteArrayHolder m_fileData;
     CompressionInfo m_compression;
 
