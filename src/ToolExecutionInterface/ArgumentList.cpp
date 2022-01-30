@@ -43,8 +43,12 @@ ArgumentList ParseArgumentList(const StringVector& unparsedArgs, const ArgumentP
     std::string  current;
     bool         startedQuote = false;
     auto         consume      = [&current, &args](bool force) {
-        if (force || !current.empty())
+        if (!current.empty() && *current.rbegin() == ' ')
+            current = current.size() == 1 ? "" : current.substr(0, current.size() - 1);
+
+        if (force || !current.empty()) {
             args.m_args.push_back(std::move(current));
+        }
         current.clear();
     };
     bool escapedNext = false;
@@ -78,8 +82,13 @@ ArgumentList ParseArgumentList(const StringVector& unparsedArgs, const ArgumentP
                 }
             }
         }
-        consume(false);
+        if (!startedQuote)
+            consume(false);
+        else
+            current += ' ';
     }
+
+    consume(false);
     return args;
 }
 
@@ -100,6 +109,27 @@ std::string ArgumentList::ToString(const ArgumentStringifySettings& settings) co
         escapedArgs.push_back(std::move(arg));
     }
     return StringUtils::JoinString(escapedArgs, ' ');
+}
+
+void ArgumentList::TryFixDoubleQuotes()
+{
+    bool hasCorrectFormat = true;
+    for (const std::string& arg : m_args) {
+        if (arg == "\"") {
+            hasCorrectFormat = false;
+            break;
+        } else if (arg.size() >= 2) {
+            char b = *arg.begin();
+            char e = *arg.rbegin();
+            if ((b == '"' && e != '"') || (e == '"' && b != '"')) {
+                hasCorrectFormat = false;
+                break;
+            }
+        }
+    }
+    if (!hasCorrectFormat) {
+        *this = ParseArgumentList(m_args);
+    }
 }
 
 }

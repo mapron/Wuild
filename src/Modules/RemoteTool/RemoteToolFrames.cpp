@@ -30,11 +30,10 @@ SocketFrame::State RemoteToolRequest::ReadInternal(ByteOrderDataStreamReader& st
     stream >> m_clientId;
     stream >> m_sessionId;
     stream >> m_fileData;
-    StringVector args;
-    stream >> args;
-    m_invocation.m_arglist = ParseArgumentList(args);
+    stream >> m_invocation.m_arglist.m_args;
     stream >> m_invocation.m_id.m_toolId;
     stream >> m_compression;
+    m_invocation.m_arglist.TryFixDoubleQuotes();
     return stOk;
 }
 

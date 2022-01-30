@@ -32,6 +32,7 @@ struct ArgumentList {
     StringVector m_args;
 
     std::string ToString(const ArgumentStringifySettings& settings = {}) const noexcept;
+    void        TryFixDoubleQuotes();
 };
 
 ArgumentList        ParseArgumentList(const StringVector& unparsedArgs, const ArgumentParseSettings& settings = {}) noexcept;
