@@ -74,7 +74,7 @@ struct CoordinatorInfo {
     /// returns list of changed items pointers.
     std::vector<ToolServerInfo*> Update(const ToolServerInfo& newToolServer);
     /// returns list of changed items pointers.
-    std::vector<ToolServerInfo*> Update(const std::deque<ToolServerInfo>& newNoolServers);
+    std::vector<ToolServerInfo*> Update(const std::deque<ToolServerInfo>& newNoolServers, const std::vector<std::string>& toolserverFilter);
 
     std::string ToString(bool outputTools = false, bool outputClients = false) const;
 

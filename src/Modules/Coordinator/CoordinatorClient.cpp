@@ -161,7 +161,7 @@ void CoordinatorClient::CoordWorker::Start(const std::string& host, int port)
         std::lock_guard<std::mutex> lock(m_coordClient->m_coordMutex);
         m_coordClient->StopExtraClients(host);
         Syslogger(m_coordClient->m_config.m_logContext) << " list arrived [" << inputMessage.m_info.m_toolServers.size() << "]";
-        auto modified = m_coordClient->m_coord.Update(inputMessage.m_info.m_toolServers);
+        auto modified = m_coordClient->m_coord.Update(inputMessage.m_info.m_toolServers, m_coordClient->m_config.m_toolserverFilter);
         if (!modified.empty()) {
             if (m_coordClient->m_infoArrivedCallback)
                 m_coordClient->m_infoArrivedCallback(m_coordClient->m_coord);

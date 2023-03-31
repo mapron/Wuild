@@ -240,6 +240,7 @@ void ConfiguredApplication::ReadCoordinatorClientConfig(CoordinatorClientConfig&
 {
     config.m_coordinatorPort  = m_config->GetInt(groupName, "coordinatorPort");
     config.m_coordinatorHost  = m_config->GetStringList(groupName, "coordinatorHost");
+    config.m_toolserverFilter = m_config->GetStringList(groupName, "toolserverFilter");
     config.m_enabled          = m_config->GetBool(groupName, "coordinatorEnabled", true);
     int sendInfoIntervalMS    = m_config->GetInt(groupName, "sendInfoIntervalMS", 15000);
     config.m_sendInfoInterval = TimePoint(sendInfoIntervalMS / 1000.);
@@ -277,7 +278,7 @@ void ConfiguredApplication::ReadInvocationToolProviderConfig()
     m_invocationToolProviderConfig.m_toolIds = m_config->GetStringList(defaultGroup, "toolIds");
     for (const auto& id : m_invocationToolProviderConfig.m_toolIds) {
         InvocationToolConfig::Tool unit;
-        unit.m_id          = id;
+        unit.m_id           = id;
         unit.m_appendRemote = m_config->GetString(defaultGroup, id + "_appendRemote");
         unit.m_removeRemote = m_config->GetString(defaultGroup, id + "_removeRemote");
         unit.m_remoteAlias  = m_config->GetString(defaultGroup, id + "_remoteAlias");

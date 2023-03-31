@@ -30,6 +30,7 @@ public:
     bool         m_enabled = true;
     StringVector m_coordinatorHost;
     int          m_coordinatorPort = 0;
+    StringVector m_toolserverFilter;
     TimePoint    m_sendInfoInterval;
     Redundance   m_redundance = Redundance::All;
 

@@ -63,15 +63,17 @@ bool ToolServerInfo::operator==(const ToolServerInfo& rh) const
 
 std::vector<ToolServerInfo*> CoordinatorInfo::Update(const ToolServerInfo& newToolServer)
 {
-    return Update(std::deque<ToolServerInfo>(1, newToolServer));
+    return Update(std::deque<ToolServerInfo>(1, newToolServer), {});
 }
 
-std::vector<ToolServerInfo*> CoordinatorInfo::Update(const std::deque<ToolServerInfo>& newNoolServers)
+std::vector<ToolServerInfo*> CoordinatorInfo::Update(const std::deque<ToolServerInfo>& newNoolServers, const std::vector<std::string>& toolserverFilter)
 {
     std::vector<ToolServerInfo*> res;
 
     for (const ToolServerInfo& newToolServer : newNoolServers) {
         if (newToolServer.m_connectionHost.empty())
+            continue;
+        if (!toolserverFilter.empty() && std::find(toolserverFilter.cbegin(), toolserverFilter.cend(), newToolServer.m_connectionHost) == toolserverFilter.cend())
             continue;
 
         bool found = false;
