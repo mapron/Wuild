@@ -80,5 +80,7 @@ int main(int argc, char** argv)
 
     client.Start();
 
-    return ExecAppLoop();
+    Application::Instance().SetSignalHandlers();
+    Application::Instance().WaitForTermination(5000);
+    return Application::GetExitCode();
 }
