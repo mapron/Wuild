@@ -29,7 +29,6 @@
 namespace Wuild {
 SocketFrameHandlerSettings::SocketFrameHandlerSettings()
     : m_byteOrder(ByteOrderDataStream::CreateByteorderMask(ORDER_BE, ORDER_BE, ORDER_BE))
-    , m_channelActivityTimeout(false)
 {}
 
 SocketFrameHandler::SocketFrameHandler(int threadId, const SocketFrameHandlerSettings& settings)
@@ -49,6 +48,7 @@ SocketFrameHandler::SocketFrameHandler(const SocketFrameHandlerSettings& setting
 
 SocketFrameHandler::~SocketFrameHandler()
 {
+    Syslogger(m_logContext) << "SocketFrameHandler::~SocketFrameHandler()";
     m_aliveHolder->m_isAlive = false;
     Stop();
 }
@@ -206,6 +206,25 @@ void SocketFrameHandler::UpdateLogContext()
     m_logContext = channelContext + "[" + std::to_string(m_threadId) + "]" + (m_logContextAdditional.empty() ? "" : " ") + m_logContextAdditional;
 }
 
+std::string SocketFrameHandler::GetStatus() const
+{
+    std::ostringstream os;
+    os << " queue size:" << m_framesQueueOutput.size()
+       << ", outputSegments:" << m_outputSegments.size()
+       << ", outputAcknowledgesSize:" << m_outputAcknowledgesSize
+       << ", bytesWaitingAcknowledge:" << m_bytesWaitingAcknowledge
+       << ", lastSucceessfulRead:" << m_lastSucceessfulRead.ToString()
+       << ", lastSucceessfulWrite:" << m_lastSucceessfulWrite.ToString();
+    os << (m_channel ? ", channel up" : ", channel NULL");
+    if (m_channel) {
+        os << (m_channel->IsConnected() ? ", connected" : ", disconnected");
+        os << (m_channel->IsPending() ? ", pending" : ", non-pending");
+    }
+    os << (m_thread.IsRunning() ? ", thread up" : ", thread stop");
+    os << (CheckConnection() ? ", LIVE " : ", DOWN");
+    return os.str();
+}
+
 int SocketFrameHandler::GetThreadId() const
 {
     return m_threadId;
@@ -248,7 +267,6 @@ SocketFrameHandler::QuantResult SocketFrameHandler::ReadFrames()
 
     m_readBuffer.SetSize(newSize);
 
-    m_doTestActivity = true;
     m_readBuffer.ResetRead();
 
     m_outputAcknowledgesSize += newSize - currentSize;
@@ -551,20 +569,16 @@ SocketFrameHandler::QuantResult SocketFrameHandler::WriteFrames()
 
 bool SocketFrameHandler::CheckConnection() const
 {
-    bool result = m_channel && (m_channel->IsConnected() || m_channel->IsPending());
+    const bool channelState = m_channel && (m_channel->IsConnected() || m_channel->IsPending());
+    if (!channelState)
+        return false;
+    const bool needToCheckReadActivity = m_settings.m_channelActivityTimeout > TimePoint(0) && m_lastSucceessfulRead > TimePoint(0);
 
-    bool wasActivity = m_settings.m_channelActivityTimeout <= TimePoint(0) || m_lastSucceessfulRead.GetElapsedTime() < m_settings.m_channelActivityTimeout;
-    if (result && m_doTestActivity && !wasActivity) {
-        m_channel->Disconnect();
-        result = false;
-    }
-    if (!result) {
-        m_doTestActivity = false;
-        if (m_settings.m_hasConnOptions)
-            m_setConnectionOptionsNeedSend = true;
-    }
+    if (!needToCheckReadActivity)
+        return true;
 
-    return result;
+    const bool readActivityOk = m_lastSucceessfulRead.GetElapsedTime() < m_settings.m_channelActivityTimeout;
+    return readActivityOk;
 }
 
 bool SocketFrameHandler::CheckAndCreateConnection()
@@ -574,7 +588,24 @@ bool SocketFrameHandler::CheckAndCreateConnection()
 
     if (!m_channel->IsConnected())
         m_channel->Connect();
-    return CheckConnection();
+
+    if (!m_channel->IsConnected()) {
+        m_lastSucceessfulRead  = TimePoint();
+        m_lastSucceessfulWrite = TimePoint();
+    }
+
+    const bool prevChannelState = m_channel && m_channel->IsConnected();
+    if (!CheckConnection()) {
+        if (prevChannelState) {
+            m_channel->Disconnect();
+            if (m_settings.m_hasConnOptions)
+                m_setConnectionOptionsNeedSend = true;
+        }
+
+        return false;
+    }
+
+    return true;
 }
 
 bool SocketFrameHandler::IsOutputBufferEmpty()

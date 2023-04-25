@@ -90,6 +90,15 @@ bool SocketFrameService::Quant()
 {
     std::lock_guard<std::mutex> lock(m_workersLock);
 
+    // can be useful for debug in the future.
+    if (false && m_lastLog.GetElapsedTime() > TimePoint(30)) {
+        m_lastLog = TimePoint(true);
+        Syslogger(m_logContext, Syslogger::Notice) << "workers count:" << m_workers.size();
+        size_t i = 0;
+        for (auto&& worker : m_workers)
+            Syslogger(m_logContext, Syslogger::Notice) << "[" << i++ << "] worker (act:" << worker->IsActive() << ")=" << worker->GetStatus();
+    }
+
     // first, check for dead workers and erase them
     auto workerIt = m_workers.begin();
     while (workerIt != m_workers.end()) {
@@ -98,7 +107,7 @@ bool SocketFrameService::Quant()
             if (m_handlerDestroyCallback)
                 m_handlerDestroyCallback((*workerIt).get());
 
-            Syslogger(m_logContext) << "SocketFrameService::Quant() erasing unactive worker " << (*workerIt)->GetThreadId();
+            Syslogger(m_logContext, Syslogger::Notice) << "SocketFrameService::Quant() erasing unactive worker " << (*workerIt)->GetThreadId();
             workerIt = m_workers.erase(workerIt);
             continue;
         }

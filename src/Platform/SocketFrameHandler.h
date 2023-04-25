@@ -52,7 +52,7 @@ struct SocketFrameHandlerSettings {
     TimePoint m_clientThreadSleep = TimePoint(0.001); //!< thread usleep value.
     TimePoint m_mainThreadSleep   = TimePoint(0.001); //!< thread usleep value for FrameHandlerService.
 
-    TimePoint m_channelActivityTimeout    = TimePoint(10.0); //!< After this time, channel with no read event will be dead.
+    TimePoint m_channelActivityTimeout    = TimePoint(60.0); //!< After this time, channel with no read event will be dead.
     TimePoint m_acknowledgeTimeout        = TimePoint(10.0); //!< After this time, unacknowledged data send will stated failed.
     TimePoint m_lineTestInterval          = TimePoint(3.0);  //!< If no channel activity for this time, line test frame will be send.
     TimePoint m_afterDisconnectWait       = TimePoint(10.0); //!< If channel was disconnected, connect retry will be after that time.
@@ -168,8 +168,9 @@ public:
     void RegisterFrameReader(const IFrameReader::Ptr& reader);
 
     //Logging:
-    void SetLogContext(const std::string& context);
-    void UpdateLogContext();
+    void        SetLogContext(const std::string& context);
+    void        UpdateLogContext();
+    std::string GetStatus() const;
 
     int GetThreadId() const;
 
@@ -270,8 +271,7 @@ protected:
     TimePoint m_lastTestActivity;
     TimePoint m_lastTimeoutCheck;
     TimePoint m_lastConnStatusSend;
-    bool mutable m_doTestActivity               = false;
-    bool mutable m_setConnectionOptionsNeedSend = false;
+    bool      m_setConnectionOptionsNeedSend = false;
     TimePoint m_remoteTimeDiffToPast;
     bool      m_lineTestQueued = false;
 
