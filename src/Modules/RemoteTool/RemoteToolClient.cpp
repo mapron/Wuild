@@ -172,11 +172,18 @@ RemoteToolClient::RemoteToolClient(IInvocationToolProvider::Ptr invocationToolPr
 
 RemoteToolClient::~RemoteToolClient()
 {
+    Syslogger() << "RemoteToolClient::~RemoteToolClient()";
     FinishSession();
     m_thread.Stop();
 
+    m_impl->m_coordinator.Stop();
+
     for (auto& client : m_impl->m_clients)
         client->Stop();
+
+    m_impl.reset();
+
+    Syslogger() << "/RemoteToolClient::~RemoteToolClient()";
 }
 
 bool RemoteToolClient::SetConfig(const RemoteToolClient::Config& config)
@@ -331,7 +338,8 @@ void RemoteToolClient::InvokeTool(const ToolCommandline& invocation, const Invok
     Syslogger(Syslogger::Info) << "QueueFrame [" << wrap.m_taskIndex << "] -> " << toolRequest->m_invocation.m_id.m_toolId
                                << " " << toolRequest->m_invocation.GetArgsString()
                                << ", balancerFree:" << m_impl->m_balancer.GetFreeThreads()
-                               << ", pending:" << m_impl->m_pendingTasks;
+                               << ", pending:" << m_impl->m_pendingTasks
+                               << ", queue expiration :" << wrap.m_expirationMoment.ToString();
 
     m_impl->QueueTask(wrap);
 }

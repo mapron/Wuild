@@ -39,6 +39,7 @@ public:
     void SetInfoArrivedCallback(InfoArrivedCallback callback);
 
     void Start();
+    void Stop();
 
     void SetToolServerInfo(const ToolServerInfo& info);
     void SendToolServerSessionInfo(const ToolServerSessionInfo& sessionInfo, bool isFinished);

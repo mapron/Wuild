@@ -64,8 +64,6 @@ int main(int argc, char** argv)
     const auto toolsVersions = VersionChecker::Create(localExecutor, invocationToolProvider)->DetermineToolVersions({ toolId });
 
     RemoteToolClient rcClient(invocationToolProvider, toolsVersions);
-    config.m_queueTimeout = TimePoint(5.0);
-
     if (!rcClient.SetConfig(config))
         return 1;
 

@@ -63,6 +63,11 @@ void CoordinatorClient::Start()
     }
 }
 
+void CoordinatorClient::Stop()
+{
+    m_workers.clear();
+}
+
 void CoordinatorClient::SetToolServerInfo(const ToolServerInfo& info)
 {
     m_lastInfo = info;
