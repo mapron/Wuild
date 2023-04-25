@@ -66,9 +66,7 @@ public:
     /// Some descriptive string for socket
     virtual std::string GetLogContext() const = 0;
 
-    /// Callback is called when new data avilable to read.
-    virtual void SetReadAvailableCallback(const std::function<void()>& cb) = 0;
-
-    virtual void SetWaitForRead() = 0;
+    /// Wait until read is available (blocking)
+    virtual void WaitForRead() = 0;
 };
 }

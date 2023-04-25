@@ -75,14 +75,7 @@ void SocketFrameHandler::Start()
         // now we 'sleep';
 
         if (m_channel)
-            m_channel->SetWaitForRead();
-
-        std::unique_lock<std::mutex> lock(m_readCallbackMutex);
-
-        m_readCallbackCV.wait_for(lock, std::chrono::microseconds(m_settings.m_clientThreadSleep.GetUS()), [this] {
-            return m_readCallbackIncoming;
-        });
-        m_readCallbackIncoming = false;
+            m_channel->WaitForRead();
 
         return false;
     },
@@ -149,26 +142,16 @@ void SocketFrameHandler::SetTcpChannel(const std::string& host, int port, TimePo
     TcpConnectionParams params;
     params.m_endPoint.SetPoint(port, host);
     params.m_connectTimeout               = connectionTimeout;
-    params.m_readTimeout                  = m_settings.m_tcpReadTimeout;
+    params.m_selectTimeout                = m_settings.m_tcpSelectTimeout;
     params.m_recommendedRecieveBufferSize = m_settings.m_recommendedRecieveBufferSize;
     params.m_recommendedSendBufferSize    = m_settings.m_recommendedSendBufferSize;
     TcpSocket::Create(params).swap(m_channel);
-    m_channel->SetReadAvailableCallback([this] {
-        std::unique_lock<std::mutex> lock(m_readCallbackMutex);
-        m_readCallbackIncoming = true;
-        m_readCallbackCV.notify_one();
-    });
     UpdateLogContext();
 }
 
 void SocketFrameHandler::SetChannel(IDataSocket::Ptr channel)
 {
     m_channel = std::move(channel);
-    m_channel->SetReadAvailableCallback([this] {
-        std::unique_lock<std::mutex> lock(m_readCallbackMutex);
-        m_readCallbackIncoming = true;
-        m_readCallbackCV.notify_one();
-    });
     UpdateLogContext();
 }
 

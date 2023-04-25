@@ -52,11 +52,11 @@ private:
 /// Parameters for tcp connection: client or server.
 /// Contains information about host, port and timeouts.
 struct TcpConnectionParams {
-    TimePoint             m_readTimeout                  = 0.0;      //!< Scoket read timeout
-    TimePoint             m_connectTimeout               = 1.0;      //!< Connection timeout
-    size_t                m_recommendedRecieveBufferSize = 4 * 1024; //!< Buffer size is recommended for socket. If socket has lower size, buffer will be optionally increased (but not ought to)
-    size_t                m_recommendedSendBufferSize    = 4 * 1024;
-    TcpEndPoint           m_endPoint;
+    TimePoint   m_selectTimeout                = 0.1;      //!< Socket select() timeout for polling if there is any data to read.
+    TimePoint   m_connectTimeout               = 1.0;      //!< Connection timeout
+    size_t      m_recommendedRecieveBufferSize = 4 * 1024; //!< Buffer size is recommended for socket. If socket has lower size, buffer will be optionally increased (but not ought to)
+    size_t      m_recommendedSendBufferSize    = 4 * 1024;
+    TcpEndPoint m_endPoint;
 };
 
 struct TcpListenerParams : public TcpConnectionParams {

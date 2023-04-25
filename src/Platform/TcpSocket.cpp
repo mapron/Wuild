@@ -57,120 +57,6 @@ const size_t g_defaultBufferSize = 4 * 1024;
 
 namespace Wuild {
 
-#ifdef TCP_SOCKET_WIN
-struct WindowClassContext {
-    static LRESULT CALLBACK WinProcCallback(HWND hwnd, UINT message, WPARAM wp, LPARAM lp)
-    {
-        if (message == WM_NCCREATE)
-            return true;
-
-        return DefWindowProc(hwnd, message, wp, lp);
-    }
-
-    WindowClassContext()
-        : atom(0)
-        , className("wuild_internal_socket_hwnd")
-    {
-        WNDCLASS wc;
-        wc.style         = 0;
-        wc.lpfnWndProc   = WinProcCallback;
-        wc.cbClsExtra    = 0;
-        wc.cbWndExtra    = 0;
-        wc.hInstance     = GetModuleHandle(0);
-        wc.hIcon         = 0;
-        wc.hCursor       = 0;
-        wc.hbrBackground = 0;
-        wc.lpszMenuName  = NULL;
-        wc.lpszClassName = className;
-        atom             = RegisterClass(&wc);
-        if (!atom)
-            Syslogger(Syslogger::Err) << "RegisterClass failed";
-    }
-
-    ~WindowClassContext()
-    {
-        if (atom) {
-            UnregisterClass(className, GetModuleHandle(0));
-        }
-    }
-
-    ATOM              atom;
-    const char* const className;
-};
-
-class HwndWrapper {
-    HWND       m_h;
-    bool       m_stopped = false;
-    std::mutex m_mutex;
-
-public:
-    static HwndWrapper* createInternal(const void* eventDispatcher, const void* obj)
-    {
-        static WindowClassContext ctx;
-        std::string               winName(ctx.className);
-        winName += std::to_string(intptr_t(obj));
-        HWND wnd = CreateWindow(ctx.className,   // classname
-                                winName.c_str(), // window name
-                                0,               // style
-                                0,
-                                0,
-                                0,
-                                0,                  // geometry
-                                HWND_MESSAGE,       // parent
-                                0,                  // menu handle
-                                GetModuleHandle(0), // application
-                                0);                 // windows creation data.
-
-        if (!wnd) {
-            Syslogger(Syslogger::Warning) << "createInternal==0"
-                                          << ", err=" << GetLastError();
-            return new HwndWrapper(0);
-        }
-
-        SetWindowLongPtr(wnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(eventDispatcher));
-
-        return new HwndWrapper(wnd);
-    }
-    HwndWrapper(HWND h)
-        : m_h(h)
-    {}
-    ~HwndWrapper()
-    {
-        if (m_h)
-            DestroyWindow(m_h);
-    }
-    void Stop()
-    {
-        std::unique_lock<std::mutex> lock(m_mutex);
-        if (!m_h || m_stopped)
-            return;
-
-        m_stopped = true;
-        PostMessage(m_h, WM_QUIT, NULL, NULL);
-    }
-    HWND Get() const { return m_h; }
-    bool Wait()
-    {
-        {
-            std::unique_lock<std::mutex> lock(m_mutex);
-            if (!m_h || m_stopped)
-                return false;
-        }
-
-        MSG m;
-        GetMessage(&m, m_h, NULL, NULL);
-        return true;
-    }
-};
-#else
-class HwndWrapper {
-public:
-    HwndWrapper() = default;
-    void Stop() {}
-};
-
-#endif
-
 std::atomic_bool TcpSocket::s_applicationInterruption(false);
 
 TcpSocket::TcpSocket(const TcpConnectionParams& params)
@@ -184,7 +70,8 @@ TcpSocket::TcpSocket(const TcpConnectionParams& params)
 
 TcpSocket::~TcpSocket()
 {
-    Disconnect();
+    Syslogger(m_logContext) << "TcpSocket::~TcpSocket()";
+    TcpSocket::Disconnect();
 }
 
 IDataSocket::Ptr TcpSocket::Create(const TcpConnectionParams& params, TcpListener* pendingListener)
@@ -209,7 +96,6 @@ bool TcpSocket::Connect()
         if (m_state == ConnectionState::Pending && m_pendingListener->DoAccept(this)) {
             SetBufferSize();
             if (m_impl->SetBlocking(false)) {
-                m_readPollCallbackInstall();
                 m_state = ConnectionState::Success;
                 return true;
             }
@@ -267,7 +153,6 @@ bool TcpSocket::Connect()
             return false;
         }
     }
-    m_readPollCallbackInstall();
     m_state = ConnectionState::Success;
     Syslogger(m_logContext) << "Connected.";
     return true;
@@ -275,9 +160,6 @@ bool TcpSocket::Connect()
 
 void TcpSocket::Disconnect()
 {
-    if (m_hwnd)
-        m_hwnd->Stop();
-    m_socketReadPollThread.Stop();
     m_state = ConnectionState::Fail;
     if (m_impl->m_socket != INVALID_SOCKET) {
         Syslogger(m_logContext) << "TcpSocket::Disconnect() ";
@@ -302,9 +184,6 @@ IDataSocket::ReadState TcpSocket::Read(ByteArrayHolder& buffer)
         return ReadState::Fail;
 
     if (!IsSocketReadReady())
-        return ReadState::TryAgain;
-
-    if (!SelectRead())
         return ReadState::TryAgain;
 
     size_t bufferInitialSize = buffer.size();
@@ -373,48 +252,9 @@ TcpSocket::WriteState TcpSocket::Write(const ByteArrayHolder& buffer, size_t max
     return maxBytes == static_cast<size_t>(written) ? WriteState::Success : WriteState::Fail;
 }
 
-void TcpSocket::SetReadAvailableCallback(const std::function<void()>& cb)
+void TcpSocket::WaitForRead()
 {
-#ifdef TCP_SOCKET_WIN
-    m_readPollCallbackInstall = [this, cb] {
-        std::shared_ptr<bool> onceCheck(new bool(false));
-        m_socketReadPollThread.Exec([cb, onceCheck, this] {
-            if (!*onceCheck) {
-                *onceCheck = true;
-                m_hwnd.reset(HwndWrapper::createInternal(nullptr, this));
-                long event = FD_READ;
-                int  res   = WSAAsyncSelect(m_impl->m_socket, m_hwnd->Get(), WM_USER, event);
-
-                Syslogger(m_logContext, Syslogger::Info) << "WSAAsyncSelect=" << res << ", err=" << GetLastError();
-            }
-            {
-                std::unique_lock<std::mutex> lock(m_awaitingMutex);
-                m_awaitingCV.wait_for(lock, std::chrono::milliseconds(100), [this] {
-                    return !!m_awaitingRead;
-                });
-            }
-
-            TimePoint start(true);
-            if (!m_hwnd->Wait())
-                return false;
-
-            {
-                std::unique_lock<std::mutex> lock(m_awaitingMutex);
-                if (m_awaitingRead)
-                    cb();
-                m_awaitingRead = false;
-            }
-            return false;
-        });
-    };
-#endif
-}
-
-void TcpSocket::SetWaitForRead()
-{
-    std::unique_lock<std::mutex> lock(m_awaitingMutex);
-    m_awaitingRead = true;
-    m_awaitingCV.notify_one();
+    Select(m_params.m_selectTimeout);
 }
 
 void TcpSocket::SetListener(TcpListener* pendingListener)
@@ -438,33 +278,33 @@ bool TcpSocket::IsSocketReadReady()
     if (m_impl->m_socket == INVALID_SOCKET)
         return false;
 
-    fd_set set;
-    FD_ZERO(&set);
-    FD_SET(m_impl->m_socket, &set);
-
-    struct timeval timeout  = { 0, 0 };
-    int            selected = select(static_cast<int>(m_impl->m_socket + 1U), &set, nullptr, nullptr, &timeout);
+    const int selected = Select(TimePoint(0));
     if (selected < 0) {
         Syslogger(m_logContext) << "Disconnect from IsSocketReadReady";
         Disconnect();
         return false;
     }
-    return (selected != 0 && FD_ISSET(m_impl->m_socket, &set));
+    return (selected != 0);
 }
 
-bool TcpSocket::SelectRead()
+int TcpSocket::Select(TimePoint timeout)
 {
     if (m_impl->m_socket == INVALID_SOCKET)
-        return false;
+        return 0;
 
-    bool   res = false;
     fd_set selected;
     FD_ZERO(&selected);
     FD_SET(m_impl->m_socket, &selected);
 
     struct timeval timeoutTV = { 0, 0 };
+    SET_TIMEVAL_US(timeoutTV, m_params.m_connectTimeout);
 
-    res = select(static_cast<int>(m_impl->m_socket + 1), &selected, nullptr, nullptr, &timeoutTV) > 0 && FD_ISSET(m_impl->m_socket, &selected);
+    int res = select(static_cast<int>(m_impl->m_socket + 1), &selected, nullptr, nullptr, &timeoutTV);
+    if (res > 0) {
+        if (!FD_ISSET(m_impl->m_socket, &selected))
+            res = 0;
+    }
+
     return res;
 }
 

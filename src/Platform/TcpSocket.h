@@ -64,14 +64,13 @@ public:
     uint32_t GetSendBufferSize() const override { return m_sendBufferSize; }
 
     std::string GetLogContext() const override { return m_logContext; }
-    void        SetReadAvailableCallback(const std::function<void()>& cb) override;
-    void        SetWaitForRead() override;
+    void        WaitForRead() override;
 
 protected:
     void SetListener(TcpListener* pendingListener);
-    void Fail(); //!< Ошибка при установлении соединения.
+    void Fail(); //!< Connection failure
     bool IsSocketReadReady();
-    bool SelectRead();
+    int Select(TimePoint timeout);
     void SetBufferSize();
 
     TcpListener*        m_pendingListener    = nullptr;
@@ -81,16 +80,9 @@ protected:
     uint32_t            m_recieveBufferSize = 0;
     uint32_t            m_sendBufferSize    = 0;
     std::string         m_logContext;
-    ThreadLoop          m_socketReadPollThread;
-
-    std::mutex              m_awaitingMutex;
-    std::condition_variable m_awaitingCV;
-    std::atomic_bool        m_awaitingRead{ true };
-    std::function<void()>   m_readPollCallbackInstall{ [] {} };
 
 private:
     std::unique_ptr<TcpSocketPrivate> m_impl;
-    std::unique_ptr<HwndWrapper>      m_hwnd;
 };
 
 }

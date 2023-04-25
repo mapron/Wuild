@@ -59,7 +59,7 @@ struct SocketFrameHandlerSettings {
     TimePoint m_replyTimeoutCheckInterval = TimePoint(1.0);  //!< How often check for timeouted requests.
     TimePoint m_connStatusInterval        = TimePoint(1.0);
 
-    TimePoint m_tcpReadTimeout               = TimePoint(0.0); //!< Read timeout for underlying physical channel.
+    TimePoint m_tcpSelectTimeout             = TimePoint(0.1); //!< Read timeout for underlying physical channel.
     size_t    m_recommendedRecieveBufferSize = 4 * 1024;       //!< Recommended TCP-buffer size.
     size_t    m_recommendedSendBufferSize    = 4 * 1024;       //!< Recommended TCP-buffer size.
     size_t    m_segmentSize                  = 240;            //!< Maximal length of channel layer frame.
@@ -259,10 +259,6 @@ protected:
     size_t                               m_outputAcknowledgesSize = 0;
     ReplyManager                         m_replyManager;
     std::map<uint8_t, IFrameReader::Ptr> m_frameReaders;
-
-    std::mutex              m_readCallbackMutex;
-    std::condition_variable m_readCallbackCV;
-    bool                    m_readCallbackIncoming = false;
 
     uint8_t m_outputLoadPercent     = 0;
     size_t  m_maxUnAcknowledgedSize = 0;
