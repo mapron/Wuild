@@ -577,8 +577,9 @@ bool SocketFrameHandler::CheckConnection() const
     if (!needToCheckReadActivity)
         return true;
 
-    const bool readActivityOk = m_lastSucceessfulRead.GetElapsedTime() < m_settings.m_channelActivityTimeout;
-    return readActivityOk;
+    const bool readActivityOk  = m_lastSucceessfulRead.GetElapsedTime() < m_settings.m_channelActivityTimeout;
+    const bool writeActivityOk = m_lastSucceessfulWrite.GetElapsedTime() < m_settings.m_channelActivityTimeout;
+    return readActivityOk || writeActivityOk;
 }
 
 bool SocketFrameHandler::CheckAndCreateConnection()
