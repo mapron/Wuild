@@ -46,6 +46,7 @@ void RewriteStateRules(State* state, IRemoteExecutor* const remoteExecutor)
     };
 
     static const std::vector<std::string> s_ignoredArgs{ "$DEFINES", "$INCLUDES", "$FLAGS" };
+    static const std::set<std::string>    s_prependedArgs{ "LAUNCHER", "CODE_CHECK" };
 
     const auto                         rules = state->bindings_.GetRules(); // we must copy rules container; otherwise we stack in infinite loop.
     std::map<const Rule*, RuleReplace> ruleReplacement;
@@ -57,7 +58,12 @@ void RewriteStateRules(State* state, IRemoteExecutor* const remoteExecutor)
         if (!command)
             continue;
         std::vector<std::string> originalRule;
+        EvalString::TokenList    prepended;
         for (const auto& strPair : command->parsed_) {
+            if (originalRule.empty() && strPair.second == EvalString::SPECIAL && s_prependedArgs.contains(strPair.first)) {
+                prepended.push_back(strPair);
+                continue;
+            }
             std::string str = strPair.first;
             if (strPair.second == EvalString::SPECIAL) {
                 str = '$' + str;
@@ -81,8 +87,9 @@ void RewriteStateRules(State* state, IRemoteExecutor* const remoteExecutor)
 
             auto& PPtokens = rulePP->GetBinding("command")->parsed_;
             auto& CCtokens = ruleCC->GetBinding("command")->parsed_;
-            PPtokens.clear();
+            PPtokens       = prepended;
             CCtokens.clear();
+
             stringVectorToBindings(preprocessRule, PPtokens);
             stringVectorToBindings(compileRule, CCtokens);
 
