@@ -22,6 +22,7 @@ set(srcRoot ${CMAKE_CURRENT_LIST_DIR}/src)
 
 #configure options
 option( WARNING_AS_ERROR "" OFF )
+option( WUILD_ENABLE_PROXY "" OFF )
 
 #platform configuration.
 set(CMAKE_CXX_STANDARD 20)
@@ -165,25 +166,32 @@ foreach (testname AllConfigs Balancer Compiler Coordinator Inflate Networking To
 	AddTarget(TYPE app_console NAME Test${testname} SOURCE_DIR ${srcRoot}/TestsManual
 		SKIP_GLOB EXTRA_GLOB Test${testname}.cpp
 		LINK_LIBRARIES ${main_deps} TestUtil
+		SKIP_INSTALL
 		)
 endforeach()
 foreach (benchname NetworkClient NetworkServer)
 	AddTarget(TYPE app_console NAME Benchmark${benchname} SOURCE_DIR ${srcRoot}/Benchmarks
 		SKIP_GLOB EXTRA_GLOB Benchmark${benchname}.cpp *.h BenchmarkUtils.cpp
 		LINK_LIBRARIES ${main_deps}
+		SKIP_INSTALL
 		)
 endforeach()
 
-foreach (appname Coordinator CoordinatorStatus Proxy ProxyClient ToolExecutor ToolServer ToolServerStatus)
+foreach (appname Coordinator CoordinatorStatus ToolExecutor ToolServer ToolServerStatus)
 	AddTarget(TYPE app_console NAME Wuild${appname} SOURCE_DIR ${srcRoot}/Apps/${appname}/
 		LINK_LIBRARIES ${main_deps}
 		)
-	install(TARGETS Wuild${appname} RUNTIME DESTINATION bin)
 endforeach()
+if (WUILD_ENABLE_PROXY)
+	foreach (appname Proxy ProxyClient)
+		AddTarget(TYPE app_console NAME Wuild${appname} SOURCE_DIR ${srcRoot}/Apps/${appname}/
+			LINK_LIBRARIES ${main_deps}
+			)
+	endforeach()
+endif()
 
 AddTarget(TYPE app_console NAME WuildNinja SOURCE_DIR ${srcRoot}/Apps/Ninja/
 	EXTRA_SOURCES ${NINJA_ROOT}/ninja.cc ${NINJA_ROOT}/build.cc
 	LINK_LIBRARIES ${main_deps}
 	INCLUDES ${srcRoot}/Apps/Ninja/ ${NINJA_ROOT}/
 	)
-install(TARGETS WuildNinja RUNTIME DESTINATION bin)
