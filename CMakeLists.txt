@@ -16,7 +16,6 @@ project(Wuild)
 
 # main paths.
 set(NINJA_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/ninja/src)
-set(JSON_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/json)
 set(MERNEL_ROOT ${CMAKE_CURRENT_LIST_DIR}/ext/mernel)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake ${MERNEL_ROOT}/cmake)
 set(srcRoot ${CMAKE_CURRENT_LIST_DIR}/src)
@@ -178,7 +177,6 @@ endforeach()
 foreach (appname Coordinator CoordinatorStatus Proxy ProxyClient ToolExecutor ToolServer ToolServerStatus)
 	AddTarget(TYPE app_console NAME Wuild${appname} SOURCE_DIR ${srcRoot}/Apps/${appname}/
 		LINK_LIBRARIES ${main_deps}
-		INCLUDES ${JSON_ROOT}
 		)
 	install(TARGETS Wuild${appname} RUNTIME DESTINATION bin)
 endforeach()

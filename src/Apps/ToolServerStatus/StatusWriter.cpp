@@ -13,7 +13,12 @@
 
 #include "StatusWriter.h"
 
-#include "json.hpp"
+#include "MernelPlatform/PropertyTree.hpp"
+
+#include <iostream>
+
+using Mernel::PropertyTree;
+using Mernel::PropertyTreeScalar;
 
 StandardTextWriter::StandardTextWriter(std::ostream& stream)
     : m_ostream(stream)
@@ -54,7 +59,7 @@ void StandardTextWriter::FormatToolsConflicts(const ConflictMap& conflictedIds)
 }
 
 struct JsonWriter::Impl {
-    nlohmann::ordered_json jsonResult;
+    PropertyTree jsonResult;
 };
 
 JsonWriter::JsonWriter(std::ostream& stream)
@@ -63,7 +68,8 @@ JsonWriter::JsonWriter(std::ostream& stream)
 
 JsonWriter::~JsonWriter()
 {
-    m_ostream << m_impl->jsonResult.dump(4) << std::endl;
+    PropertyTree::printReadableJson(m_ostream, m_impl->jsonResult);
+    m_ostream << std::endl;
 }
 
 void JsonWriter::FormatMessage(const std::string&)
@@ -74,14 +80,21 @@ void JsonWriter::FormatMessage(const std::string&)
 void JsonWriter::FormatToolsVersions(const std::string& host, const VersionMap& versionByToolId)
 {
     auto& versionByToolIdJson = m_impl->jsonResult["tools_versions"];
-    versionByToolIdJson[host] = versionByToolId;
+    auto& hostMap             = versionByToolIdJson[host];
+    hostMap.convertToMap();
+    for (const auto& [key, value] : versionByToolId)
+        hostMap[key] = PropertyTreeScalar(value);
 }
 
 void JsonWriter::FormatToolsConflicts(const ConflictMap& conflictedIds)
 {
     auto& conflictedIdsJson = m_impl->jsonResult["conflicted_tools"];
-    for (const auto& toolId : conflictedIds)
-        conflictedIdsJson[toolId.first] = toolId.second;
+    for (const auto& toolId : conflictedIds) {
+        auto& map = conflictedIdsJson[toolId.first];
+        map.convertToMap();
+        for (const auto& [key, value] : toolId.second)
+            map[key] = PropertyTreeScalar(value);
+    }
 }
 
 std::unique_ptr<AbstractWriter> AbstractWriter::createWriter(OutType outType, std::ostream& stream)

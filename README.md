@@ -43,7 +43,7 @@ Main application binaries holded in root directory.
 # Building from source
 ### Requirements 
 - CMake 3.5+ (3.12 and 3.20 are tested, earlier version should be fine, file a bug if not)
-- C++ compiler with either C+\+17 support or C+\+14 (with USE_GHC_STL CMake option). MSVC 2019, GCC 10 and Clang 11 are tested; previous versions also should work( GCC 6, MSVC 2015)
+- C++ compiler with C+\+20 support. MSVC 2019, GCC 10 and Clang 11 are minimal recommended.
 - System zlib is recommeded, but you can pass USE_SYSTEM_ZLIB=false to build it from source. For MSVC this is a default.
 
 ### Building
@@ -229,8 +229,6 @@ And finally, we have ini config [option reference](docs/ExampleConfigurations/Wu
 # Used thirdparty products
 - (Apache 2) "Ninja build system" (https://github.com/ninja-build) is used for a fast frontentd;
 - (BSD) ZStd library used for compression algorithms;
-- (MIT) Hlohmann Json library (https://github.com/nlohmann/json) is used for json output in debug tools;
-- (MIT) GHC filesystem library (https://github.com/gulrak/filesystem) for a C++17-compatible Filesystem implementation.
 
 # Credits
 - Special thanks to Peter Zhigalov (https://github.com/AlienCowEatCake) for the thorough alpha- and beta-testing;

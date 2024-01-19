@@ -13,7 +13,12 @@
 
 #include "StatusWriter.h"
 
-#include "json.hpp"
+#include "MernelPlatform/PropertyTree.hpp"
+
+#include <iostream>
+
+using Mernel::PropertyTree;
+using Mernel::PropertyTreeScalar;
 
 StandardTextWriter::StandardTextWriter(std::ostream& stream)
     : m_ostream(stream)
@@ -65,7 +70,7 @@ void StandardTextWriter::FormatToolsByToolsServer(const AbstractWriter::ToolsMap
 }
 
 struct JsonWriter::Impl {
-    nlohmann::ordered_json jsonResult;
+    PropertyTree jsonResult;
 };
 
 JsonWriter::JsonWriter(std::ostream& stream)
@@ -74,7 +79,8 @@ JsonWriter::JsonWriter(std::ostream& stream)
 
 JsonWriter::~JsonWriter()
 {
-    m_ostream << m_impl->jsonResult.dump(4) << std::endl;
+    PropertyTree::printReadableJson(m_ostream, m_impl->jsonResult);
+    m_ostream << std::endl;
 }
 
 void JsonWriter::FormatMessage(const std::string&)
@@ -83,32 +89,41 @@ void JsonWriter::FormatMessage(const std::string&)
 }
 void JsonWriter::FormatConnectedToolServer(const std::string& host, int16_t port, uint16_t runningTasks, uint16_t totalThreads)
 {
-    m_impl->jsonResult["connected_tool_servers"][host]["port"]          = port;
-    m_impl->jsonResult["connected_tool_servers"][host]["running_tasks"] = runningTasks;
-    m_impl->jsonResult["connected_tool_servers"][host]["total_threads"] = totalThreads;
+    m_impl->jsonResult["connected_tool_servers"][host]["port"]          = PropertyTreeScalar(port);
+    m_impl->jsonResult["connected_tool_servers"][host]["running_tasks"] = PropertyTreeScalar(runningTasks);
+    m_impl->jsonResult["connected_tool_servers"][host]["total_threads"] = PropertyTreeScalar(totalThreads);
 }
 
 void JsonWriter::FormatSummary(int running, int thread, int queued)
 {
-    m_impl->jsonResult["total_load"]["running"] = running;
-    m_impl->jsonResult["total_load"]["thread"]  = thread;
-    m_impl->jsonResult["total_load"]["queue"]   = queued;
+    m_impl->jsonResult["total_load"]["running"] = PropertyTreeScalar(running);
+    m_impl->jsonResult["total_load"]["thread"]  = PropertyTreeScalar(thread);
+    m_impl->jsonResult["total_load"]["queue"]   = PropertyTreeScalar(queued);
 }
 
 void JsonWriter::FormatSessions(const std::string& started, int usedThreads)
 {
-    m_impl->jsonResult["Running sessions"].push_back({ { "started", started }, { "usedThreads", usedThreads } });
+    auto& sessions = m_impl->jsonResult["Running sessions"];
+    sessions.convertToList();
+    sessions.getList().push_back(PropertyTree(Mernel::PropertyTreeMap{ { "started", PropertyTreeScalar(started) }, { "usedThreads", PropertyTreeScalar(usedThreads) } }));
 }
 void JsonWriter::FormatOverallTools(const std::set<std::string>& toolIds)
 {
-    m_impl->jsonResult["available_tools"] = toolIds;
+    auto& toolIdsList = m_impl->jsonResult["available_tools"];
+    toolIdsList.convertToList();
+    for (const auto& str : toolIds)
+        toolIdsList.getList().push_back(PropertyTreeScalar(str));
 }
 
 void JsonWriter::FormatToolsByToolsServer(const AbstractWriter::ToolsMap& toolsByHost)
 {
     auto& toolsByHostJson = m_impl->jsonResult["available_tools_by_host"];
-    for (const auto& toolserver : toolsByHost)
-        toolsByHostJson[toolserver.first] = toolserver.second;
+    for (const auto& toolserver : toolsByHost) {
+        auto& toolList = toolsByHostJson[toolserver.first];
+        toolList.convertToList();
+        for (const auto& str : toolserver.second)
+            toolList.getList().push_back(PropertyTreeScalar(str));
+    }
 }
 
 std::unique_ptr<AbstractWriter> AbstractWriter::createWriter(OutType outType, std::ostream& stream)
