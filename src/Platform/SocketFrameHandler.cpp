@@ -382,6 +382,8 @@ SocketFrameHandler::ConsumeState SocketFrameHandler::ConsumeReadBuffer()
         if (frameLength <= 0)
             return ConsumeState::Incomplete;
         if (m_settings.m_hasChannelTypes) {
+            if (frameLength <= 3)
+                return ConsumeState::Incomplete;
             uint32_t size = 0;
             inputStream >> size;
             if (size > m_settings.m_segmentSize) {
