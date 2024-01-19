@@ -13,7 +13,7 @@
 
 #include "SocketFrame.h"
 
-#include "ByteOrderStream.h"
+#include "ByteOrderStreamTypes.h"
 
 #include <sstream>
 
@@ -34,14 +34,14 @@ SocketFrame::State SocketFrame::Read(ByteOrderDataStreamReader& stream)
 {
     if (m_writeLength) {
         stream >> m_length;
-        if (stream.EofRead())
+        if (stream.eofRead())
             return stIncomplete;
 
-        if (!stream.GetBuffer().CheckRemain(m_length))
+        if (!stream.getBuffer().checkRemain(m_length))
             return stIncomplete;
     }
     if (m_writeCreated)
-        m_created.SetUS(stream.ReadScalar<int64_t>());
+        stream >> m_created;
     if (m_writeTransaction)
         stream >> m_transactionId >> m_replyToTransactionId;
 
@@ -57,11 +57,11 @@ SocketFrame::State SocketFrame::Write(ByteOrderDataStreamWriter& stream) const
     ptrdiff_t initialOffset = 0;
     if (m_writeLength) {
         m_length      = 0;
-        initialOffset = stream.GetBuffer().GetOffsetWrite();
+        initialOffset = stream.getBuffer().getOffsetWrite();
         stream << m_length;
     }
     if (m_writeCreated)
-        stream << m_created.GetUS();
+        stream << m_created;
     if (m_writeTransaction)
         stream << m_transactionId << m_replyToTransactionId;
 
@@ -70,8 +70,8 @@ SocketFrame::State SocketFrame::Write(ByteOrderDataStreamWriter& stream) const
         return result;
 
     if (m_writeLength) {
-        m_length = static_cast<uint32_t>(stream.GetBuffer().GetOffsetWrite() - initialOffset - sizeof(m_length));
-        stream.WriteToOffset(m_length, initialOffset);
+        m_length = static_cast<uint32_t>(stream.getBuffer().getOffsetWrite() - initialOffset - sizeof(m_length));
+        stream.writeToOffset(m_length, initialOffset);
     }
     return result;
 }

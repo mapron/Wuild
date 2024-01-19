@@ -20,10 +20,18 @@
 #include <vector>
 #include <memory>
 
-namespace Wuild {
+namespace Mernel {
 
 class ByteOrderDataStreamReader;
 class ByteOrderDataStreamWriter;
+class ByteOrderBuffer;
+}
+
+namespace Wuild {
+
+using ByteOrderDataStreamReader = Mernel::ByteOrderDataStreamReader;
+using ByteOrderDataStreamWriter = Mernel::ByteOrderDataStreamWriter;
+using ByteOrderBuffer           = Mernel::ByteOrderBuffer;
 /**
  * \brief Abstract class for network channel frame.
  *

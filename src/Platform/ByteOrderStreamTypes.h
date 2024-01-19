@@ -12,21 +12,29 @@
  */
 #pragma once
 
-#include "ByteOrderStream.h"
-#include "TimePoint.h"
-#include "CommonTypes.h"
+#include "MernelPlatform/ByteOrderStream.hpp"
 #include "MernelPlatform/Compression.hpp"
 
+#include "TimePoint.h"
+#include "CommonTypes.h"
+
 namespace Wuild {
+using ByteOrderDataStreamReader = Mernel::ByteOrderDataStreamReader;
+using ByteOrderDataStreamWriter = Mernel::ByteOrderDataStreamWriter;
+using ByteOrderBuffer           = Mernel::ByteOrderBuffer;
+
+}
+
+namespace Mernel {
 
 template<>
-inline ByteOrderDataStreamReader& ByteOrderDataStreamReader::operator>>(TimePoint& point)
+inline ByteOrderDataStreamReader& ByteOrderDataStreamReader::operator>>(Wuild::TimePoint& point)
 {
-    point.SetUS(this->ReadScalar<int64_t>());
+    point.SetUS(this->readScalar<int64_t>());
     return *this;
 }
 template<>
-inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator<<(const TimePoint& point)
+inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator<<(const Wuild::TimePoint& point)
 {
     *this << point.GetUS();
     return *this;
@@ -35,9 +43,9 @@ inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator<<(const Ti
 template<>
 inline ByteOrderDataStreamReader& ByteOrderDataStreamReader::operator>>(ByteArrayHolder& point)
 {
-    point.resize(this->ReadScalar<uint32_t>());
+    point.resize(this->readScalar<uint32_t>());
     if (point.size())
-        this->ReadBlock(point.data(), point.size());
+        this->readBlock(point.data(), point.size());
     return *this;
 }
 
@@ -47,7 +55,7 @@ inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator<<(const By
     uint32_t filesize = point.size();
     *this << filesize;
     if (filesize)
-        this->WriteBlock(point.data(), point.size());
+        this->writeBlock(point.data(), point.size());
     return *this;
 }
 
