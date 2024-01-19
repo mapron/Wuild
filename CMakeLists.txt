@@ -1,5 +1,5 @@
 #[[
-  Copyright (C) 2017-2021 Smirnov Vladimir mapron1@gmail.com
+  Copyright (C) 2017-2024 Smirnov Vladimir mapron1@gmail.com
   Source code licensed under the Apache License, Version 2.0 (the "License");
   You may not use this file except in compliance with the License.
   You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 or in file COPYING-APACHE-2.0.txt
@@ -18,19 +18,13 @@ project(Wuild)
 set(NINJA_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/ninja/src)
 set(ZSTD_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/zstd/lib)
 set(JSON_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/json)
-set(GHC_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/filesystem/include)
 
 #configure options
 option( WARNING_AS_ERROR "" OFF )
 option( USE_ZSTD_COMPRESSION "" ON )
-option( USE_GHC_STL "" OFF )
 
 #platform configuration.
-if (USE_GHC_STL)
-	set(CMAKE_CXX_STANDARD 14)
-else()
-	set(CMAKE_CXX_STANDARD 17)
-endif()
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if (MSVC)
@@ -38,9 +32,6 @@ if (MSVC)
 	add_compile_options(/wd4267 /wd4244 /Zc:__cplusplus)
 else()
 	add_compile_options(-Wall -Wno-error=sign-compare)
-	if (USE_GHC_STL)
-		add_definitions(-Wno-deprecated-declarations)
-	endif()
 endif()
 
 set(sys_deps)
@@ -61,9 +52,6 @@ endif()
 
 if (APPLE)
 	list(APPEND sys_deps -stdlib=libc++ -lc++)
-endif()
-if (USE_GHC_STL)
-	set(STL_DEFINES USE_GHC_STL)
 endif()
 
 # function for target declaration.
@@ -162,8 +150,6 @@ AddTarget(NAME Platform CSRC *.cpp *.h
 		${COMPRESSION_DEFINES} ${STL_DEFINES}
 	DEPS
 		${COMPRESSION_LIBS}
-	INCLUDES
-		${GHC_ROOT}
 	)
 
 AddTarget(NAME Configs CSRC *.cpp *.h
