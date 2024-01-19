@@ -23,6 +23,7 @@ set(srcRoot ${CMAKE_CURRENT_LIST_DIR}/src)
 #configure options
 option( WARNING_AS_ERROR "" OFF )
 option( WUILD_ENABLE_PROXY "" OFF )
+set(DISABLE_STATIC_CHECKS TRUE)
 
 #platform configuration.
 set(CMAKE_CXX_STANDARD 20)
@@ -69,6 +70,7 @@ endif()
 ########## Mernel ##########
 #]]
 set(MERNEL_BUILD_SHARED OFF)
+set(MERNEL_PLATFORM_ONLY ON)
 include(ext/mernel/mernel_thirdparty.cmake)
 include(ext/mernel/mernel.cmake)
 
