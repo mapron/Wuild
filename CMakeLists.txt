@@ -11,35 +11,49 @@
   limitations under the License.h
 #]]
 
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.24)
 project(Wuild)
 
 # main paths.
 set(NINJA_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/ninja/src)
-set(ZSTD_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/zstd/lib)
 set(JSON_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/json)
+set(MERNEL_ROOT ${CMAKE_CURRENT_LIST_DIR}/ext/mernel)
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake ${MERNEL_ROOT}/cmake)
+set(srcRoot ${CMAKE_CURRENT_LIST_DIR}/src)
 
 #configure options
 option( WARNING_AS_ERROR "" OFF )
-option( USE_ZSTD_COMPRESSION "" ON )
 
 #platform configuration.
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+
+include(utils)
+include(targets)
+
+if (WIN32)
+	add_definitions(-DNOMINMAX -D_UNICODE -DUNICODE -D_SCL_SECURE_NO_WARNINGS -D_USE_MATH_DEFINES)
+endif()
+
 if (MSVC)
-	add_definitions(-D_CRT_SECURE_NO_WARNINGS -DNOMINMAX -D_HAS_STD_BYTE=0)
+	add_definitions(-D_CRT_SECURE_NO_WARNINGS -D_HAS_STD_BYTE=0)
 	add_compile_options(/wd4267 /wd4244 /Zc:__cplusplus)
 else()
 	add_compile_options(-Wall -Wno-error=sign-compare)
 endif()
 
-set(sys_deps)
-
 if ( WIN32)
-	list(APPEND sys_deps ws2_32.lib)
+	set(CMAKE_EXE_LINKER_FLAGS    "${CMAKE_EXE_LINKER_FLAGS} ws2_32.lib")
+	set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ws2_32.lib")
 else()
-	list(APPEND sys_deps -lpthread)
+	set(CMAKE_EXE_LINKER_FLAGS    "${CMAKE_EXE_LINKER_FLAGS} -lpthread")
+	set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -lpthread")
+endif()
+if (APPLE)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+	set(CMAKE_EXE_LINKER_FLAGS    "${CMAKE_EXE_LINKER_FLAGS} -stdlib=libc++")
+	set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -stdlib=libc++")
 endif()
 
 if (WARNING_AS_ERROR)
@@ -50,56 +64,14 @@ if (WARNING_AS_ERROR)
 	endif()
 endif()
 
-if (APPLE)
-	list(APPEND sys_deps -stdlib=libc++ -lc++)
-endif()
 
-# function for target declaration.
-function(AddTarget)
-	set(options APP)
-	set(oneValueArgs NAME ROOT SUBDIR)
-	set(multiValueArgs CSRC INCLUDES DEPS EXCLUDE OPTIONS DEFINES SOURCES)
-	cmake_parse_arguments(AddTarget "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )
-	set(_sources ${AddTarget_SOURCES})
-	if (NOT AddTarget_ROOT)
-		set(AddTarget_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/src/${AddTarget_SUBDIR}${AddTarget_NAME})
-	endif()
-	foreach (csrc ${AddTarget_CSRC})
-		file(GLOB src ${AddTarget_ROOT}/${csrc})
-		list(APPEND _sources ${src})
-	endforeach()
-	foreach (excl ${AddTarget_EXCLUDE})
-		list(REMOVE_ITEM _sources ${AddTarget_ROOT}/${excl})
-	endforeach()
-	if (AddTarget_APP)
-		add_executable(${AddTarget_NAME} ${_sources})
-	else()
-		add_library(${AddTarget_NAME} STATIC ${_sources})
-	endif()
-	foreach (inc ${AddTarget_INCLUDES})
-		target_include_directories(${AddTarget_NAME} PRIVATE ${inc})
-	endforeach()
-	target_include_directories(${AddTarget_NAME} INTERFACE ${AddTarget_ROOT})
-	foreach (dep ${AddTarget_DEPS})
-		target_link_libraries(${AddTarget_NAME} PRIVATE ${dep})
-	endforeach()
-	foreach (opt ${AddTarget_OPTIONS})
-		target_compile_options(${AddTarget_NAME} PRIVATE ${opt})
-	endforeach()
-	foreach (opt ${AddTarget_DEFINES})
-		target_compile_definitions(${AddTarget_NAME} PRIVATE ${opt})
-	endforeach()
-endfunction()
+#[[
+########## Mernel ##########
+#]]
+set(MERNEL_BUILD_SHARED OFF)
+include(ext/mernel/mernel_thirdparty.cmake)
+include(ext/mernel/mernel.cmake)
 
-# Compression targets
-if (USE_ZSTD_COMPRESSION)
-	AddTarget(NAME zstd_static ROOT ${ZSTD_ROOT}/ CSRC common/*.c compress/*.c  decompress/*.c
-		INCLUDES ${ZSTD_ROOT}/ ${ZSTD_ROOT}/common/
-		DEFINES ZSTD_DISABLE_ASM
-		)
-	list(APPEND COMPRESSION_LIBS zstd_static)
-	list(APPEND COMPRESSION_DEFINES -DUSE_ZSTD)
-endif()
 
 # Source code targets.
 set(ninja_lib_src
@@ -140,85 +112,80 @@ else()
 endif()
 
 
-AddTarget(NAME ninja_lib ROOT ${NINJA_ROOT}/ CSRC ${ninja_lib_src} ${ninja_subprocess_src} *.h)
+AddTarget(TYPE static NAME ninja_lib SOURCE_DIR ${NINJA_ROOT}/ SKIP_GLOB EXTRA_GLOB ${ninja_lib_src} ${ninja_subprocess_src} *.h)
 if (MSVC)
 	target_compile_options(ninja_lib PRIVATE /wd4091 /wd4800 /wd4996)
 endif()
 
-AddTarget(NAME Platform CSRC *.cpp *.h
-	DEFINES
-		${COMPRESSION_DEFINES} ${STL_DEFINES}
-	DEPS
-		${COMPRESSION_LIBS}
+AddTarget(TYPE static NAME Platform SOURCE_DIR ${srcRoot}/Platform EXPORT_INCLUDES
+	LINK_LIBRARIES MernelPlatform
 	)
 
-AddTarget(NAME Configs CSRC *.cpp *.h
-	DEPS Platform)
+AddTarget(TYPE static NAME Configs SOURCE_DIR ${srcRoot}/Configs EXPORT_INCLUDES
+	LINK_LIBRARIES Platform MernelPlatform)
 
-AddTarget(NAME ToolExecutionInterface CSRC *.cpp *.h
-	DEPS Configs Platform)
+AddTarget(TYPE static NAME ToolExecutionInterface SOURCE_DIR ${srcRoot}/ToolExecutionInterface EXPORT_INCLUDES
+	LINK_LIBRARIES Configs Platform MernelPlatform)
 
-AddTarget(NAME Coordinator SUBDIR Modules/ CSRC *.cpp *.h
-	DEPS Configs Platform ToolExecutionInterface
+AddTarget(TYPE static NAME Coordinator SOURCE_DIR ${srcRoot}/Modules/Coordinator EXPORT_INCLUDES
+	LINK_LIBRARIES Configs Platform MernelPlatform ToolExecutionInterface
 	)
 
-AddTarget(NAME RemoteTool SUBDIR Modules/ CSRC *.cpp *.h
-	DEPS Configs Platform ToolExecutionInterface Coordinator
+AddTarget(TYPE static NAME RemoteTool SOURCE_DIR ${srcRoot}/Modules/RemoteTool EXPORT_INCLUDES
+	LINK_LIBRARIES Configs Platform MernelPlatform ToolExecutionInterface Coordinator
 	)
 
-AddTarget(NAME ToolProxy SUBDIR Modules/ CSRC *.cpp *.h
-	DEPS Configs Platform ToolExecutionInterface RemoteTool Coordinator
+AddTarget(TYPE static NAME ToolProxy SOURCE_DIR ${srcRoot}/Modules/ToolProxy EXPORT_INCLUDES
+	LINK_LIBRARIES Configs Platform MernelPlatform ToolExecutionInterface RemoteTool Coordinator
 	)
 
-AddTarget(NAME InvocationTool SUBDIR Modules/ CSRC *.cpp *.h
-	DEPS Configs Platform ToolExecutionInterface
+AddTarget(TYPE static NAME InvocationTool SOURCE_DIR ${srcRoot}/Modules/InvocationTool EXPORT_INCLUDES
+	LINK_LIBRARIES Configs Platform MernelPlatform ToolExecutionInterface
 	)
-AddTarget(NAME VersionChecker SUBDIR Modules/ CSRC *.cpp *.h
-	DEPS Configs Platform ToolExecutionInterface
+AddTarget(TYPE static NAME VersionChecker SOURCE_DIR ${srcRoot}/Modules/VersionChecker EXPORT_INCLUDES
+	LINK_LIBRARIES Configs Platform MernelPlatform ToolExecutionInterface
 	)
-AddTarget(NAME LocalExecutor SUBDIR Modules/  CSRC *.cpp *.h
-	DEPS ninja_lib Configs Platform InvocationTool ToolExecutionInterface
+AddTarget(TYPE static NAME LocalExecutor SOURCE_DIR ${srcRoot}/Modules/LocalExecutor EXPORT_INCLUDES
+	LINK_LIBRARIES ninja_lib Configs Platform MernelPlatform InvocationTool ToolExecutionInterface
+	INCLUDES ${NINJA_ROOT}/
 	)
 
-AddTarget(NAME ConfiguredApplication CSRC *.cpp *.h
-	DEPS Configs Platform
+AddTarget(TYPE static NAME ConfiguredApplication SOURCE_DIR ${srcRoot}/ConfiguredApplication EXPORT_INCLUDES
+	LINK_LIBRARIES Configs Platform MernelPlatform
 	)
 
 set(main_deps
-	ConfiguredApplication Configs VersionChecker LocalExecutor InvocationTool ToolExecutionInterface ToolProxy RemoteTool Coordinator Platform
+	ConfiguredApplication Configs VersionChecker LocalExecutor InvocationTool ToolExecutionInterface ToolProxy RemoteTool Coordinator Platform MernelPlatform
 	)
 
-AddTarget(NAME TestUtil ROOT ${CMAKE_CURRENT_SOURCE_DIR}/src/TestUtil/
-	CSRC *.cpp *.h
-	DEPS ${main_deps} ${sys_deps}
+AddTarget(TYPE static NAME TestUtil SOURCE_DIR ${srcRoot}/TestUtil/ EXPORT_INCLUDES
+	LINK_LIBRARIES ${main_deps}
 	)
 
 foreach (testname AllConfigs Balancer Compiler Coordinator Inflate Networking ToolServer CommandLine)
-	AddTarget(APP NAME Test${testname} ROOT ${CMAKE_CURRENT_SOURCE_DIR}/src/TestsManual/
-		CSRC Test${testname}.cpp
-		DEPS ${main_deps} ${sys_deps} TestUtil
+	AddTarget(TYPE app_console NAME Test${testname} SOURCE_DIR ${srcRoot}/TestsManual
+		SKIP_GLOB EXTRA_GLOB Test${testname}.cpp
+		LINK_LIBRARIES ${main_deps} TestUtil
 		)
 endforeach()
 foreach (benchname NetworkClient NetworkServer)
-	AddTarget(APP NAME Benchmark${benchname} ROOT ${CMAKE_CURRENT_SOURCE_DIR}/src/Benchmarks/
-		CSRC Benchmark${benchname}.cpp *.h BenchmarkUtils.cpp
-		DEPS ${main_deps} ${sys_deps}
+	AddTarget(TYPE app_console NAME Benchmark${benchname} SOURCE_DIR ${srcRoot}/Benchmarks
+		SKIP_GLOB EXTRA_GLOB Benchmark${benchname}.cpp *.h BenchmarkUtils.cpp
+		LINK_LIBRARIES ${main_deps}
 		)
 endforeach()
 
 foreach (appname Coordinator CoordinatorStatus Proxy ProxyClient ToolExecutor ToolServer ToolServerStatus)
-	AddTarget(APP NAME Wuild${appname} ROOT ${CMAKE_CURRENT_SOURCE_DIR}/src/Apps/${appname}/
-		CSRC *.cpp *.h
-		DEPS ${main_deps} ${sys_deps}
+	AddTarget(TYPE app_console NAME Wuild${appname} SOURCE_DIR ${srcRoot}/Apps/${appname}/
+		LINK_LIBRARIES ${main_deps}
 		INCLUDES ${JSON_ROOT}
 		)
 	install(TARGETS Wuild${appname} RUNTIME DESTINATION bin)
 endforeach()
 
-AddTarget(APP NAME WuildNinja ROOT ${CMAKE_CURRENT_SOURCE_DIR}/src/Apps/Ninja/
-	SOURCES ${NINJA_ROOT}/ninja.cc ${NINJA_ROOT}/build.cc
-	CSRC *.cpp *.h
-	DEPS ${main_deps} ${sys_deps}
-	INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/src/Apps/Ninja/ ${NINJA_ROOT}/
+AddTarget(TYPE app_console NAME WuildNinja SOURCE_DIR ${srcRoot}/Apps/Ninja/
+	EXTRA_SOURCES ${NINJA_ROOT}/ninja.cc ${NINJA_ROOT}/build.cc
+	LINK_LIBRARIES ${main_deps}
+	INCLUDES ${srcRoot}/Apps/Ninja/ ${NINJA_ROOT}/
 	)
 install(TARGETS WuildNinja RUNTIME DESTINATION bin)

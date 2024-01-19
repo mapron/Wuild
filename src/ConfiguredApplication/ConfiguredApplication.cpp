@@ -358,9 +358,9 @@ void ConfiguredApplication::ReadCompressionConfig(CompressionInfo& compressionIn
 {
     auto type = m_config->GetString(groupName, "compressionType", "ZStd");
     if (type == "None")
-        compressionInfo.m_type = CompressionType::None;
+        compressionInfo.m_type = Mernel::CompressionType::None;
     else if (type == "ZStd")
-        compressionInfo.m_type = CompressionType::ZStd;
+        compressionInfo.m_type = Mernel::CompressionType::ZStd;
     else
         Syslogger(Syslogger::Err) << "Invalid compression type:" << type;
     compressionInfo.m_level = m_config->GetInt(groupName, "compressionLevel", 3);

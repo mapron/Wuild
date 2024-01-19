@@ -13,14 +13,16 @@
 
 #pragma once
 #include "CommonTypes.h"
-#include "Compression.h"
+#include "MernelPlatform/Compression.hpp"
 
-#include <stdint.h>
+#include <cstdint>
 #include <vector>
 #include <string>
 #include <functional>
 
 namespace Wuild {
+
+using CompressionInfo = Mernel::CompressionInfo;
 
 class FileInfoPrivate;
 /// Holds information about file on a disk.
@@ -90,7 +92,7 @@ public:
 
 /// Wrapper for filename string, which explicitly removes file in destructor.
 class TemporaryFile : public FileInfo {
-    TemporaryFile(const TemporaryFile&) = delete;
+    TemporaryFile(const TemporaryFile&)            = delete;
     TemporaryFile& operator=(const TemporaryFile&) = delete;
 
 public:

@@ -13,7 +13,6 @@
 
 #include "FileUtils.h"
 
-#include "Compression.h"
 #include "Syslogger.h"
 #include "ThreadUtils.h"
 
@@ -24,15 +23,7 @@
 #include <memory>
 #include <streambuf>
 
-#ifndef USE_GHC_STL
-#include <filesystem>
-namespace fs = std::filesystem;
-using fserr  = std::error_code;
-#else
-#include <ghc/filesystem.hpp>
-namespace fs = ghc::filesystem;
-using fserr  = std::error_code;
-#endif
+#include "MernelPlatform/FsUtils.hpp"
 
 #ifdef _MSC_VER
 #define strtoull _strtoui64
@@ -67,12 +58,12 @@ namespace Wuild {
 
 class FileInfoPrivate {
 public:
-    fs::path m_path;
+    Mernel::std_path m_path;
 };
 
 std::string FileInfo::LocatePath(const std::string& path)
 {
-    if (fs::path(path).is_absolute())
+    if (Mernel::std_path(path).is_absolute())
         return path;
     const std::string pathEnv = getenv("PATH");
     std::stringstream ss;
@@ -83,7 +74,7 @@ std::string FileInfo::LocatePath(const std::string& path)
             continue;
         if (item[item.size() - 1] != '/' && item[item.size() - 1] != '\\')
             item += '/';
-        if (fs::exists(item + path))
+        if (Mernel::std_fs::exists(item + path))
             return FileInfo(item + path).GetPlatformShortName();
     }
     return path;
@@ -124,12 +115,12 @@ void FileInfo::SetPath(const std::string& path)
 
 std::string FileInfo::GetPath() const
 {
-    return m_impl->m_path.u8string();
+    return Mernel::path2string(m_impl->m_path);
 }
 
 std::string FileInfo::GetDir(bool ensureEndSlash) const
 {
-    auto ret = m_impl->m_path.parent_path().u8string();
+    auto ret = Mernel::path2string(m_impl->m_path.parent_path());
     if (!ret.empty() && ensureEndSlash)
         ret += '/';
     return ret;
@@ -137,7 +128,7 @@ std::string FileInfo::GetDir(bool ensureEndSlash) const
 
 std::string FileInfo::GetFullname() const
 {
-    return m_impl->m_path.filename().u8string();
+    return Mernel::path2string(m_impl->m_path.filename());
 }
 
 std::string FileInfo::GetNameWE() const
@@ -157,9 +148,9 @@ std::string FileInfo::GetFullExtension() const
 std::string FileInfo::GetPlatformShortName() const
 {
 #ifdef _WIN32
-    std::string result = GetPath();
-    fserr       code;
-    result      = fs::canonical(result, code).u8string();
+    std::string     result = GetPath();
+    std::error_code code;
+    result      = Mernel::path2string(Mernel::std_fs::canonical(result, code));
     long length = 0;
 
     // First obtain the size needed by passing NULL and 0.
@@ -194,7 +185,7 @@ bool FileInfo::ReadCompressed(ByteArrayHolder& data, CompressionInfo compression
         return false;
 
     try {
-        CompressDataBuffer(uncompressedData, data, compressionInfo);
+        Mernel::compressDataBuffer(uncompressedData, data, compressionInfo);
     }
     catch (std::exception& e) {
         Syslogger(Syslogger::Err) << "Error on reading:" << e.what() << " for " << GetPath();
@@ -211,7 +202,7 @@ bool FileInfo::WriteCompressed(const ByteArrayHolder& data, CompressionInfo comp
 {
     ByteArrayHolder uncompData;
     try {
-        UncompressDataBuffer(data, uncompData, compressionInfo);
+        Mernel::uncompressDataBuffer(data, uncompData, compressionInfo);
         if (pp)
             pp(uncompData.ref());
     }
@@ -247,7 +238,7 @@ bool FileInfo::ReadFile(ByteArrayHolder& data)
 
 bool FileInfo::WriteFile(const ByteArrayHolder& data, bool createTmpCopy)
 {
-    const std::string originalPath = fs::absolute(m_impl->m_path).u8string();
+    const std::string originalPath = Mernel::path2string(Mernel::std_fs::absolute(m_impl->m_path));
     const std::string writePath    = createTmpCopy ? originalPath + ".tmp" : originalPath;
     this->Remove();
 
@@ -258,13 +249,13 @@ bool FileInfo::WriteFile(const ByteArrayHolder& data, bool createTmpCopy)
         outFile.write(reinterpret_cast<const char*>(data.data()), data.size());
         outFile.close();
 #else
-        auto fileHandle = CreateFileA((LPTSTR) writePath.c_str(), // file name
-                                      GENERIC_WRITE,              // open for write
-                                      0,                          // do not share
-                                      NULL,                       // default security
-                                      CREATE_ALWAYS,              // overwrite existing
-                                      FILE_ATTRIBUTE_NORMAL,      // normal file
-                                      NULL);                      // no template
+        auto fileHandle = CreateFileA(writePath.c_str(),     // file name
+                                      GENERIC_WRITE,         // open for write
+                                      0,                     // do not share
+                                      NULL,                  // default security
+                                      CREATE_ALWAYS,         // overwrite existing
+                                      FILE_ATTRIBUTE_NORMAL, // normal file
+                                      NULL);                 // no template
         if (fileHandle == INVALID_HANDLE_VALUE)
             throw std::runtime_error("Failed to open file");
 
@@ -297,8 +288,8 @@ bool FileInfo::WriteFile(const ByteArrayHolder& data, bool createTmpCopy)
         return false;
     }
     if (createTmpCopy) {
-        fserr code;
-        fs::rename(writePath, originalPath, code);
+        std::error_code code;
+        Mernel::std_fs::rename(writePath, originalPath, code);
         if (code) {
             Syslogger(Syslogger::Err) << "Failed to rename " << writePath << " -> " << originalPath << " :" << GetLastError();
             return false;
@@ -309,8 +300,8 @@ bool FileInfo::WriteFile(const ByteArrayHolder& data, bool createTmpCopy)
 
 bool FileInfo::Exists()
 {
-    fserr code;
-    return fs::exists(m_impl->m_path, code);
+    std::error_code code;
+    return Mernel::std_fs::exists(m_impl->m_path, code);
 }
 
 size_t FileInfo::GetFileSize()
@@ -318,30 +309,30 @@ size_t FileInfo::GetFileSize()
     if (!Exists())
         return 0;
 
-    fserr code;
-    return fs::file_size(m_impl->m_path, code);
+    std::error_code code;
+    return Mernel::std_fs::file_size(m_impl->m_path, code);
 }
 
 void FileInfo::Remove()
 {
-    fserr code;
-    if (fs::exists(m_impl->m_path, code))
-        fs::remove(m_impl->m_path, code);
+    std::error_code code;
+    if (Mernel::std_fs::exists(m_impl->m_path, code))
+        Mernel::std_fs::remove(m_impl->m_path, code);
 }
 
 void FileInfo::Mkdirs()
 {
-    fserr code;
-    fs::create_directories(m_impl->m_path, code);
+    std::error_code code;
+    Mernel::std_fs::create_directories(m_impl->m_path, code);
 }
 
 StringVector FileInfo::GetDirFiles(bool sortByName)
 {
     StringVector res;
-    for (const fs::directory_entry& it : fs::directory_iterator(m_impl->m_path)) {
-        const fs::path& p = it.path();
-        if (fs::is_regular_file(p))
-            res.push_back(p.filename().u8string());
+    for (const Mernel::std_fs::directory_entry& it : Mernel::std_fs::directory_iterator(m_impl->m_path)) {
+        const Mernel::std_fs::path& p = it.path();
+        if (Mernel::std_fs::is_regular_file(p))
+            res.push_back(Mernel::path2string(p.filename()));
     }
     if (sortByName)
         std::sort(res.begin(), res.end());

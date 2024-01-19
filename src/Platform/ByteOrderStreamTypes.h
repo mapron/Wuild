@@ -15,7 +15,7 @@
 #include "ByteOrderStream.h"
 #include "TimePoint.h"
 #include "CommonTypes.h"
-#include "Compression.h"
+#include "MernelPlatform/Compression.hpp"
 
 namespace Wuild {
 
@@ -52,17 +52,17 @@ inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator<<(const By
 }
 
 template<>
-inline ByteOrderDataStreamReader& ByteOrderDataStreamReader::operator>>(CompressionInfo& info)
+inline ByteOrderDataStreamReader& ByteOrderDataStreamReader::operator>>(Mernel::CompressionInfo& info)
 {
-    uint32_t level, compType;
+    uint32_t level = 0, compType = 0;
     *this >> compType >> level;
-    info.m_type  = static_cast<CompressionType>(compType);
+    info.m_type  = static_cast<Mernel::CompressionType>(compType);
     info.m_level = static_cast<int>(level);
     return *this;
 }
 
 template<>
-inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator<<(const CompressionInfo& info)
+inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator<<(const Mernel::CompressionInfo& info)
 {
     *this << static_cast<uint32_t>(info.m_type);
     *this << static_cast<uint32_t>(info.m_level);

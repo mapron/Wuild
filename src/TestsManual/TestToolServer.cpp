@@ -19,8 +19,8 @@
 #include <LocalExecutor.h>
 #include <VersionChecker.h>
 
-const int                    g_toolsServerTestPort = 12345;
-const Wuild::CompressionType g_compType            = Wuild::CompressionType::ZStd;
+const int                     g_toolsServerTestPort = 12345;
+const Mernel::CompressionType g_compType            = Mernel::CompressionType::ZStd;
 
 /*
  * This test should be invoked just as normal compiler; first toolId used.

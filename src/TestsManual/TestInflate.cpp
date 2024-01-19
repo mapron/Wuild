@@ -33,7 +33,7 @@ int main(int argc, char** argv)
     auto                  tmp = Application::Instance().GetTempDir();
     Syslogger(Syslogger::Notice) << "tmp=" << tmp;
 
-    for (auto compressionType : { CompressionType::ZStd }) {
+    for (auto compressionType : { Mernel::CompressionType::ZStd }) {
         CompressionInfo info;
         info.m_type  = compressionType;
         info.m_level = 9;
