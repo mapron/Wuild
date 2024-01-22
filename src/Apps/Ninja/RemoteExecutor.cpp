@@ -169,7 +169,7 @@ void RemoteExecutor::RunIfNeeded(const std::vector<std::string>& toolIds, const 
 
 void RemoteExecutor::SleepSome() const
 {
-    usleep(1000);
+    Wuild::usleep(1000);
 }
 
 int RemoteExecutor::GetMinimalRemoteTasks() const

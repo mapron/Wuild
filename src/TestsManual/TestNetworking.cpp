@@ -178,7 +178,7 @@ int main(int argc, char** argv)
 
     TestService service;
     service.setServer(testServicePort);
-    usleep(100000);
+    Wuild::usleep(100000);
     for (int i = 0; i < 3; ++i) {
         service.addClient(testHost, testServicePort);
     }

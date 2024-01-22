@@ -151,7 +151,7 @@ std::tm TimePoint::GetTm() const
 
     t += std::chrono::seconds(seconds); //seconds( (int)system_clock::to_time_t(tp) );
     // d is days since 1970-01-01
-    auto d = round_down<days>(t);
+    auto d = round_down<std::chrono::days>(t);
     // t is now time duration since midnight of day d
     t -= d;
     // break d down into year/month/day
@@ -177,7 +177,7 @@ void TimePoint::SetTm(const std::tm& t, int ms)
 {
     std::chrono::system_clock::duration d;
     civil                               c(t.tm_year + 1900, t.tm_mon + 1, t.tm_mday);
-    d += days(days_from_civil(c));
+    d += std::chrono::days(days_from_civil(c));
     d += hours(t.tm_hour);
     d += minutes(t.tm_min);
     d += std::chrono::seconds(t.tm_sec);

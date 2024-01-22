@@ -30,7 +30,7 @@ public:
         LocalExecutorResult::Ptr res(new LocalExecutorResult("Stub output OK", true));
         res->m_executionTime.SetUS(1000);
         if (task->m_invocation.m_id.m_toolId == g_testTool2)
-            usleep(2000000);
+            Wuild::usleep(2000000);
         Syslogger(Syslogger::Info) << "AddTask ";
         task->m_callback(res);
     }
