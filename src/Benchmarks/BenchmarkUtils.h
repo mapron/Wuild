@@ -18,7 +18,7 @@
 #include <InvocationToolProvider.h>
 #include <Syslogger.h>
 #include <SocketFrameService.h>
-#include <ByteOrderStreamTypes.h>
+#include <ByteOrderStream.h>
 #include <ThreadUtils.h>
 
 #include <memory>

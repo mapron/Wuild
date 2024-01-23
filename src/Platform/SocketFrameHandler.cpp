@@ -15,7 +15,7 @@
 
 #include "TcpSocket.h"
 #include "ThreadUtils.h"
-#include "ByteOrderStreamTypes.h"
+#include "ByteOrderStream.h"
 
 #include <cstring>
 #include <stdexcept>
@@ -28,7 +28,7 @@
 
 namespace Wuild {
 SocketFrameHandlerSettings::SocketFrameHandlerSettings()
-    : m_byteOrder(Mernel::createByteorderMask(ORDER_BE, ORDER_BE, ORDER_BE))
+    : m_byteOrder(ByteOrderDataStream::CreateByteorderMask(ORDER_BE, ORDER_BE, ORDER_BE))
 {}
 
 SocketFrameHandler::SocketFrameHandler(int threadId, const SocketFrameHandlerSettings& settings)
@@ -252,8 +252,8 @@ void SocketFrameHandler::SetConnectionState(SocketFrameHandler::ConnectionState 
 SocketFrameHandler::QuantResult SocketFrameHandler::ReadFrames()
 {
     // first, try to read some data from socket
-    const size_t currentSize = m_readBuffer.getHolder().size();
-    const auto   readState   = m_channel->Read(m_readBuffer.getHolder());
+    const size_t currentSize = m_readBuffer.GetHolder().size();
+    const auto   readState   = m_channel->Read(m_readBuffer.GetHolder());
 
     if (readState == IDataSocket::ReadState::Fail)
         return QuantResult::Interrupt;
@@ -263,11 +263,11 @@ SocketFrameHandler::QuantResult SocketFrameHandler::ReadFrames()
 
     m_lastTestActivity = m_lastSucceessfulRead = TimePoint(true);
 
-    const size_t newSize = m_readBuffer.getHolder().size();
+    const size_t newSize = m_readBuffer.GetHolder().size();
 
-    m_readBuffer.setSize(newSize);
+    m_readBuffer.SetSize(newSize);
 
-    m_readBuffer.resetRead();
+    m_readBuffer.ResetRead();
 
     m_outputAcknowledgesSize += newSize - currentSize;
     bool validInput = true;
@@ -280,14 +280,14 @@ SocketFrameHandler::QuantResult SocketFrameHandler::ReadFrames()
         if (state == ConsumeState::Broken)
             validInput = false;
 
-        if (state != ConsumeState::Ok || m_readBuffer.eofRead())
+        if (state != ConsumeState::Ok || m_readBuffer.EofRead())
             break;
 
-        m_readBuffer.removeFromStart(m_readBuffer.getOffsetRead());
+        m_readBuffer.RemoveFromStart(m_readBuffer.GetOffsetRead());
 
-    } while (m_readBuffer.getSize());
+    } while (m_readBuffer.GetSize());
 
-    m_frameDataBuffer.resetRead();
+    m_frameDataBuffer.ResetRead();
 
     // if we have read frame data, try to parse it (and process apllication frames):
     do {
@@ -300,20 +300,20 @@ SocketFrameHandler::QuantResult SocketFrameHandler::ReadFrames()
         if (state == ConsumeState::Broken)
             validInput = false;
 
-        if (state != ConsumeState::Ok || m_frameDataBuffer.eofRead())
+        if (state != ConsumeState::Ok || m_frameDataBuffer.EofRead())
             break;
 
-        m_frameDataBuffer.removeFromStart(m_frameDataBuffer.getOffsetRead());
-    } while (m_frameDataBuffer.getSize());
+        m_frameDataBuffer.RemoveFromStart(m_frameDataBuffer.GetOffsetRead());
+    } while (m_frameDataBuffer.GetSize());
 
-    if (!m_frameDataBuffer.getSize()) {
+    if (!m_frameDataBuffer.GetSize()) {
         m_pendingReadType = ServiceMessageType::None;
     }
 
     // if error occured, clean all buffers.
     if (!validInput) {
-        m_readBuffer.clear();
-        m_frameDataBuffer.clear();
+        m_readBuffer.Clear();
+        m_frameDataBuffer.Clear();
         m_pendingReadType = ServiceMessageType::None;
     }
 
@@ -326,9 +326,9 @@ SocketFrameHandler::ConsumeState SocketFrameHandler::ConsumeReadBuffer()
     ByteOrderDataStreamReader inputStream(m_readBuffer, m_settings.m_byteOrder);
     ServiceMessageType        mtype = ServiceMessageType::User;
     if (m_settings.m_hasChannelTypes)
-        mtype = SocketFrameHandler::ServiceMessageType(inputStream.readScalar<uint8_t>());
+        mtype = SocketFrameHandler::ServiceMessageType(inputStream.ReadScalar<uint8_t>());
 
-    if (m_readBuffer.getRemainRead() < 0)
+    if (m_readBuffer.GetRemainRead() < 0)
         return ConsumeState::Incomplete;
 
     // check for some service types: acknowledge, line test and connection options:
@@ -378,7 +378,7 @@ SocketFrameHandler::ConsumeState SocketFrameHandler::ConsumeReadBuffer()
 
         m_pendingReadType = mtype;
 
-        ptrdiff_t frameLength = m_readBuffer.getRemainRead();
+        ptrdiff_t frameLength = m_readBuffer.GetRemainRead();
         if (frameLength <= 0)
             return ConsumeState::Incomplete;
         if (m_settings.m_hasChannelTypes) {
@@ -397,13 +397,12 @@ SocketFrameHandler::ConsumeState SocketFrameHandler::ConsumeReadBuffer()
         }
 
         // we could overread at this point, check this.
-        auto* framePos = m_frameDataBuffer.posWrite(frameLength);
+        auto* framePos = m_frameDataBuffer.PosWrite(frameLength);
         assert(framePos);
-        if (inputStream.getBuffer().checkRemain(frameLength)) {
-            inputStream.readBlock(framePos, frameLength);
-            m_frameDataBuffer.markWrite(frameLength);
-        } else
-            m_frameDataBuffer.setSize(m_frameDataBuffer.getSize() - frameLength);
+        if (inputStream.ReadBlock(framePos, frameLength))
+            m_frameDataBuffer.MarkWrite(frameLength);
+        else
+            m_frameDataBuffer.SetSize(m_frameDataBuffer.GetSize() - frameLength);
     }
 
     return ConsumeState::Ok;
@@ -423,7 +422,7 @@ SocketFrameHandler::ConsumeState SocketFrameHandler::ConsumeFrameBuffer()
         Syslogger(m_logContext, Syslogger::Err) << "MessageHandler ConsumeFrameBuffer() exception: " << ex.what();
         return ConsumeState::Broken;
     }
-    if (framestate == SocketFrame::stIncomplete || m_frameDataBuffer.eofRead()) {
+    if (framestate == SocketFrame::stIncomplete || m_frameDataBuffer.EofRead()) {
         return ConsumeState::Incomplete;
     }
     if (framestate == SocketFrame::stBroken) {
@@ -459,7 +458,7 @@ SocketFrameHandler::QuantResult SocketFrameHandler::WriteFrames()
         streamWriter << uint8_t(ServiceMessageType::Ack);
         streamWriter << static_cast<uint32_t>(m_outputAcknowledgesSize);
         m_outputAcknowledgesSize = 0;
-        m_outputSegments.push_front(buf.getHolder()); // acknowledges has high priority, so pushing them to front!
+        m_outputSegments.push_front(buf.GetHolder()); // acknowledges has high priority, so pushing them to front!
     }
 
     // check and write line test byte
@@ -472,7 +471,7 @@ SocketFrameHandler::QuantResult SocketFrameHandler::WriteFrames()
         ByteOrderBuffer           buf;
         ByteOrderDataStreamWriter streamWriter(buf, m_settings.m_byteOrder);
         streamWriter << uint8_t(ServiceMessageType::LineTest);
-        m_outputSegments.push_front(buf.getHolder());
+        m_outputSegments.push_front(buf.GetHolder());
         m_lineTestQueued = true;
     }
 
@@ -485,7 +484,7 @@ SocketFrameHandler::QuantResult SocketFrameHandler::WriteFrames()
         streamWriter << uint8_t(ServiceMessageType::ConnStatus);
         auto status = CalculateStatus();
         streamWriter << status.uniqueRepliesQueued;
-        m_outputSegments.push_front(buf.getHolder());
+        m_outputSegments.push_front(buf.GetHolder());
         m_lastConnStatusSend = TimePoint(true);
     }
 
@@ -498,7 +497,7 @@ SocketFrameHandler::QuantResult SocketFrameHandler::WriteFrames()
         ByteOrderDataStreamWriter streamWriter(buf, m_settings.m_byteOrder);
         streamWriter << uint8_t(ServiceMessageType::ConnOptions);
         streamWriter << size << m_settings.m_channelProtocolVersion << TimePoint(true).GetUS();
-        m_outputSegments.emplace_back(buf.getHolder());
+        m_outputSegments.emplace_back(buf.GetHolder());
     }
 
     // get all outpgoing frames and serialize them into channel segments
@@ -513,7 +512,7 @@ SocketFrameHandler::QuantResult SocketFrameHandler::WriteFrames()
         frontMsg->Write(streamWriter);
 
         const auto             typeId = frontMsg->FrameTypeId();
-        const ByteArrayHolder& buffer = buf.getHolder();
+        const ByteArrayHolder& buffer = buf.GetHolder();
 
         //Syslogger(m_logContext, Syslogger::Info) << "buffer -> " << streamWriter.GetBuffer().ToHex();
 

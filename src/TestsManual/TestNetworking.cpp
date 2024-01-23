@@ -14,7 +14,7 @@
 #include "TestUtils.h"
 
 #include <SocketFrameService.h>
-#include <ByteOrderStreamTypes.h>
+#include <ByteOrderStream.h>
 #include <ThreadUtils.h>
 
 #include <memory>
@@ -165,14 +165,13 @@ int main(int argc, char** argv)
     using namespace Wuild;
     ConfiguredApplication app(argc, argv, "TestNetworking");
 
-    auto                      mask = Mernel::createByteorderMask(ORDER_BE, ORDER_BE, ORDER_BE);
     ByteOrderBuffer           buf;
-    ByteOrderDataStreamReader streamReader(buf, mask);
-    ByteOrderDataStreamWriter streamWriter(buf, mask);
+    ByteOrderDataStreamReader streamReader(buf);
+    ByteOrderDataStreamWriter streamWriter(buf);
     uint32_t                  test = 42;
     streamWriter << test;
-    assert(buf.getSize() == 4);
-    buf.reset();
+    assert(buf.GetSize() == 4);
+    buf.Reset();
     streamReader >> test;
     assert(test == 42);
 

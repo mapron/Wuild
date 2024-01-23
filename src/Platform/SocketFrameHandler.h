@@ -18,9 +18,8 @@
 #include "ThreadUtils.h"
 #include "ThreadLoop.h"
 #include "IDataSocket.h"
+#include "ByteOrderBuffer.h"
 #include "Syslogger.h"
-
-#include "MernelPlatform/ByteOrderBuffer.hpp"
 
 #include <functional>
 #include <atomic>
@@ -244,8 +243,8 @@ protected:
     IDataSocket::Ptr                 m_channel;
     const SocketFrameHandlerSettings m_settings;
 
-    Mernel::ByteOrderBuffer m_readBuffer;
-    Mernel::ByteOrderBuffer m_frameDataBuffer;
+    ByteOrderBuffer m_readBuffer;
+    ByteOrderBuffer m_frameDataBuffer;
     struct SegmentInfo {
         ByteArrayHolder    data;
         size_t             transaction = 0;

@@ -13,6 +13,7 @@
 
 #include "RemoteToolFrames.h"
 
+#include <ByteOrderStream.h>
 #include <ByteOrderStreamTypes.h>
 
 namespace Wuild {

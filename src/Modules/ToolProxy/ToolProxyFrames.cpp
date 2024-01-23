@@ -13,7 +13,7 @@
 
 #include "ToolProxyFrames.h"
 
-#include <ByteOrderStreamTypes.h>
+#include <ByteOrderStream.h>
 
 #include <utility>
 

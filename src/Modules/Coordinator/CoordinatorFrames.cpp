@@ -13,10 +13,10 @@
 
 #include "CoordinatorFrames.h"
 
+#include <ByteOrderStream.h>
 #include <ByteOrderStreamTypes.h>
 
-namespace Mernel {
-using namespace Wuild;
+namespace Wuild {
 
 template<>
 inline ByteOrderDataStreamReader& ByteOrderDataStreamReader::operator>>(ToolServerInfo::ConnectedClientInfo& client)
@@ -89,9 +89,6 @@ inline ByteOrderDataStreamWriter& ByteOrderDataStreamWriter::operator<<(const To
         << session.m_maxUsedThreads;
     return *this;
 }
-
-}
-namespace Wuild {
 
 SocketFrame::State CoordinatorListResponse::ReadInternal(ByteOrderDataStreamReader& stream)
 {
