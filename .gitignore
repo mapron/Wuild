@@ -29,3 +29,4 @@
 *.app
 /*.user
 build*/
+.qtcreator/
